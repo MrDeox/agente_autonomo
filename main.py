@@ -27,7 +27,7 @@ if __name__ == "__main__":
     
     # Obtém sugestão da IA
     print("\nSolicitando análise da IA...")
-    model = "deepseek/deepseek-chat-v3-0324:free"
+    model = "deepseek/deepseek-r1-0528:free"
     ai_response = get_ai_suggestion(
         api_key=api_key,
         model=model,

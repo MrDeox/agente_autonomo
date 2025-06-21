@@ -45,49 +45,51 @@ def generate_project_snapshot(
     
     output = ["### ARQUITETURA DO PROJETO ###\n"]
     
-    # Percorre o diretório recursivamente
-    for file_path in root_path.rglob('*'):
-        if file_path.is_file() and file_path.suffix == '.py':
-            # Obtém caminho relativo
-            rel_path = file_path.relative_to(root_path)
-            rel_path_str = str(rel_path)
+    # Percorre recursivamente apenas arquivos .py
+    for file_path in root_path.rglob('**/*.py'):
+        if not file_path.is_file():
+            continue
             
-            # Verifica exclusões por nome de arquivo
-            if file_path.name in exclude_files:
-                continue
-                
-            # Verifica exclusões por diretório
-            if any(ex_dir in file_path.parts for ex_dir in exclude_dirs):
-                continue
-                
-            # Verifica se o arquivo está em um diretório venv
-            if 'venv' in file_path.parts or '.venv' in file_path.parts:
-                continue
-                
-            # Verifica padrões do .gitignore
-            for pattern in gitignore_patterns:
-                # Padrões que terminam com / devem corresponder apenas a diretórios
-                if pattern.endswith('/'):
-                    dir_pattern = pattern.rstrip('/')
-                    if fnmatch.fnmatch(str(rel_path.parent), dir_pattern):
-                        continue
-                    if fnmatch.fnmatch(rel_path.name, dir_pattern):
-                        continue
-                else:
-                    if fnmatch.fnmatch(rel_path_str, pattern):
-                        continue
-                    if fnmatch.fnmatch(f"{rel_path_str}/", pattern):
-                        continue
+        # Obtém caminho relativo
+        rel_path = file_path.relative_to(root_path)
+        rel_path_str = str(rel_path)
+        
+        # Verifica exclusões por nome de arquivo
+        if file_path.name in exclude_files:
+            continue
             
-            try:
-                # Lê o conteúdo do arquivo
-                content = file_path.read_text(encoding='utf-8')
-            except Exception as e:
-                content = f"# Erro ao ler arquivo: {str(e)}"
+        # Verifica exclusões por diretório
+        if any(ex_dir in file_path.parts for ex_dir in exclude_dirs):
+            continue
             
-            # Adiciona ao output formatado
-            output.append(f"--- INÍCIO DO ARQUIVO: {rel_path} ---")
-            output.append(f"```python\n{content}\n```")
-            output.append(f"--- FIM DO ARQUIVO: {rel_path} ---\n")
+        # Verifica se o arquivo está em um diretório venv
+        if 'venv' in file_path.parts or '.venv' in file_path.parts:
+            continue
+            
+        # Verifica padrões do .gitignore
+        for pattern in gitignore_patterns:
+            # Padrões que terminam com / devem corresponder apenas a diretórios
+            if pattern.endswith('/'):
+                dir_pattern = pattern.rstrip('/')
+                if fnmatch.fnmatch(str(rel_path.parent), dir_pattern):
+                    continue
+                if fnmatch.fnmatch(rel_path.name, dir_pattern):
+                    continue
+            else:
+                if fnmatch.fnmatch(rel_path_str, pattern):
+                    continue
+                if fnmatch.fnmatch(f"{rel_path_str}/", pattern):
+                    continue
+        
+        try:
+            # Lê o conteúdo do arquivo
+            content = file_path.read_text(encoding='utf-8')
+        except Exception as e:
+            content = f"# Erro ao ler arquivo: {str(e)}"
+        
+        # Adiciona ao output formatado
+        output.append(f"--- INÍCIO DO ARQUIVO: {rel_path} ---")
+        output.append(f"```python\n{content}\n```")
+        output.append(f"--- FIM DO ARQUIVO: {rel_path} ---\n")
     
     return "\n".join(output)
