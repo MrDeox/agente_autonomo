@@ -1,33 +1,49 @@
 from dotenv import load_dotenv
 import os
 import sys
+import argparse
+import shutil
+import tempfile
+from pathlib import Path
+
 from agent.project_scanner import update_project_manifest
 from agent.brain import get_ai_suggestion
 from agent.file_manager import apply_changes
 from agent.code_validator import validate_python_code
+from agent.tool_executor import run_in_sandbox
 
-if __name__ == "__main__":
-    # Carrega variáveis de ambiente
+
+def apply_changes_in_dir(files_to_update, base_dir: Path) -> None:
+    """Aplica mudanças em arquivos dentro de um diretório específico."""
+    for item in files_to_update:
+        rel_path = Path(item.get("file_path"))
+        new_content = item.get("new_content", "")
+        target = base_dir / rel_path
+        target.parent.mkdir(parents=True, exist_ok=True)
+        with open(target, "w", encoding="utf-8") as f:
+            f.write(new_content)
+
+
+def evaluate_benchmark(metrics_a: dict, metrics_b: dict) -> bool:
+    if metrics_b.get("exit_code") != 0:
+        return False
+    if metrics_b.get("execution_time", 0) > metrics_a.get("execution_time", 0) * 1.2:
+        return False
+    return True
+
+
+def main(objective: str, benchmark_mode: bool = False) -> None:
     load_dotenv()
-    
-    # Obtém a chave da API
+
     api_key = os.getenv("OPENROUTER_API_KEY")
     if not api_key:
         print("Erro: Chave da API não encontrada. Defina OPENROUTER_API_KEY no arquivo .env")
         sys.exit(1)
-    
-    # Define o objetivo para a IA
-    objective = (
-        "Analise o arquivo project_scanner.py e "
-        "sugira uma melhoria de performance ou clareza no código."
-    )
-    
-    # Determina arquivos alvo com base no objetivo
+
     target_files = []
     if "project_scanner.py" in objective:
         target_files.append("agent/project_scanner.py")
-    
-    # Passo 1: Gerar manifesto do projeto (AGENTS.md)
+
     print("Gerando manifesto do projeto (AGENTS.md)...")
     update_project_manifest(root_dir=".", target_files=target_files)
     
@@ -137,31 +153,44 @@ if __name__ == "__main__":
     print("\n--- ANÁLISE DA IA ---")
     print(parsed_json.get("analysis_summary", ""))
     print(f"(Modelo usado: {model_used})")
-    
-    # Confirmação do usuário
-    user_input = input("\nAplicar as mudanças? (s/n): ").strip().lower()
-    
-    if user_input == 's':
-        print("\nAplicando mudanças...")
-        report = apply_changes(parsed_json.get("files_to_update", []))
-        
-        print("\n--- RELATÓRIO DE MUDANÇAS ---")
-        print(f"Status geral: {report['status']}")
-        
-        if report['changes']:
-            print("\nArquivos modificados:")
-            for change in report['changes']:
-                print(f"- {change['file']} (backup: {change['backup']})")
-                
-        if report['errors']:
-            print("\nErros encontrados:")
-            for error in report['errors']:
-                print(f"- {error}")
-        
-        # Ressincronização do manifesto após mudanças bem-sucedidas
+
+    if benchmark_mode:
+        return
+
+    print("\nExecutando benchmark A/B para validar a mudança...")
+
+    with tempfile.TemporaryDirectory() as bench_dir:
+        temp_a = Path(bench_dir) / "temp_A"
+        temp_b = Path(bench_dir) / "temp_B"
+
+        shutil.copytree(Path('.'), temp_a, dirs_exist_ok=True)
+        shutil.copytree(Path('.'), temp_b, dirs_exist_ok=True)
+
+        metrics_a = run_in_sandbox(str(temp_a), objective)
+
+        apply_changes_in_dir(files_to_update, temp_b)
+        metrics_b = run_in_sandbox(str(temp_b), objective)
+
+    approved = evaluate_benchmark(metrics_a, metrics_b)
+
+    print("\n--- RESULTADO DO BENCHMARK ---")
+    print(f"Versão A - tempo: {metrics_a['execution_time']:.2f}s, pico memoria: {metrics_a['peak_memory_mb']:.2f}MB, exit: {metrics_a['exit_code']}")
+    print(f"Versão B - tempo: {metrics_b['execution_time']:.2f}s, pico memoria: {metrics_b['peak_memory_mb']:.2f}MB, exit: {metrics_b['exit_code']}")
+
+    if approved:
+        print("Mudança aprovada pelo benchmark. Aplicando...")
+        report = apply_changes(files_to_update)
         if report['status'] == 'success' and report['changes']:
-            print("\nRessincronizando o manifesto do projeto após as mudanças...")
             update_project_manifest(root_dir=".", target_files=[])
-            print("Manifesto AGENTS.md atualizado com o novo estado do projeto.")
+        print("Aplicação concluída.")
     else:
-        print("\nOperação cancelada pelo usuário.")
+        print("Mudança rejeitada pelo benchmark. Nenhum arquivo foi alterado.")
+
+
+if __name__ == "__main__":
+    parser = argparse.ArgumentParser()
+    parser.add_argument("objective", nargs="?", default="Analise o arquivo project_scanner.py e sugira uma melhoria de performance ou clareza no código.")
+    parser.add_argument("--benchmark", action="store_true")
+    args = parser.parse_args()
+
+    main(args.objective, args.benchmark)
