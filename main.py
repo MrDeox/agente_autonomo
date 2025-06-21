@@ -29,6 +29,7 @@ if __name__ == "__main__":
     # Obtém sugestão da IA
     print("\nSolicitando análise da IA...")
     model = "deepseek/deepseek-r1-0528:free"
+    print(f"Usando modelo: {model}")
     ai_response = get_ai_suggestion(
         api_key=api_key,
         model=model,
@@ -38,6 +39,10 @@ if __name__ == "__main__":
 
     if not ai_response:
         print("Erro ao obter resposta da IA ou formato inválido.")
+        print("Possíveis causas:")
+        print("- Modelo não disponível ou indisponível")
+        print("- Problema de conexão com a API")
+        print("- Formato de resposta inválido")
         sys.exit(1)
 
     # Validação de sintaxe do código gerado
