@@ -28,23 +28,27 @@ if __name__ == "__main__":
     # Obtém sugestão da IA
     print("\nSolicitando análise da IA...")
     model = "deepseek/deepseek-chat-v3-0324:free"
-    suggestion = get_ai_suggestion(
+    ai_response = get_ai_suggestion(
         api_key=api_key,
         model=model,
         project_snapshot=snapshot,
         objective=objective
     )
-    
-    # Exibe os resultados
-    print("\n--- SUGESTÃO DA IA ---")
-    print(suggestion)
+
+    if not ai_response:
+        print("Erro ao obter resposta da IA ou formato inválido.")
+        sys.exit(1)
+
+    # Exibe a análise da IA
+    print("\n--- ANÁLISE DA IA ---")
+    print(ai_response.get("analysis_summary", ""))
     
     # Confirmação do usuário
-    user_input = input("\nAs sugestões parecem boas. Aplicar as mudanças? (s/n): ").strip().lower()
+    user_input = input("\nAplicar as mudanças? (s/n): ").strip().lower()
     
     if user_input == 's':
         print("\nAplicando mudanças...")
-        report = apply_changes(suggestion)
+        report = apply_changes(ai_response.get("files_to_update", []))
         
         print("\n--- RELATÓRIO DE MUDANÇAS ---")
         print(f"Status geral: {report['status']}")

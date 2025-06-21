@@ -1,36 +1,36 @@
-import re
 import shutil
 from pathlib import Path
 from typing import Dict, List
 
-def apply_changes(ai_response: str) -> Dict:
+def apply_changes(files_to_update: List[Dict[str, str]]) -> Dict:
     """
     Aplica as mudanças sugeridas pela IA nos arquivos do projeto, com backup seguro.
     
     Args:
-        ai_response: String com a resposta formatada da IA contendo as mudanças
+        files_to_update: Lista de dicionários contendo caminho do arquivo e novo conteúdo
         
     Returns:
         Dicionário com relatório detalhado da operação
     """
-    pattern = re.compile(
-        r'--- INÍCIO DO ARQUIVO: (.*?) ---\s*```+python\n(.*?)\n```+',
-        re.DOTALL
-    )
-    
     report = {
         "status": "success",
         "changes": [],
         "errors": []
     }
-    
-    matches = pattern.findall(ai_response)
-    if not matches:
+    if not files_to_update:
         report["status"] = "failed"
-        report["errors"].append("Nenhuma mudança detectada na resposta da IA.")
+        report["errors"].append("Lista de arquivos vazia.")
         return report
-    
-    for file_path_str, new_content in matches:
+
+    for item in files_to_update:
+        file_path_str = item.get("file_path")
+        new_content = item.get("new_content")
+
+        if not file_path_str or new_content is None:
+            report["errors"].append("Dados inválidos para atualização de arquivo.")
+            report["status"] = "partial" if report["status"] != "failed" else "failed"
+            continue
+
         file_path = Path(file_path_str)
         
         if not file_path.exists():
@@ -50,7 +50,7 @@ def apply_changes(ai_response: str) -> Dict:
             
         try:
             # Aplica mudanças
-            with open(file_path, 'w', encoding='utf-8') as f:
+            with open(file_path, "w", encoding="utf-8") as f:
                 f.write(new_content)
                 
             report["changes"].append({
