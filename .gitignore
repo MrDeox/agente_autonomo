@@ -9,3 +9,5 @@ venv/
 .env
 logs/
 .DS_Store
+tests/test_generated_by_agent.py
+tests/__pycache__/

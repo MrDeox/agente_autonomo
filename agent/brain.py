@@ -1,57 +1,104 @@
 import json
 import requests
-from typing import Optional, Dict, Any
+import traceback
+from typing import Optional, Dict, Any, List, Tuple
 
 def get_ai_suggestion(
     api_key: str,
-    model: str,
+    model_list: List[str],
     project_snapshot: str,
     objective: str,
     base_url: str = "https://openrouter.ai/api/v1"
-) -> Optional[Dict[str, Any]]:
+) -> List[Dict[str, Any]]:
     """
-    Obtém sugestões de uma LLM via OpenRouter API com base no snapshot do projeto e objetivo.
-    
-    Args:
-        api_key: Chave da API OpenRouter
-        model: Modelo de IA a ser usado (ex: 'anthropic/claude-3-haiku')
-        project_snapshot: Snapshot do projeto gerado por generate_project_snapshot
-        objective: Objetivo/tarefa para a IA
-        base_url: URL base da API (opcional)
-    
-    Returns:
-        Dicionário com a resposta da IA ou None em caso de erro
+    Obtém sugestões de LLMs via OpenRouter API usando lista de fallback.
+    Retorna uma lista de dicionários com logs detalhados de cada tentativa.
     """
-    url = f"{base_url}/chat/completions"
-    headers = {
-        "Authorization": f"Bearer {api_key}",
-        "Content-Type": "application/json"
-    }
+    attempt_logs = []
     
-    prompt = (
-        "Você é um assistente que sugere mudanças em projetos Python. "
-        "Sua resposta DEVE ser estritamente um objeto JSON válido com as chaves "
-        "'analysis_summary' e 'files_to_update'. Nada de texto fora do JSON."\
-        "\nEstrutura esperada: {\"analysis_summary\": \"...\", \"files_to_update\": [{\"file_path\": \"...\", \"new_content\": \"...\"}]}"\
-        f"\nObjetivo: {objective}"\
-        f"\nArquitetura do projeto:\n{project_snapshot}"
-    )
+    for model in model_list:
+        print(f"Tentando com o modelo: {model}...")
+        url = f"{base_url}/chat/completions"
+        headers = {
+            "Authorization": f"Bearer {api_key}",
+            "Content-Type": "application/json"
+        }
+        
+        prompt = f"""
+[CONTEXTO GERAL E IDENTIDADE]
+Você é o Cérebro de Engenharia de um Agente de IA autônomo chamado 'Hephaestus'. Sua missão is analisar o código-fonte do agente e propor melhorias para torná-lo mais inteligente, resiliente e eficiente, seguindo um ciclo de aprimoramento recursivo. Você pensa de forma lógica, prioriza código limpo e robusto, e justifica suas decisões com base em boas práticas de eng de software.
 
-    payload = {
-        "model": model,
-        "messages": [
-            {"role": "user", "content": prompt}
-        ],
-        "temperature": 0.7
-    }
+[OBJETIVO DA TAREFA ATUAL]
+Seu objetivo específico para esta execução é: {objective}
 
-    try:
-        response = requests.post(url, json=payload, headers=headers)
-        response.raise_for_status()
-        content = response.json()["choices"][0]["message"]["content"]
+[FORMATO DE SAÍDA OBRIGATÓRIO]
+Sua resposta DEVE SER um objeto JSON válido e NADA MAIS. Não inclua explicações, saudações ou qualquer texto fora do objeto JSON. A estrutura do JSON deve ser:
+{{
+  "analysis_summary": "No campo 'analysis_summary', escreva como um engenheiro sênior reportando para outro, explicando o raciocínio técnico e os benefícios da mudança proposta.",
+  "files_to_update": [
+    {{
+      "file_path": "caminho/do/arquivo.py",
+      "new_content": "O código completo e atualizado do arquivo."
+    }}
+  ],
+  "validation_pytest_code": "OPCIONAL: Uma string contendo o código de um novo teste em pytest para validar a mudança proposta. Se a mudança for simples e não necessitar de um novo teste, esta chave pode ser omitida ou o valor ser null/vazio."
+}}
+
+[DADOS DE ENTRADA]
+Abaixo está o snapshot atual do código do projeto 'Hephaestus' para sua análise:
+{project_snapshot}
+"""
+
+        payload = {
+            "model": model,
+            "messages": [
+                {"role": "user", "content": prompt}
+            ],
+            "temperature": 0.7
+        }
+
+        attempt_log = {
+            "model": model,
+            "raw_response": "",
+            "parsed_json": None,
+            "success": False
+        }
+        
         try:
-            return json.loads(content)
-        except json.JSONDecodeError:
-            return None
-    except (requests.exceptions.RequestException, KeyError):
-        return None
+            response = requests.post(url, json=payload, headers=headers)
+            response.raise_for_status()
+            content = response.json()["choices"][0]["message"]["content"]
+            attempt_log["raw_response"] = content
+            
+            try:
+                # Remove possible Markdown code block wrappers
+                clean_content = content.strip()
+                if clean_content.startswith('```json'):
+                    # Extract JSON from code block
+                    clean_content = clean_content[7:]  # Remove '```json'
+                    if clean_content.endswith('```'):
+                        clean_content = clean_content[:-3]
+                elif clean_content.startswith('```'):
+                    clean_content = clean_content[3:]
+                    if clean_content.endswith('```'):
+                        clean_content = clean_content[:-3]
+                
+                parsed = json.loads(clean_content)
+                attempt_log["parsed_json"] = parsed
+                attempt_log["success"] = True
+            except json.JSONDecodeError as e:
+                attempt_log["raw_response"] = f"Conteúdo original: {content}\nJSONDecodeError: {str(e)}"
+        except requests.exceptions.RequestException as e:
+            if hasattr(e, 'response') and e.response is not None:
+                error_details = f"Status: {e.response.status_code}, Response: {e.response.text}"
+            else:
+                error_details = str(e)
+            attempt_log["raw_response"] = f"Request failed: {error_details}"
+        except KeyError as e:
+            attempt_log["raw_response"] = f"KeyError: {str(e)} in API response"
+        except Exception as e:
+            attempt_log["raw_response"] = f"Unexpected error: {str(e)}\n{traceback.format_exc()}"
+        
+        attempt_logs.append(attempt_log)
+    
+    return attempt_logs

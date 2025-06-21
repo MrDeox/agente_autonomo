@@ -77,6 +77,14 @@ if __name__ == "__main__":
             print("--------------------------------------------------")
         sys.exit(1)
 
+    # Verificação crítica da resposta da IA
+    if parsed_json is None:
+        print("\n!! ERRO CRÍTICO NO PROCESSAMENTO DA RESPOSTA DA IA !!")
+        print("A resposta foi marcada como sucesso mas o conteúdo é inválido.")
+        print("Exibindo resposta bruta para debug:")
+        print(successful_attempt["raw_response"])
+        sys.exit(1)
+        
     # Validação de sintaxe do código gerado
     files_to_update = parsed_json.get("files_to_update", [])
     for file_update in files_to_update:
@@ -88,6 +96,43 @@ if __name__ == "__main__":
             print("Ciclo de modificação abortado para garantir a integridade do projeto.")
             sys.exit(1)
 
+    # Novo passo: Validação com testes pytest
+    test_code = parsed_json.get("validation_pytest_code", "") or ""
+    test_code = test_code.strip()
+    temp_test_path = "tests/test_generated_by_agent.py"
+    
+    if test_code:
+        print("\n--- EXECUTANDO TESTES DE VALIDAÇÃO GERADOS PELA IA ---")
+        
+        try:
+            # Garante que o diretório de testes existe
+            os.makedirs("tests", exist_ok=True)
+            
+            # Escreve o código de teste temporário
+            with open(temp_test_path, "w", encoding="utf-8") as test_file:
+                test_file.write(test_code)
+            
+            # Executa os testes
+            from agent.tool_executor import run_pytest
+            tests_passed, pytest_output = run_pytest()
+            
+            if tests_passed:
+                print("✔ Testes de validação passaram com sucesso!")
+            else:
+                print("\n!! FALHA NOS TESTES DE VALIDAÇÃO !!")
+                print("A execução dos testes gerados pela IA falhou:")
+                print(pytest_output)
+                print("Abortando a aplicação das mudanças.")
+                sys.exit(1)
+        except Exception as e:
+            print(f"\n!! ERRO DURANTE A EXECUÇÃO DOS TESTES: {str(e)} !!")
+            print("Abortando a aplicação das mudanças.")
+            sys.exit(1)
+        finally:
+            # Limpeza: Remove arquivo de teste temporário
+            if os.path.exists(temp_test_path):
+                os.remove(temp_test_path)
+    
     # Exibe a análise da IA
     print("\n--- ANÁLISE DA IA ---")
     print(parsed_json.get("analysis_summary", ""))
@@ -112,5 +157,11 @@ if __name__ == "__main__":
             print("\nErros encontrados:")
             for error in report['errors']:
                 print(f"- {error}")
+        
+        # Ressincronização do manifesto após mudanças bem-sucedidas
+        if report['status'] == 'success' and report['changes']:
+            print("\nRessincronizando o manifesto do projeto após as mudanças...")
+            update_project_manifest(root_dir=".", target_files=[])
+            print("Manifesto AGENTS.md atualizado com o novo estado do projeto.")
     else:
         print("\nOperação cancelada pelo usuário.")
