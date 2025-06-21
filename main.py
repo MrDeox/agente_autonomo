@@ -4,6 +4,7 @@ import sys
 from agent.project_scanner import generate_project_snapshot
 from agent.brain import get_ai_suggestion
 from agent.file_manager import apply_changes
+from agent.code_validator import validate_python_code
 
 if __name__ == "__main__":
     # Carrega variáveis de ambiente
@@ -38,6 +39,17 @@ if __name__ == "__main__":
     if not ai_response:
         print("Erro ao obter resposta da IA ou formato inválido.")
         sys.exit(1)
+
+    # Validação de sintaxe do código gerado
+    files_to_update = ai_response.get("files_to_update", [])
+    for file_update in files_to_update:
+        is_valid, error = validate_python_code(file_update['new_content'])
+        if not is_valid:
+            print(f"\n!! ERRO DE SINTAXE DETECTADO NA SUGESTÃO DA IA !!")
+            print(f"Arquivo alvo: {file_update['file_path']}")
+            print(f"Erro: {error}")
+            print("Ciclo de modificação abortado para garantir a integridade do projeto.")
+            sys.exit(1)
 
     # Exibe a análise da IA
     print("\n--- ANÁLISE DA IA ---")
