@@ -1,0 +1,11 @@
+# Diretórios e arquivos a serem ignorados
+__pycache__/
+*.pyc
+*.pyo
+.python-version
+.venv/
+env/
+venv/
+.env
+logs/
+.DS_Store
