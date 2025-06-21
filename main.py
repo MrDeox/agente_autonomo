@@ -32,13 +32,13 @@ def evaluate_benchmark(metrics_a: dict, metrics_b: dict) -> bool:
     return True
 
 
-def main(objective: str, benchmark_mode: bool = False) -> None:
+def run_evolution_cycle(objective: str, benchmark_mode: bool = False) -> tuple[bool, str, str]:
+    """Executa um ciclo de evolução único e retorna status estruturado."""
     load_dotenv()
 
     api_key = os.getenv("OPENROUTER_API_KEY")
     if not api_key:
-        print("Erro: Chave da API não encontrada. Defina OPENROUTER_API_KEY no arquivo .env")
-        sys.exit(1)
+        return False, "MISSING_API_KEY", "OPENROUTER_API_KEY não encontrado"
 
     target_files = []
     if "project_scanner.py" in objective:
@@ -85,32 +85,22 @@ def main(objective: str, benchmark_mode: bool = False) -> None:
         model_used = successful_attempt["model"]
         print(f"Resposta válida obtida do modelo: {model_used}")
     else:
-        print("\n!! FALHA CRÍTICA DE COMUNICAÇÃO !!")
-        print("Todos os modelos da lista falharam. Exibindo logs de cada tentativa:")
-        for i, attempt in enumerate(attempt_logs):
-            print(f"\n--- TENTATIVA {i+1}: MODELO {attempt['model']} ---")
-            print(f"Resposta Bruta Recebida:\n{attempt['raw_response']}")
-            print("--------------------------------------------------")
-        sys.exit(1)
+        log = "\n".join(
+            [f"Modelo {a['model']} -> {a['raw_response']}" for a in attempt_logs]
+        )
+        return False, "LLM_COMMUNICATION_FAILED", log
 
     # Verificação crítica da resposta da IA
     if parsed_json is None:
-        print("\n!! ERRO CRÍTICO NO PROCESSAMENTO DA RESPOSTA DA IA !!")
-        print("A resposta foi marcada como sucesso mas o conteúdo é inválido.")
-        print("Exibindo resposta bruta para debug:")
-        print(successful_attempt["raw_response"])
-        sys.exit(1)
+        return False, "INVALID_JSON", successful_attempt["raw_response"]
         
     # Validação de sintaxe do código gerado
     files_to_update = parsed_json.get("files_to_update", [])
     for file_update in files_to_update:
         is_valid, error = validate_python_code(file_update['new_content'])
         if not is_valid:
-            print(f"\n!! ERRO DE SINTAXE DETECTADO NA SUGESTÃO DA IA !!")
-            print(f"Arquivo alvo: {file_update['file_path']}")
-            print(f"Erro: {error}")
-            print("Ciclo de modificação abortado para garantir a integridade do projeto.")
-            sys.exit(1)
+            context = f"Arquivo alvo: {file_update['file_path']}\nErro: {error}"
+            return False, "SYNTAX_ERROR", context
 
     # Novo passo: Validação com testes pytest
     test_code = parsed_json.get("validation_pytest_code", "") or ""
@@ -135,15 +125,10 @@ def main(objective: str, benchmark_mode: bool = False) -> None:
             if tests_passed:
                 print("✔ Testes de validação passaram com sucesso!")
             else:
-                print("\n!! FALHA NOS TESTES DE VALIDAÇÃO !!")
-                print("A execução dos testes gerados pela IA falhou:")
-                print(pytest_output)
-                print("Abortando a aplicação das mudanças.")
-                sys.exit(1)
+                context = pytest_output
+                return False, "PYTEST_FAILURE", context
         except Exception as e:
-            print(f"\n!! ERRO DURANTE A EXECUÇÃO DOS TESTES: {str(e)} !!")
-            print("Abortando a aplicação das mudanças.")
-            sys.exit(1)
+            return False, "PYTEST_FAILURE", str(e)
         finally:
             # Limpeza: Remove arquivo de teste temporário
             if os.path.exists(temp_test_path):
@@ -155,7 +140,7 @@ def main(objective: str, benchmark_mode: bool = False) -> None:
     print(f"(Modelo usado: {model_used})")
 
     if benchmark_mode:
-        return
+        return True, "BENCHMARK_ONLY", "Benchmark executado"
 
     print("\nExecutando benchmark A/B para validar a mudança...")
 
@@ -183,13 +168,55 @@ def main(objective: str, benchmark_mode: bool = False) -> None:
         if report['status'] == 'success' and report['changes']:
             update_project_manifest(root_dir=".", target_files=[])
         print("Aplicação concluída.")
+        return True, "APPLIED", "Mudança aplicada com sucesso."
     else:
-        print("Mudança rejeitada pelo benchmark. Nenhum arquivo foi alterado.")
+        return False, "BENCHMARK_REJECTED", "Mudança rejeitada pelo benchmark."
+
+
+def main(initial_objective: str, benchmark_mode: bool = False) -> None:
+    """Controla o loop de evolução com capacidade de auto-correção."""
+    if benchmark_mode:
+        run_evolution_cycle(initial_objective, benchmark_mode=True)
+        return
+
+    current_objective = initial_objective
+
+    while True:
+        success, reason, context = run_evolution_cycle(current_objective)
+
+        if success or reason == "USER_CANCELLED":
+            break
+
+        if reason in {"SYNTAX_ERROR", "PYTEST_FAILURE"}:
+            previous_objective = current_objective
+            current_objective = f"""
+
+IGNORE_WHEN_COPYING_START
+Use code with caution. Python
+IGNORE_WHEN_COPYING_END
+
+[TAREFA DE CORREÇÃO]
+A tentativa anterior de alcançar o objetivo falhou durante a fase de validação.
+OBJETIVO ORIGINAL:
+{previous_objective}
+FALHA ENCONTRADA: {reason}
+DETALHES DO ERRO:
+{context}
+
+Sua nova missão é analisar o erro acima, entender por que a modificação anterior falhou, e propor uma nova versão do código que alcance o objetivo original E corrija esta falha.
+"""
+            continue
+        else:
+            break
 
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument("objective", nargs="?", default="Analise o arquivo project_scanner.py e sugira uma melhoria de performance ou clareza no código.")
+    parser.add_argument(
+        "objective",
+        nargs="?",
+        default="Analise o arquivo project_scanner.py e sugira uma melhoria de performance ou clareza no código.",
+    )
     parser.add_argument("--benchmark", action="store_true")
     args = parser.parse_args()
 
