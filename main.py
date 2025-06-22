@@ -10,7 +10,7 @@ from agent.project_scanner import update_project_manifest
 from agent.brain import get_ai_suggestion, get_maestro_decision, generate_next_objective
 from agent.file_manager import apply_changes
 from agent.code_validator import validate_python_code, validate_json_syntax
-from agent.tool_executor import run_in_sandbox, run_pytest
+from agent.tool_executor import run_in_sandbox, run_pytest, check_file_existence
 
 
 class HephaestusAgent:
@@ -215,30 +215,74 @@ class HephaestusAgent:
                 print(f"\nSUCESSO NO CICLO! Razão: {reason}")
                 if reason == "APPLIED":
                     print("--- INICIANDO CICLO DE VERIFICAÇÃO DE SANIDADE ---")
-                    sanity_check_success, sanity_check_details = run_pytest(test_dir='tests/')
+
+                    current_strategy_key = self.state.get("strategy_key")
+                    strategy_config = self.config["validation_strategies"].get(current_strategy_key, {})
+                    sanity_check_tool_name = strategy_config.get("sanity_check_step", "run_pytest") # Default to run_pytest
+
+                    sanity_check_success = True
+                    sanity_check_details = "Nenhuma verificação de sanidade executada."
+
+                    if sanity_check_tool_name == "run_pytest":
+                        print(f"Executando verificação de sanidade com: {sanity_check_tool_name}")
+                        # Aqui podemos adicionar lógica para interpretar o exit code 5 de run_pytest se necessário
+                        # Por exemplo, se run_pytest retornasse um dict com 'exit_code'
+                        # sanity_check_success, sanity_check_details = run_pytest(test_dir='tests/')
+                        # if sanity_check_details.startswith("Exit Code: 5"):
+                        #    print("Pytest não encontrou testes (Exit Code 5). Considerando como sucesso para este contexto.")
+                        #    # Potencialmente tratar como sucesso ou um tipo específico de aviso
+                        # else: # outro erro ou sucesso real
+                        #    pass # segue a lógica normal
+                        sanity_check_success, sanity_check_details = run_pytest(test_dir='tests/')
+                    elif sanity_check_tool_name == "check_file_existence":
+                        print(f"Executando verificação de sanidade com: {sanity_check_tool_name}")
+                        files_to_check = [f_update["file_path"] for f_update in self.state.get("files_to_update", []) if "file_path" in f_update]
+                        if files_to_check:
+                            sanity_check_success, sanity_check_details = check_file_existence(files_to_check)
+                        else:
+                            sanity_check_success = False # Ou True, dependendo da interpretação desejada
+                            sanity_check_details = "Nenhum arquivo foi marcado para atualização, verificação de existência não aplicável."
+                            print(sanity_check_details)
+                    elif sanity_check_tool_name == "skip_sanity_check":
+                        sanity_check_success = True # Sempre sucesso se pulado
+                        sanity_check_details = "Verificação de sanidade pulada conforme configuração."
+                        print(sanity_check_details)
+                    else:
+                        sanity_check_success = False # Ferramenta desconhecida é uma falha
+                        sanity_check_details = f"Ferramenta de verificação de sanidade desconhecida: {sanity_check_tool_name}"
+                        print(f"AVISO: {sanity_check_details}")
+
                     if not sanity_check_success:
-                        print(f"FALHA NA VERIFICAÇÃO DE SANIDADE PÓS-APLICAÇÃO!\nDetalhes: {sanity_check_details}")
-                        reason = "REGRESSION_DETECTED_BY_SANITY_CHECK"
+                        print(f"FALHA NA VERIFICAÇÃO DE SANIDADE PÓS-APLICAÇÃO ({sanity_check_tool_name})!\nDetalhes: {sanity_check_details}")
+                        reason = f"REGRESSION_DETECTED_BY_{sanity_check_tool_name.upper()}"
                         context = sanity_check_details
                         success = False # Marcar como falha para entrar no bloco de correção
                     else:
-                        print("VERIFICAÇÃO DE SANIDADE PÓS-APLICAÇÃO: SUCESSO! Todos os testes passaram.")
-                        print("Ressincronizando manifesto...")
-                        update_project_manifest(root_dir=".", target_files=[])
+                        print(f"VERIFICAÇÃO DE SANIDADE PÓS-APLICAÇÃO ({sanity_check_tool_name}): SUCESSO!")
+                        if sanity_check_tool_name != "skip_sanity_check": # Não resincronizar se foi pulado
+                            print("Ressincronizando manifesto...")
+                            update_project_manifest(root_dir=".", target_files=[])
 
                         print("Gerando próximo objetivo evolutivo...")
                         next_obj = generate_next_objective(self.api_key, self.light_model, self.state["manifesto_content"])
                         self.objective_stack.append(next_obj)
                         print(f"Próximo objetivo: {next_obj}")
-                elif reason == "DISCARDED": # Se foi descartado, não precisa de sanidade, só gerar próximo objetivo
+
+                elif reason == "DISCARDED":
+                    # Se foi descartado, não precisa de sanidade, só gerar próximo objetivo
+                    # A estratégia DISCARD também pode ter sanity_check_step: "skip_sanity_check"
                     print("Alterações descartadas. Gerando próximo objetivo evolutivo...")
                     next_obj = generate_next_objective(self.api_key, self.light_model, self.state["manifesto_content"])
                     self.objective_stack.append(next_obj)
                     print(f"Próximo objetivo: {next_obj}")
 
-
             # Se o sucesso foi revertido pela falha na verificação de sanidade, ou outra falha corrigível
-            if not success and reason in {"SYNTAX_ERROR", "PYTEST_FAILURE", "APPLY_FAILED", "REGRESSION_DETECTED_BY_SANITY_CHECK"}:
+            if not success and reason in {
+                "SYNTAX_ERROR", "PYTEST_FAILURE", "APPLY_FAILED",
+                "REGRESSION_DETECTED_BY_RUN_PYTEST",
+                "REGRESSION_DETECTED_BY_CHECK_FILE_EXISTENCE",
+                "REGRESSION_DETECTED_BY_SANITY_CHECK" # Genérico, caso a ferramenta não seja específica
+            }:
                 print(f"\nFALHA CORRIGÍVEL NO CICLO! Razão: {reason}\nContexto: {context}")
                 # Save current objective to stack
                 self.objective_stack.append(current_objective)
