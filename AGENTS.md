@@ -29,6 +29,10 @@ agente_autonomo/
 ### Módulo: `agent/brain.py`
 - **Função:** `get_ai_suggestion(api_key: str, model_list: List[str], project_snapshot: str, objective: str, base_url: str='https://openrouter.ai/api/v1')`
   - *Obtém sugestões de LLMs via OpenRouter API usando lista de fallback.*
+- **Função:** `generate_next_objective(api_key: str, model: str, current_manifest: str, base_url: str='https://openrouter.ai/api/v1')`
+  - *Gera o próximo objetivo evolutivo usando um modelo leve.*
+- **Função:** `generate_capacitation_objective(api_key: str, model: str, engineer_analysis: str, base_url: str='https://openrouter.ai/api/v1')`
+  - *Gera um objetivo para criar novas capacidades necessárias.*
 - **Função:** `get_maestro_decision(api_key: str, model_list: List[str], engineer_response: Dict[str, Any], config: Dict[str, Any], base_url: str='https://openrouter.ai/api/v1')`
   - *Consulta a LLM para decidir qual estratégia de validação adotar.*
 
@@ -41,6 +45,8 @@ agente_autonomo/
 ### Módulo: `agent/code_validator.py`
 - **Função:** `validate_python_code(code_string: str)`
   - *Valida se o código Python é sintaticamente correto usando py_compile.*
+- **Função:** `validate_json_syntax(json_string: str)`
+  - *Valida se uma string é um JSON válido.*
 
 ### Módulo: `agent/tool_executor.py`
 - **Função:** `run_pytest(test_dir: str='tests/')`
