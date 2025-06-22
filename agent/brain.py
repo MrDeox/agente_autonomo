@@ -102,3 +102,76 @@ Abaixo está o snapshot atual do código do projeto 'Hephaestus' para sua análi
         attempt_logs.append(attempt_log)
     
     return attempt_logs
+
+
+def get_maestro_decision(
+    api_key: str,
+    model_list: List[str],
+    engineer_response: Dict[str, Any],
+    config: Dict[str, Any],
+    base_url: str = "https://openrouter.ai/api/v1",
+) -> List[Dict[str, Any]]:
+    """Consulta a LLM para decidir qual estratégia de validação adotar."""
+
+    attempt_logs = []
+    available_keys = ", ".join(config.get("validation_strategies", {}).keys())
+    engineer_summary = json.dumps(engineer_response, ensure_ascii=False, indent=2)
+
+    for model in model_list:
+        print(f"Tentando com o modelo: {model} para decisão do Maestro...")
+        url = f"{base_url}/chat/completions"
+        headers = {
+            "Authorization": f"Bearer {api_key}",
+            "Content-Type": "application/json",
+        }
+
+        prompt = f"""
+[IDENTIDADE]
+Você é o Maestro do agente Hephaestus. Analise a proposta do Engenheiro abaixo e escolha a estratégia de validação mais adequada.
+Estratégias disponíveis: {available_keys}
+
+Proposta do Engenheiro:
+{engineer_summary}
+
+Responda apenas com um JSON no formato:
+{{"strategy_key": "<UMA_DAS_CHAVES_ACIMA>"}}
+"""
+
+        payload = {
+            "model": model,
+            "messages": [{"role": "user", "content": prompt}],
+            "temperature": 0.2,
+        }
+
+        attempt_log = {
+            "model": model,
+            "raw_response": "",
+            "parsed_json": None,
+            "success": False,
+        }
+
+        try:
+            response = requests.post(url, json=payload, headers=headers)
+            response.raise_for_status()
+            content = response.json()["choices"][0]["message"]["content"]
+            attempt_log["raw_response"] = content
+
+            clean_content = content.strip()
+            if clean_content.startswith('```json'):
+                clean_content = clean_content[7:]
+                if clean_content.endswith('```'):
+                    clean_content = clean_content[:-3]
+            elif clean_content.startswith('```'):
+                clean_content = clean_content[3:]
+                if clean_content.endswith('```'):
+                    clean_content = clean_content[:-3]
+
+            parsed = json.loads(clean_content)
+            attempt_log["parsed_json"] = parsed
+            attempt_log["success"] = True
+        except Exception as e:
+            attempt_log["raw_response"] = f"Erro na decisão do Maestro: {str(e)}"
+
+        attempt_logs.append(attempt_log)
+
+    return attempt_logs
