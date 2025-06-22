@@ -240,8 +240,10 @@ class HephaestusAgent:
                         if files_to_check:
                             sanity_check_success, sanity_check_details = check_file_existence(files_to_check)
                         else:
-                            sanity_check_success = False # Ou True, dependendo da interpretação desejada
-                            sanity_check_details = "Nenhum arquivo foi marcado para atualização, verificação de existência não aplicável."
+                            # If no files were targeted for update by the AI, this check is vacuously true.
+                            # It means the AI decided no file changes were needed for this step.
+                            sanity_check_success = True
+                            sanity_check_details = "Nenhum arquivo foi especificado para verificação de existência. Considerado sucesso."
                             print(sanity_check_details)
                     elif sanity_check_tool_name == "skip_sanity_check":
                         sanity_check_success = True # Sempre sucesso se pulado
