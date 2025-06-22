@@ -7,9 +7,11 @@ from pathlib import Path
 from dotenv import load_dotenv
 
 from agent.project_scanner import update_project_manifest
-from agent.brain import get_ai_suggestion, get_maestro_decision, generate_next_objective
-from agent.file_manager import apply_changes
-from agent.code_validator import validate_python_code, validate_json_syntax
+from agent.project_scanner import update_project_manifest
+from agent.brain import get_ai_suggestion, get_maestro_decision, generate_next_objective, generate_capacitation_objective
+from agent.patch_applicator import apply_patches # MODIFICADO: Novo import
+# from agent.file_manager import apply_changes # MODIFICADO: Removido import antigo
+from agent.code_validator import validate_python_code, validate_json_syntax # Será reavaliado
 from agent.tool_executor import run_in_sandbox, run_pytest, check_file_existence
 
 
@@ -34,8 +36,8 @@ class HephaestusAgent:
         self.state = {
             "current_objective": current_objective,
             "manifesto_content": "",
-            "parsed_json": None,
-            "files_to_update": [],
+            "parsed_json": None, # Conterá "patches_to_apply"
+            # "files_to_update": [], # REMOVIDO - substituído por patches_to_apply em parsed_json
             "test_code": "",
             "model_used": None,
             "strategy_key": None,
@@ -82,9 +84,9 @@ class HephaestusAgent:
 
         parsed_json = successful_attempt["parsed_json"]
         self.state.update({
-            "parsed_json": parsed_json,
+            "parsed_json": parsed_json, # Agora contém "patches_to_apply"
             "model_used": successful_attempt["model"],
-            "files_to_update": parsed_json.get("files_to_update", []),
+            # "files_to_update": parsed_json.get("files_to_update", []), # REMOVIDO
             "test_code": (parsed_json.get("validation_pytest_code") or "").strip()
         })
         print(f"--- ANÁLISE DA IA ({self.state['model_used']}) ---")
@@ -121,24 +123,17 @@ class HephaestusAgent:
 
         for step_name in steps:
             print(f"--- Passo: {step_name} ---")
-            # Validação de Sintaxe
-            if step_name == "validate_syntax" or step_name == "validate_json_syntax":
-                is_valid, error = (False, "Nenhum arquivo para validar")
-                for file_update in self.state["files_to_update"]:
-                    content = file_update["new_content"]
-                    if file_update["file_path"].endswith(".py"):
-                        is_valid, error = validate_python_code(content)
-                    elif file_update["file_path"].endswith(".json"):
-                         is_valid, error = validate_json_syntax(content)
-                    
-                    if not is_valid:
-                        context = f"Arquivo alvo: {file_update['file_path']}\nErro: {error}"
-                        self.state["validation_result"] = (False, "SYNTAX_ERROR", context)
-                        return
-                print("Validação de sintaxe OK.")
+            # Validação de Sintaxe (REMOVIDO DAQUI - será tratado por sanity checks pós-aplicação se necessário)
+            # if step_name == "validate_syntax" or step_name == "validate_json_syntax":
+            #     is_valid, error = (False, "Nenhum arquivo para validar")
+            #     # Esta lógica precisaria ser repensada, pois não temos "new_content" antes do patch.
+            #     # A validação de sintaxe do *bloco* de patch pode ser feita pela IA.
+            #     # A validação do arquivo *inteiro* só pode ocorrer após a aplicação do patch.
+            #     # Por ora, vamos confiar nos sanity checks (como pytest) para pegar erros de sintaxe.
+            #     print("Validação de sintaxe pulada nesta etapa.")
             
             # Validação com Pytest
-            elif step_name == "run_pytest_validation":
+            if step_name == "run_pytest_validation": # Mantido (elif -> if)
                 # Lógica do pytest... (pode ser adicionada aqui se necessário)
                 print("Passo de Pytest executado (simulado).")
 
@@ -149,19 +144,44 @@ class HephaestusAgent:
                 
             # Aplicação das Mudanças
             elif step_name == "apply_changes":
-                print("Aplicando mudanças...")
-                report = apply_changes(self.state["files_to_update"])
-                self.state["apply_report"] = report
-                if report["status"] != "success":
-                    self.state["validation_result"] = (False, "APPLY_FAILED", "\n".join(report.get("errors", [])))
-                    return
-                print("Mudanças aplicadas com sucesso.")
+                print("Aplicando patches...")
+                patches_to_apply = self.state.get("parsed_json", {}).get("patches_to_apply")
+                if not patches_to_apply:
+                    print("Nenhum patch para aplicar. Considerando sucesso para esta etapa.")
+                    # Se a IA não fornecer patches, pode ser intencional.
+                    # O apply_report pode ser definido como sucesso sem operações.
+                    self.state["apply_report"] = {"success": True, "results": {}}
+                else:
+                    report = apply_patches(patches_to_apply)
+                    self.state["apply_report"] = report
+                    if not report["success"]:
+                        # Coletar mensagens de erro do relatório de patch
+                        error_messages = []
+                        for file_path, result in report.get("results", {}).items():
+                            if result.get("status") == "error":
+                                error_messages.append(f"File {file_path}: {result.get('message')}")
+                        self.state["validation_result"] = (False, "APPLY_FAILED", "\n".join(error_messages))
+                        return
+                    print("Patches aplicados com sucesso.")
 
         # Se todos os passos da estratégia passaram
-        if self.state["strategy_key"] != "DISCARD":
-            self.state["validation_result"] = (True, "APPLIED", "Estratégia concluída e mudanças aplicadas.")
-        else:
+        # A validação de sintaxe foi removida dos passos PRE-APLICAÇÃO.
+        # Se apply_changes foi o último passo e bem-sucedido, marcamos como APPLIED.
+        # Se houve uma falha (ex: APPLY_FAILED), validation_result já foi setado e o loop de passos interrompido.
+        # Se a estratégia não incluiu 'apply_changes' (ex: só validação), o resultado deve ser tratado adequadamente.
+
+        # A lógica original de validation_result: (success, reason, context)
+        # Se chegou até aqui sem 'return' por falha, e a estratégia não é DISCARD, então foi APPLIED
+        # ou a estratégia não tinha 'apply_changes' (o que seria incomum para uma estratégia não-DISCARD).
+        current_validation_status, _, _ = self.state.get("validation_result", (False, "", ""))
+        if not current_validation_status: # Se já houve falha, não sobrescrever
+             pass
+        elif self.state["strategy_key"] == "DISCARD":
             self.state["validation_result"] = (True, "DISCARDED", "Estratégia de descarte executada.")
+        elif "apply_changes" in steps: # Só marcar como APPLIED se o apply_changes estava nos passos
+            self.state["validation_result"] = (True, "APPLIED", "Estratégia concluída e patches aplicados.")
+        else: # Estratégia sem apply_changes, mas não DISCARD. Considerar sucesso parcial?
+            self.state["validation_result"] = (True, "VALIDATED_ONLY", "Estratégia de validação concluída (sem aplicação de patches).")
 
 
     def run(self) -> None:
@@ -236,14 +256,16 @@ class HephaestusAgent:
                         sanity_check_success, sanity_check_details = run_pytest(test_dir='tests/')
                     elif sanity_check_tool_name == "check_file_existence":
                         print(f"Executando verificação de sanidade com: {sanity_check_tool_name}")
-                        files_to_check = [f_update["file_path"] for f_update in self.state.get("files_to_update", []) if "file_path" in f_update]
+                        # MODIFICADO: Usar patches_to_apply para obter os file_paths
+                        patches = self.state.get("parsed_json", {}).get("patches_to_apply", [])
+                        files_to_check = [patch["file_path"] for patch in patches if "file_path" in patch]
+
                         if files_to_check:
                             sanity_check_success, sanity_check_details = check_file_existence(files_to_check)
                         else:
-                            # If no files were targeted for update by the AI, this check is vacuously true.
-                            # It means the AI decided no file changes were needed for this step.
+                            # Se a IA não forneceu patches ou file_paths, este cheque é vacuamente verdadeiro.
                             sanity_check_success = True
-                            sanity_check_details = "Nenhum arquivo foi especificado para verificação de existência. Considerado sucesso."
+                            sanity_check_details = "Nenhum arquivo foi especificado em patches_to_apply para verificação de existência. Considerado sucesso."
                             print(sanity_check_details)
                     elif sanity_check_tool_name == "skip_sanity_check":
                         sanity_check_success = True # Sempre sucesso se pulado
