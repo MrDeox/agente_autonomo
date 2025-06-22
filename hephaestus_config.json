@@ -1,40 +1,21 @@
 {
-  "description": "Este arquivo define o processo de execucao do agente Hephaestus. Modificar esta lista altera o comportamento do agente.",
-  "evolution_process": [
-    {
-      "step_name": "update_project_manifest",
-      "description": "Gera o AGENTS.md com a visao atual do projeto.",
-      "enabled": true
+  "description": "Define as estratégias de validação disponíveis para o Maestro do Hephaestus.",
+  "validation_strategies": {
+    "APPLY_DIRECTLY": {
+      "description": "Para mudanças triviais (docs, comentários). Aplica diretamente sem validação complexa.",
+      "steps": ["apply_changes"]
     },
-    {
-      "step_name": "get_ai_suggestion",
-      "description": "Consulta a LLM com o objetivo e o manifesto.",
-      "enabled": true
+    "SYNTAX_AND_PYTEST": {
+      "description": "Padrão para mudanças de código. Valida sintaxe e roda testes unitários.",
+      "steps": ["validate_syntax", "run_pytest_validation", "apply_changes"]
     },
-    {
-      "step_name": "validate_syntax",
-      "description": "Valida se o codigo sugerido pela IA tem sintaxe valida.",
-      "enabled": true
+    "SYNTAX_AND_BENCHMARK": {
+      "description": "Para mudanças focadas em performance. Valida sintaxe e roda benchmark A/B.",
+      "steps": ["validate_syntax", "run_benchmark_validation", "apply_changes"]
     },
-    {
-      "step_name": "run_pytest_validation",
-      "description": "Executa testes pytest gerados pela IA, se houver.",
-      "enabled": true
-    },
-    {
-      "step_name": "run_benchmark_validation",
-      "description": "Executa um benchmark A/B para medir o impacto da mudança.",
-      "enabled": false
-    },
-    {
-      "step_name": "apply_changes",
-      "description": "Aplica a mudança no codigo-fonte principal.",
-      "enabled": true
-    },
-    {
-      "step_name": "ressync_manifest",
-      "description": "Gera o AGENTS.md final apos as mudanças.",
-      "enabled": true
+    "DISCARD": {
+      "description": "Para propostas sem sentido ou perigosas. Descarta a mudança.",
+      "steps": []
     }
-  ]
+  }
 }
