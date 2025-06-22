@@ -160,12 +160,27 @@ def apply_patches(instructions: list[dict], logger: logging.Logger, base_path: s
 
             elif operation == "DELETE_BLOCK":
                 block_to_delete_pattern = instruction.get("block_to_delete")
-                if not block_to_delete_pattern: # String vazia ou None
+                
+                if block_to_delete_pattern is None: # DELETE_BLOCK com None significa remover arquivo inteiro
+                    if full_path.exists():
+                        try:
+                            os.remove(full_path)
+                            logger.info(f"Arquivo '{full_path}' removido com sucesso (DELETE_BLOCK com block_to_delete=None).")
+                            continue
+                        except Exception as e:
+                            logger.error(f"Falha ao remover arquivo '{full_path}': {e}")
+                            overall_success = False
+                            continue
+                    else:
+                        logger.warn(f"Arquivo '{full_path}' não existe. Nada para deletar com DELETE_BLOCK.")
+                        continue
+
+                if not block_to_delete_pattern: # String vazia
                     logger.error(f"Operação DELETE_BLOCK para '{full_path}' não especificou 'block_to_delete' válido. Pulando.")
                     overall_success = False
                     continue
 
-                if not full_path.exists(): # Já logado antes, mas para garantir
+                if not full_path.exists():
                     logger.warn(f"Arquivo '{full_path}' não existe. Nada para deletar com DELETE_BLOCK.")
                     continue
 

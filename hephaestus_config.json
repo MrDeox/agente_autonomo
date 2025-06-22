@@ -23,7 +23,7 @@
       "sanity_check_step": "run_pytest"
     },
     "DOC_UPDATE_STRATEGY": {
-      "steps": ["apply_changes"],
+      "steps": ["apply_changes", "check_file_existence"],
       "sanity_check_step": "check_file_existence"
     },
     "CONFIG_UPDATE_STRATEGY": {
