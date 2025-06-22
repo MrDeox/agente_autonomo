@@ -1,13 +1,32 @@
 {
   "validation_strategies": {
     "SYNTAX_ONLY": {
-      "steps": ["syntax_validation"]
+      "steps": ["validate_syntax", "apply_changes"],
+      "sanity_check_step": "run_pytest"
     },
     "BENCHMARK_ONLY": {
-      "steps": ["run_benchmark"]
+      "steps": ["run_benchmark_validation", "apply_changes"],
+      "sanity_check_step": "run_pytest"
     },
-    "SYNTAX_AND_BENCHMARK": {
-      "steps": ["syntax_validation", "run_pytest_validation", "run_benchmark"]
+    "SYNTAX_AND_PYTEST": {
+      "steps": ["validate_syntax", "run_pytest_validation", "apply_changes"],
+      "sanity_check_step": "run_pytest"
+    },
+    "FULL_VALIDATION": {
+      "steps": ["validate_syntax", "run_pytest_validation", "run_benchmark_validation", "apply_changes"],
+      "sanity_check_step": "run_pytest"
+    },
+    "DOC_UPDATE_STRATEGY": {
+      "steps": ["apply_changes"],
+      "sanity_check_step": "check_file_existence"
+    },
+    "CONFIG_UPDATE_STRATEGY": {
+      "steps": ["validate_json_syntax", "apply_changes"],
+      "sanity_check_step": "check_file_existence"
+    },
+    "DISCARD": {
+      "steps": [],
+      "sanity_check_step": "skip_sanity_check"
     }
   }
 }

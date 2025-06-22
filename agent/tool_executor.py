@@ -4,6 +4,7 @@ import time
 from typing import Tuple, Dict, Any
 
 import psutil
+import os
 
 def run_pytest(test_dir: str = "tests/") -> Tuple[bool, str]:
     """
@@ -29,6 +30,32 @@ def run_pytest(test_dir: str = "tests/") -> Tuple[bool, str]:
         return success, output
     except Exception as e:
         return False, f"Erro ao executar pytest: {str(e)}"
+
+
+def check_file_existence(file_paths: list[str]) -> Tuple[bool, str]:
+    """
+    Verifica se todos os arquivos especificados existem.
+
+    Args:
+        file_paths: Uma lista de caminhos de arquivo para verificar.
+
+    Returns:
+        Tuple[bool, str]: (success, message)
+        - success: True se todos os arquivos existirem, False caso contrário.
+        - message: Mensagem indicando o resultado.
+    """
+    if not file_paths:
+        return False, "Nenhum caminho de arquivo fornecido para verificação."
+
+    missing_files = []
+    for file_path in file_paths:
+        if not os.path.exists(file_path):
+            missing_files.append(file_path)
+
+    if not missing_files:
+        return True, "Todos os arquivos especificados existem."
+    else:
+        return False, f"Arquivo(s) não encontrado(s): {', '.join(missing_files)}"
 
 
 def run_in_sandbox(temp_dir_path: str, objective: str) -> Dict[str, Any]:
