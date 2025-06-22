@@ -1,150 +1,172 @@
 import json
 import requests
-import traceback
-from typing import Optional, Dict, Any, List, Tuple
+import traceback # Mantido para uso potencial em tratamento de erros, embora não usado diretamente nas novas funções.
+from typing import Optional, Dict, Any, List, Tuple # Tuple não é usado, mas pode ser mantido por enquanto.
 
-def get_ai_suggestion(
+# Funções de comunicação com API (simuladas/reutilizadas)
+# Idealmente, haveria uma função genérica para chamadas de API para evitar duplicação.
+
+def _call_llm_api(api_key: str, model: str, prompt: str, temperature: float, base_url: str) -> Tuple[Optional[str], Optional[str]]:
+    """Função auxiliar para fazer chamadas à API LLM."""
+    url = f"{base_url}/chat/completions"
+    headers = {
+        "Authorization": f"Bearer {api_key}",
+        "Content-Type": "application/json"
+    }
+    payload = {
+        "model": model,
+        "messages": [{"role": "user", "content": prompt}],
+        "temperature": temperature
+    }
+    try:
+        response = requests.post(url, json=payload, headers=headers)
+        response.raise_for_status()
+        content = response.json()["choices"][0]["message"]["content"]
+        return content, None
+    except requests.exceptions.RequestException as e:
+        if hasattr(e, 'response') and e.response is not None:
+            error_details = f"Status: {e.response.status_code}, Response: {e.response.text}"
+        else:
+            error_details = str(e)
+        return None, f"Request failed: {error_details}"
+    except KeyError as e:
+        return None, f"KeyError: {str(e)} in API response"
+    except Exception as e:
+        return None, f"Unexpected error: {str(e)}\n{traceback.format_exc()}"
+
+def get_action_plan(
     api_key: str,
-    model_list: List[str],
-    project_snapshot: str,
+    model: str, # Modelo para o Arquiteto
     objective: str,
+    manifest: str,
     base_url: str = "https://openrouter.ai/api/v1"
-) -> List[Dict[str, Any]]:
+) -> Tuple[Optional[Dict[str, Any]], Optional[str]]:
     """
-    Obtém sugestões de LLMs via OpenRouter API usando lista de fallback.
-    Retorna uma lista de dicionários com logs detalhados de cada tentativa.
+    Fase 2 (Arquiteto): Pega o objetivo e o manifesto, e retorna um plano de ação em JSON.
+    Retorna um dicionário com o plano ou None em caso de erro, mais uma mensagem de erro.
     """
-    attempt_logs = []
-    
-    for model in model_list:
-        print(f"Tentando com o modelo: {model}...")
-        url = f"{base_url}/chat/completions"
-        headers = {
-            "Authorization": f"Bearer {api_key}",
-            "Content-Type": "application/json"
-        }
-        
-        prompt = f"""
-[CONTEXTO GERAL E IDENTIDADE]
-Você é o Cérebro de Engenharia de um Agente de IA autônomo chamado 'Hephaestus'. Sua missão é analisar o código-fonte do agente e propor melhorias para torná-lo mais inteligente, resiliente e eficiente, seguindo um ciclo de aprimoramento recursivo. Você pensa de forma lógica, prioriza código limpo e robusto, e justifica suas decisões com base em boas práticas de eng de software.
+    prompt = f"""
+Você é o Arquiteto de Software do agente Hephaestus. Sua tarefa é pegar o objetivo de alto nível e, com base no manifesto do projeto, criar um plano de ação detalhado e sequencial.
 
-[LIBERDADE CRIATIVA]
-Não se limite às ferramentas e estratégias de validação existentes. Se a melhor solução para o objetivo exigir uma nova capacidade (uma nova ferramenta no tool_executor.py, uma nova estratégia no hephaestus_config.json, ou a instalação de uma nova biblioteca), você DEVE propor essa solução. Descreva claramente na sua analysis_summary qual nova capacidade é necessária e como ela deve funcionar.
+[OBJETIVO]
+{objective}
 
-[OBJETIVO DA TAREFA ATUAL]
-Seu objetivo específico para esta execução é: {objective}
+[MANIFESTO DO PROJETO]
+{manifest}
 
-[FORMATO DE SAÍDA OBRIGATÓRIO: PARADIGMA DE PATCHING CIRÚRGICO]
-Sua resposta DEVE SER um objeto JSON válido e NADA MAIS. Não inclua explicações, saudações ou qualquer texto fora do objeto JSON.
-Em vez de fornecer o conteúdo completo de arquivos, você especificará um conjunto de "operações de patch" para modificar os arquivos existentes de forma precisa. Pense como um cirurgião, não como um açougueiro.
+[SUA TAREFA]
+Crie um plano JSON com uma lista de operações atômicas. As operações válidas são: 'CREATE_FILE', 'APPEND_TO_FILE', 'REPLACE_BLOCK', 'DELETE_BLOCK'. Para operações em arquivos existentes, você DEVE LER o arquivo antes de planejar.
 
-A estrutura do JSON deve ser:
+[FORMATO DE SAÍDA OBRIGATÓRIO]
+Sua resposta DEVE ser um objeto JSON válido e nada mais.
 {{
-  "analysis_summary": "No campo 'analysis_summary', escreva como um engenheiro sênior reportando para outro, explicando o raciocínio técnico e os benefícios da mudança proposta. Se a mudança envolver a criação de um novo arquivo, indique isso aqui e use uma operação de patch apropriada (ex: REPLACE_BLOCK em um arquivo vazio se o patch applicator não suportar criação direta, ou especifique se uma nova ferramenta é necessária).",
-  "patches_to_apply": [
+  "analysis": "Sua análise e raciocínio para o plano.",
+  "action_plan": [
     {{
-      "file_path": "caminho/do/arquivo.py",
-      "reasoning": "Breve justificativa para modificar ESTE ARQUIVO ESPECÍFICO e como as operações propostas atingem o objetivo para este arquivo.",
-      "operations": [
-        {{
-          "operation": "REPLACE_BLOCK",
-          "start_line": "<int, número da primeira linha do bloco a ser substituído (base 1)>",
-          "end_line": "<int, número da última linha do bloco a ser substituído (base 1)>",
-          "content": "<string, o novo bloco de código, incluindo quebras de linha apropriadas. Assegure-se que a indentação do conteúdo esteja correta e que as quebras de linha sejam \\n.>"
-        }},
-        {{
-          "operation": "INSERT_AFTER",
-          "line_number": "<int, número da linha APÓS a qual o conteúdo será inserido (base 1). Use 0 para inserir no início do arquivo.>",
-          "content": "<string, o código a ser inserido, incluindo quebras de linha apropriadas. Assegure-se que a indentação do conteúdo esteja correta e que as quebras de linha sejam \\n.>"
-        }},
-        {{
-          "operation": "DELETE_BLOCK",
-          "start_line": "<int, número da primeira linha do bloco a ser deletado (base 1)>",
-          "end_line": "<int, número da última linha do bloco a ser deletado (base 1)>"
-        }}
-      ]
+      "action": "CREATE_FILE",
+      "path": "caminho/do/arquivo.py",
+      "content_description": "Descrição do conteúdo inicial. Ex: Um arquivo Python com imports básicos."
+    }},
+    {{
+      "action": "APPEND_TO_FILE",
+      "path": "caminho/do/arquivo.py",
+      "content_description": "Descrição do bloco de código a ser adicionado no final do arquivo."
+    }},
+    {{
+      "action": "REPLACE_BLOCK",
+      "path": "caminho/do/arquivo.py",
+      "start_line": "<int, número da primeira linha do bloco a ser substituído (base 1)>",
+      "end_line": "<int, número da última linha do bloco a ser substituído (base 1)>",
+      "content_description": "Descrição do novo bloco de código que substituirá o antigo."
     }}
-  ],
-  "validation_pytest_code": "OPCIONAL: Uma string contendo o código de um novo teste em pytest para validar a mudança proposta. Se a mudança for simples e não necessitar de um novo teste, esta chave pode ser omitida ou o valor ser null/vazio."
+  ]
 }}
-
-[INSTRUÇÕES DETALHADAS PARA OPERAÇÕES DE PATCH]
-- `file_path`: Caminho completo para o arquivo a ser modificado.
-- `reasoning`: Explique por que este arquivo precisa ser alterado e como as operações alcançarão o objetivo.
-- `operations`: Uma lista de operações a serem aplicadas sequencialmente NO ARQUIVO ORIGINAL.
-    - Os números de linha (`start_line`, `end_line`, `line_number`) são SEMPRE baseados em 1 e referem-se ao estado do arquivo ANTES de qualquer operação nesta lista de patches para ESTE ARQUIVO.
-    - `REPLACE_BLOCK`: Substitui um intervalo de linhas (inclusive `start_line` e `end_line`) pelo `content`.
-        - `start_line` e `end_line` devem ser válidos e `start_line <= end_line`.
-        - O `content` substitui todas as linhas desde `start_line` até `end_line`.
-    - `INSERT_AFTER`: Insere o `content` após a `line_number` especificada.
-        - Para inserir no início do arquivo, use `line_number: 0`.
-        - O `content` será inserido começando na linha seguinte à `line_number`.
-    - `DELETE_BLOCK`: Remove um intervalo de linhas (inclusive `start_line` e `end_line`).
-        - `start_line` e `end_line` devem ser válidos e `start_line <= end_line`.
-- `content`: Para `REPLACE_BLOCK` e `INSERT_AFTER`, o `content` é uma string que pode conter múltiplas linhas. Use `\\n` para quebras de linha. Garanta que a indentação dentro do `content` esteja correta em relação ao código ao redor no arquivo.
-
-[PENSAMENTO CIRÚRGICO OBRIGATÓRIO]
-Analise o código existente com cuidado. Suas operações devem ser precisas para evitar quebrar a lógica existente.
-Se você precisar criar um novo arquivo, você pode propor uma operação `REPLACE_BLOCK` com `start_line: 1`, `end_line: 1` (ou similar, dependendo de como o `patch_applicator` lida com arquivos vazios ou se ele pode criar arquivos) em um `file_path` que ainda não existe, e o `content` será o conteúdo completo do novo arquivo. No `analysis_summary`, esclareça que se trata da criação de um novo arquivo.
-
-[DADOS DE ENTRADA]
-Abaixo está o snapshot atual do código do projeto 'Hephaestus' para sua análise:
-{project_snapshot}
 """
+    print(f"Gerando plano de ação com o modelo: {model}...")
+    raw_response, error = _call_llm_api(api_key, model, prompt, 0.5, base_url) # Temperatura um pouco mais baixa para planejamento
 
-        payload = {
-            "model": model,
-            "messages": [
-                {"role": "user", "content": prompt}
-            ],
-            "temperature": 0.7 # Temperatura pode ser ajustada, 0.7 permite alguma criatividade
-        }
+    if error:
+        return None, f"Erro ao chamar LLM para plano de ação: {error}"
+    if not raw_response:
+        return None, "Resposta vazia do LLM para plano de ação."
 
-        attempt_log = {
-            "model": model,
-            "raw_response": "",
-            "parsed_json": None,
-            "success": False
-        }
+    try:
+        # Remove possible Markdown code block wrappers
+        clean_content = raw_response.strip()
+        if clean_content.startswith('```json'):
+            clean_content = clean_content[7:]
+            if clean_content.endswith('```'):
+                clean_content = clean_content[:-3]
+        elif clean_content.startswith('```'): # Handle cases where ```json is not specified
+            clean_content = clean_content[3:]
+            if clean_content.endswith('```'):
+                clean_content = clean_content[:-3]
         
-        try:
-            response = requests.post(url, json=payload, headers=headers)
-            response.raise_for_status()
-            content = response.json()["choices"][0]["message"]["content"]
-            attempt_log["raw_response"] = content
-            
-            try:
-                # Remove possible Markdown code block wrappers
-                clean_content = content.strip()
-                if clean_content.startswith('```json'):
-                    # Extract JSON from code block
-                    clean_content = clean_content[7:]  # Remove '```json'
-                    if clean_content.endswith('```'):
-                        clean_content = clean_content[:-3]
-                elif clean_content.startswith('```'):
-                    clean_content = clean_content[3:]
-                    if clean_content.endswith('```'):
-                        clean_content = clean_content[:-3]
-                
-                parsed = json.loads(clean_content)
-                attempt_log["parsed_json"] = parsed
-                attempt_log["success"] = True
-            except json.JSONDecodeError as e:
-                attempt_log["raw_response"] = f"Conteúdo original: {content}\nJSONDecodeError: {str(e)}"
-        except requests.exceptions.RequestException as e:
-            if hasattr(e, 'response') and e.response is not None:
-                error_details = f"Status: {e.response.status_code}, Response: {e.response.text}"
-            else:
-                error_details = str(e)
-            attempt_log["raw_response"] = f"Request failed: {error_details}"
-        except KeyError as e:
-            attempt_log["raw_response"] = f"KeyError: {str(e)} in API response"
-        except Exception as e:
-            attempt_log["raw_response"] = f"Unexpected error: {str(e)}\n{traceback.format_exc()}"
-        
-        attempt_logs.append(attempt_log)
+        parsed_json = json.loads(clean_content)
+        # Validação básica da estrutura esperada
+        if "action_plan" not in parsed_json or not isinstance(parsed_json["action_plan"], list):
+            return None, "JSON do plano de ação não contém a chave 'action_plan' ou não é uma lista."
+        return parsed_json, None
+    except json.JSONDecodeError as e:
+        return None, f"Erro ao decodificar JSON do plano de ação: {str(e)}. Resposta recebida: {raw_response}"
+    except Exception as e:
+        return None, f"Erro inesperado ao processar plano de ação: {str(e)}"
+
+
+def generate_code_for_action(
+    api_key: str,
+    model: str, # Modelo para o Engenheiro de Código
+    action: dict,
+    file_content: Optional[str],
+    base_url: str = "https://openrouter.ai/api/v1"
+) -> Tuple[Optional[str], Optional[str]]:
+    """
+    Fase 3 (Engenheiro de Código): Recebe UMA ÚNICA ação do plano e gera APENAS o código para ela.
+    Retorna o código gerado ou None em caso de erro, mais uma mensagem de erro.
+    """
+    action_description = action.get("content_description", "Nenhuma descrição fornecida para esta ação.")
     
-    return attempt_logs
+    prompt = f"""
+Você é um programador especialista. Sua única tarefa é escrever o bloco de código Python necessário para cumprir a seguinte instrução. Gere APENAS o código, sem explicações ou markdown.
+
+[INSTRUÇÃO]
+{action_description}
+"""
+    if file_content is not None: # Adiciona contexto do arquivo apenas se aplicável
+        prompt += f"""
+[CONTEXTO DO ARQUIVO (se aplicável)]
+```python
+{file_content}
+```
+"""
+    else: # Especifica se é um novo arquivo
+        if action.get("action") == "CREATE_FILE":
+            prompt += "\n[NOTA] Esta é a criação de um NOVO arquivo. Gere o conteúdo completo inicial conforme a instrução."
+        else: # Para outras ações que deveriam ter file_content mas não têm (ex: APPEND a arquivo inexistente, erro de lógica)
+            prompt += "\n[ALERTA] O conteúdo do arquivo não foi fornecido, mas a ação não é CREATE_FILE. Proceda com base apenas na instrução, mas isso pode ser um erro no plano."
+
+
+    print(f"Gerando código para a ação '{action.get('action')}' no arquivo '{action.get('path')}' com o modelo: {model}...")
+    # Usar temperatura mais baixa para geração de código para ser mais determinístico
+    generated_code, error = _call_llm_api(api_key, model, prompt, 0.2, base_url)
+
+    if error:
+        return None, f"Erro ao chamar LLM para geração de código: {error}"
+    if not generated_code: # Pode ser uma string vazia se o LLM decidir que nada deve ser gerado
+        return "", "Resposta vazia do LLM para geração de código (pode ser intencional)."
+
+    # O prompt pede para não incluir markdown, mas por precaução:
+    clean_code = generated_code.strip()
+    if clean_code.startswith('```python'):
+        clean_code = clean_code[9:] # Remove '```python'
+        if clean_code.endswith('```'):
+            clean_code = clean_code[:-3]
+    elif clean_code.startswith('```'): # Handle cases where ```python is not specified but ``` is
+        clean_code = clean_code[3:]
+        if clean_code.endswith('```'):
+            clean_code = clean_code[:-3] # Corrigido para clean_code
+
+    return clean_code, None
 
 
 def generate_next_objective(
