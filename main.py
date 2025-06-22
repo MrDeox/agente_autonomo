@@ -214,23 +214,39 @@ class HephaestusAgent:
             if success:
                 print(f"\nSUCESSO NO CICLO! Razão: {reason}")
                 if reason == "APPLIED":
-                    print("Ressincronizando manifesto...")
-                    update_project_manifest(root_dir=".", target_files=[])
-                
-                print("Gerando próximo objetivo evolutivo...")
-                next_obj = generate_next_objective(self.api_key, self.light_model, self.state["manifesto_content"])
-                self.objective_stack.append(next_obj)
-                print(f"Próximo objetivo: {next_obj}")
+                    print("--- INICIANDO CICLO DE VERIFICAÇÃO DE SANIDADE ---")
+                    sanity_check_success, sanity_check_details = run_pytest(test_dir='tests/')
+                    if not sanity_check_success:
+                        print(f"FALHA NA VERIFICAÇÃO DE SANIDADE PÓS-APLICAÇÃO!\nDetalhes: {sanity_check_details}")
+                        reason = "REGRESSION_DETECTED_BY_SANITY_CHECK"
+                        context = sanity_check_details
+                        success = False # Marcar como falha para entrar no bloco de correção
+                    else:
+                        print("VERIFICAÇÃO DE SANIDADE PÓS-APLICAÇÃO: SUCESSO! Todos os testes passaram.")
+                        print("Ressincronizando manifesto...")
+                        update_project_manifest(root_dir=".", target_files=[])
 
-            elif reason in {"SYNTAX_ERROR", "PYTEST_FAILURE", "APPLY_FAILED"}:
+                        print("Gerando próximo objetivo evolutivo...")
+                        next_obj = generate_next_objective(self.api_key, self.light_model, self.state["manifesto_content"])
+                        self.objective_stack.append(next_obj)
+                        print(f"Próximo objetivo: {next_obj}")
+                elif reason == "DISCARDED": # Se foi descartado, não precisa de sanidade, só gerar próximo objetivo
+                    print("Alterações descartadas. Gerando próximo objetivo evolutivo...")
+                    next_obj = generate_next_objective(self.api_key, self.light_model, self.state["manifesto_content"])
+                    self.objective_stack.append(next_obj)
+                    print(f"Próximo objetivo: {next_obj}")
+
+
+            # Se o sucesso foi revertido pela falha na verificação de sanidade, ou outra falha corrigível
+            if not success and reason in {"SYNTAX_ERROR", "PYTEST_FAILURE", "APPLY_FAILED", "REGRESSION_DETECTED_BY_SANITY_CHECK"}:
                 print(f"\nFALHA CORRIGÍVEL NO CICLO! Razão: {reason}\nContexto: {context}")
                 # Save current objective to stack
                 self.objective_stack.append(current_objective)
                 
                 # Generate correction objective
-                correction_obj = f"""
+                correction_obj_text = f"""
 [TAREFA DE CORREÇÃO]
-A tentativa anterior de alcançar o objetivo falhou durante a fase de validação.
+A tentativa anterior de alcançar o objetivo falhou.
 OBJETIVO ORIGINAL:
 {current_objective}
 FALHA ENCONTRADA: {reason}
@@ -238,21 +254,12 @@ DETALHES DO ERRO:
 {context}
 Sua nova missão é analisar o erro e propor uma correção.
 """
-                self.objective_stack.append(correction_obj)
-                print(f"\nFALHA CORRIGÍVEL NO CICLO! Razão: {reason}\nContexto: {context}")
-                previous_objective = self.state["current_objective"]
-                self.state["current_objective"] = f"""
-[TAREFA DE CORREÇÃO]
-A tentativa anterior de alcançar o objetivo falhou durante a fase de validação.
-OBJETIVO ORIGINAL:
-{previous_objective}
-FALHA ENCONTRADA: {reason}
-DETALHES DO ERRO:
-{context}
-Sua nova missão é analisar o erro e propor uma correção.
-"""
-                print(f"Gerado novo objetivo de correção.")
-            else:
+                self.objective_stack.append(correction_obj_text)
+                # Definir o objetivo atual para o ciclo de correção (não é estritamente necessário aqui, mas bom para clareza)
+                # self.state["current_objective"] = correction_obj_text
+                print(f"Gerado novo objetivo de correção e adicionado à pilha.")
+
+            elif not success: # Falhas não corrigíveis
                 print(f"\nFALHA NÃO RECUPERÁVEL. Razão: {reason}. Encerrando.")
                 break # Encerra o loop
 
