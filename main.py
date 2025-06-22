@@ -11,7 +11,6 @@ from agent.project_scanner import update_project_manifest
 # Removida a duplicata de import project_scanner
 from agent.brain import (
     get_action_plan,
-    generate_code_for_action,
     get_maestro_decision,
     generate_next_objective,
     generate_capacitation_objective
@@ -35,8 +34,11 @@ class HephaestusAgent:
         self.logger = logger_instance # ADICIONADO
         self.config = self.load_config()
         self.api_key = os.getenv("OPENROUTER_API_KEY")
-        self.model_list = ["deepseek/deepseek-r1-0528:free", "mistralai/devstral-small:free"]
-        self.light_model = "anthropic/claude-3.5-haiku"
+        self.model_list = [
+            "deepseek/deepseek-chat-v3-0324:free",
+            "deepseek/deepseek-r1-0528:free"
+        ]
+        self.light_model = "deepseek/deepseek-chat-v3-0324:free"
         self.state = {}
         self.objective_stack = []  # Pilha de objetivos
         self._reset_cycle_state() # Inicializa o estado
@@ -144,8 +146,7 @@ class HephaestusAgent:
         maestro_logs = get_maestro_decision(
             api_key=self.api_key, model_list=[maestro_model],
             engineer_response=self.state["action_plan_data"], # Passando o plano do arquiteto com patches
-            config=self.config,
-            logger=self.logger # Passando o logger
+            config=self.config
         )
         maestro_attempt = next((a for a in maestro_logs if a.get("success")), None)
         if not maestro_attempt or not maestro_attempt.get("parsed_json"):
@@ -277,7 +278,7 @@ class HephaestusAgent:
             elif step_name == "run_pytest_validation":
                 self.logger.info("Executando Pytest...")
                 # run_pytest deveria aceitar um logger
-                success, details = run_pytest(test_dir='tests/', logger=self.logger)
+                success, details = run_pytest(test_dir='tests/')
                 if not success:
                     self.logger.warn(f"Falha no Pytest: {details}")
                     self.state["validation_result"] = (False, "PYTEST_FAILURE", details)
@@ -373,7 +374,7 @@ class HephaestusAgent:
 
                     if sanity_check_tool_name == "run_pytest":
                         self.logger.info(f"Executando verificação de sanidade com: {sanity_check_tool_name}")
-                        sanity_check_success, sanity_check_details = run_pytest(test_dir='tests/', logger=self.logger) # Passar logger
+                        sanity_check_success, sanity_check_details = run_pytest(test_dir='tests/')
                     elif sanity_check_tool_name == "check_file_existence":
                         self.logger.info(f"Executando verificação de sanidade com: {sanity_check_tool_name}")
                         files_to_check = list(self.state.get("applied_files_report", {}).keys())

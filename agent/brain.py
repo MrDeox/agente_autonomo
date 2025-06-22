@@ -6,7 +6,7 @@ from typing import Optional, Dict, Any, List, Tuple # Tuple não é usado, mas p
 # Funções de comunicação com API (simuladas/reutilizadas)
 # Idealmente, haveria uma função genérica para chamadas de API para evitar duplicação.
 
-def _call_llm_api(api_key: str, model: str, prompt: str, temperature: float, base_url: str) -> Tuple[Optional[str], Optional[str]]:
+def _call_llm_api(api_key: str, model: str, prompt: str, temperature: float, base_url: str, logger: Any) -> Tuple[Optional[str], Optional[str]]:
     """Função auxiliar para fazer chamadas à API LLM."""
     url = f"{base_url}/chat/completions"
     headers = {
@@ -21,7 +21,11 @@ def _call_llm_api(api_key: str, model: str, prompt: str, temperature: float, bas
     try:
         response = requests.post(url, json=payload, headers=headers)
         response.raise_for_status()
-        content = response.json()["choices"][0]["message"]["content"]
+        response_json = response.json()
+        logger.debug(f"API Response: {response_json}")  # Log da resposta completa
+        if "choices" not in response_json:
+            return None, f"API response missing 'choices' key. Full response: {response_json}"
+        content = response_json["choices"][0]["message"]["content"]
         return content, None
     except requests.exceptions.RequestException as e:
         if hasattr(e, 'response') and e.response is not None:
@@ -105,7 +109,7 @@ Sua resposta DEVE ser um objeto JSON válido e nada mais.
 - Certifique-se de que o JSON gerado é estritamente válido. Escape caracteres especiais dentro das strings JSON conforme necessário (ex: '\\\\n' para newline, '\\\\"' para aspas).
 """
     logger.info(f"Gerando plano de patches com o modelo: {model}...")
-    raw_response, error = _call_llm_api(api_key, model, prompt, 0.4, base_url) # Temp um pouco mais baixa
+    raw_response, error = _call_llm_api(api_key, model, prompt, 0.4, base_url, logger) # Temp um pouco mais baixa
 
     if error:
         logger.error(f"Erro ao chamar LLM para plano de patches: {error}")
@@ -116,14 +120,29 @@ Sua resposta DEVE ser um objeto JSON válido e nada mais.
 
     try:
         clean_content = raw_response.strip()
-        if clean_content.startswith('```json'):
-            clean_content = clean_content[7:].strip() # Adicionado strip()
-            if clean_content.endswith('```'):
-                clean_content = clean_content[:-3].strip() # Adicionado strip()
-        elif clean_content.startswith('```'):
-            clean_content = clean_content[3:].strip()
-            if clean_content.endswith('```'):
-                clean_content = clean_content[:-3].strip()
+        logger.debug(f"Raw response before cleaning: {raw_response[:200]}...")  # Log parcial
+        
+        # Find the first { and last } to extract just the JSON part
+        first_brace = clean_content.find('{')
+        last_brace = clean_content.rfind('}')
+        
+        if first_brace != -1 and last_brace != -1 and last_brace > first_brace:
+            clean_content = clean_content[first_brace:last_brace+1]
+            logger.debug(f"Extracted JSON content: {clean_content[:200]}...")  # Log parcial
+        else:
+            # Fallback to original cleaning if braces not found
+            if clean_content.startswith('```json'):
+                clean_content = clean_content[7:].strip()
+                if clean_content.endswith('```'):
+                    clean_content = clean_content[:-3].strip()
+            elif clean_content.startswith('```'):
+                clean_content = clean_content[3:].strip()
+                if clean_content.endswith('```'):
+                    clean_content = clean_content[:-3].strip()
+        
+        # Remove control characters that might break JSON parsing
+        clean_content = ''.join(char for char in clean_content if ord(char) >= 32 or char in '\n\r\t')
+        logger.debug(f"Final cleaned content before parsing: {clean_content[:200]}...")  # Log parcial
         
         parsed_json = json.loads(clean_content)
 
@@ -345,20 +364,48 @@ Responda apenas com um JSON no formato:
         try:
             response = requests.post(url, json=payload, headers=headers)
             response.raise_for_status()
-            content = response.json()["choices"][0]["message"]["content"]
+            response_json = response.json()
+            print(f"API Response: {response_json}")  # Debug
+            
+            if "choices" not in response_json:
+                attempt_log["raw_response"] = f"API response missing 'choices' key: {response_json}"
+                attempt_logs.append(attempt_log)
+                continue
+                
+            content = response_json["choices"][0]["message"]["content"]
             attempt_log["raw_response"] = content
+            print(f"Raw content: {content}")  # Debug
 
             clean_content = content.strip()
-            if clean_content.startswith('```json'):
-                clean_content = clean_content[7:]
-                if clean_content.endswith('```'):
-                    clean_content = clean_content[:-3]
-            elif clean_content.startswith('```'):
-                clean_content = clean_content[3:]
-                if clean_content.endswith('```'):
-                    clean_content = clean_content[:-3]
+            print(f"Initial clean content: {clean_content[:200]}...")  # Debug parcial
+            
+            # Try to find JSON between first { and last }
+            first_brace = clean_content.find('{')
+            last_brace = clean_content.rfind('}')
+            
+            if first_brace != -1 and last_brace != -1 and last_brace > first_brace:
+                clean_content = clean_content[first_brace:last_brace+1]
+                print(f"Extracted JSON: {clean_content[:200]}...")  # Debug parcial
+            else:
+                # Fallback to original cleaning
+                if clean_content.startswith('```json'):
+                    clean_content = clean_content[7:].strip()
+                    if clean_content.endswith('```'):
+                        clean_content = clean_content[:-3].strip()
+                elif clean_content.startswith('```'):
+                    clean_content = clean_content[3:].strip()
+                    if clean_content.endswith('```'):
+                        clean_content = clean_content[:-3].strip()
+
+            # Remove any non-printable characters except newlines and tabs
+            clean_content = ''.join(char for char in clean_content if ord(char) >= 32 or char in '\n\r\t')
+            print(f"Final clean content: {clean_content[:200]}...")  # Debug parcial
 
             parsed = json.loads(clean_content)
+            if not isinstance(parsed, dict) or "strategy_key" not in parsed:
+                attempt_log["raw_response"] = f"Invalid JSON format or missing strategy_key: {parsed}"
+                continue
+                
             attempt_log["parsed_json"] = parsed
             attempt_log["success"] = True
         except Exception as e:
