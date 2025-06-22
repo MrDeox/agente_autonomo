@@ -39,14 +39,16 @@ def get_action_plan(
     model: str, # Modelo para o Arquiteto
     objective: str,
     manifest: str,
+    logger: Any, # logging.Logger, mas Any para evitar import circular se brain for importado em main typings
     base_url: str = "https://openrouter.ai/api/v1"
 ) -> Tuple[Optional[Dict[str, Any]], Optional[str]]:
     """
-    Fase 2 (Arquiteto): Pega o objetivo e o manifesto, e retorna um plano de ação em JSON.
-    Retorna um dicionário com o plano ou None em caso de erro, mais uma mensagem de erro.
+    Fase 2 (Arquiteto): Pega o objetivo e o manifesto, e retorna um plano de patches em JSON.
+    Retorna um dicionário com os patches ou None em caso de erro, mais uma mensagem de erro.
+    O Arquiteto agora gera os patches diretamente, incluindo o conteúdo.
     """
     prompt = f"""
-Você é o Arquiteto de Software do agente Hephaestus. Sua tarefa é pegar o objetivo de alto nível e, com base no manifesto do projeto, criar um plano de ação detalhado e sequencial.
+Você é o Arquiteto de Software do agente Hephaestus. Sua tarefa é pegar o objetivo de alto nível e, com base no manifesto do projeto, criar um plano de patches JSON para modificar os arquivos.
 
 [OBJETIVO]
 {objective}
@@ -55,124 +57,120 @@ Você é o Arquiteto de Software do agente Hephaestus. Sua tarefa é pegar o obj
 {manifest}
 
 [SUA TAREFA]
-Crie um plano JSON com uma lista de operações atômicas. As operações válidas são: 'CREATE_FILE', 'APPEND_TO_FILE', 'REPLACE_BLOCK', 'DELETE_BLOCK'. Para operações em arquivos existentes, você DEVE LER o arquivo antes de planejar.
+Crie um plano JSON com uma lista de "patches" para aplicar. Cada patch DEVE incluir o conteúdo completo a ser inserido ou que substituirá um bloco.
+As operações válidas para cada patch são: "INSERT", "REPLACE", "DELETE_BLOCK".
+Para operações em arquivos existentes, analise o manifesto para entender o estado atual do arquivo antes de propor o patch.
+Se um arquivo não existe e a operação é "INSERT" ou "REPLACE" (com "block_to_replace": null), o arquivo será criado.
 
 [FORMATO DE SAÍDA OBRIGATÓRIO]
 Sua resposta DEVE ser um objeto JSON válido e nada mais.
 {{
-  "analysis": "Sua análise e raciocínio para o plano.",
-  "action_plan": [
+  "analysis": "Sua análise e raciocínio para o plano de patches.",
+  "patches_to_apply": [ // MODIFICADO de action_plan para patches_to_apply
     {{
-      "action": "CREATE_FILE",
-      "path": "caminho/do/arquivo.py",
-      "content_description": "Descrição do conteúdo inicial. Ex: Um arquivo Python com imports básicos."
+      "file_path": "caminho/do/arquivo.py",
+      "operation": "INSERT",
+      "line_number": 1, // Opcional. 1-based. Se omitido ou > num_linhas, insere no final.
+      "content": "import os\\nimport sys" // Conteúdo real a ser inserido. Newlines como \\n.
     }},
     {{
-      "action": "APPEND_TO_FILE",
-      "path": "caminho/do/arquivo.py",
-      "content_description": "Descrição do bloco de código a ser adicionado no final do arquivo."
+      "file_path": "caminho/existente/arquivo.txt",
+      "operation": "REPLACE",
+      "block_to_replace": "texto antigo a ser substituído", // String exata ou um padrão regex.
+                                                              // Se null, o arquivo inteiro é substituído (ou criado se não existir).
+      "is_regex": false, // Opcional, default false. True se block_to_replace for um regex.
+      "content": "novo texto que substitui o bloco antigo."
     }},
     {{
-      "action": "REPLACE_BLOCK",
-      "path": "caminho/do/arquivo.py",
-      "start_line": "<int, número da primeira linha do bloco a ser substituído (base 1)>",
-      "end_line": "<int, número da última linha do bloco a ser substituído (base 1)>",
-      "content_description": "Descrição do novo bloco de código que substituirá o antigo."
+      "file_path": "caminho/outro_arquivo.py",
+      "operation": "DELETE_BLOCK",
+      "block_to_delete": "def funcao_obsoleta(param):\\n    pass\\n", // String exata do bloco a deletar, incluindo newlines.
+                                                                     // Ou um padrão regex.
+      "is_regex": false // Opcional.
+    }},
+    {{ // Exemplo de criação de novo arquivo usando REPLACE (block_to_replace: null)
+      "file_path": "novo/arquivo_config.json",
+      "operation": "REPLACE",
+      "block_to_replace": null, // Essencial para criar/sobrescrever arquivo inteiro
+      "content": "{{\\n  \\"key\\": \\"value\\",\\n  \\"another_key\\": 123\\n}}"
     }}
   ]
 }}
+
+[INSTRUÇÕES IMPORTANTES PARA O CONTEÚDO DO PATCH]
+- Para "INSERT" e "REPLACE", o campo "content" DEVE conter o código/texto REAL e COMPLETO a ser usado.
+- Newlines dentro do "content" DEVEM ser representados como '\\n'.
+- Para "DELETE_BLOCK", o "block_to_delete" deve ser a string exata do bloco a ser removido, incluindo newlines se elas fazem parte do bloco e devem ser removidas. Se for um regex, ele deve casar o bloco.
+- Para "REPLACE" de arquivo inteiro ou criação de novo arquivo, use "block_to_replace": null.
+- Certifique-se de que o JSON gerado é estritamente válido. Escape caracteres especiais dentro das strings JSON conforme necessário (ex: '\\\\n' para newline, '\\\\"' para aspas).
 """
-    print(f"Gerando plano de ação com o modelo: {model}...")
-    raw_response, error = _call_llm_api(api_key, model, prompt, 0.5, base_url) # Temperatura um pouco mais baixa para planejamento
+    logger.info(f"Gerando plano de patches com o modelo: {model}...")
+    raw_response, error = _call_llm_api(api_key, model, prompt, 0.4, base_url) # Temp um pouco mais baixa
 
     if error:
-        return None, f"Erro ao chamar LLM para plano de ação: {error}"
+        logger.error(f"Erro ao chamar LLM para plano de patches: {error}")
+        return None, f"Erro ao chamar LLM para plano de patches: {error}"
     if not raw_response:
-        return None, "Resposta vazia do LLM para plano de ação."
+        logger.error("Resposta vazia do LLM para plano de patches.")
+        return None, "Resposta vazia do LLM para plano de patches."
 
     try:
-        # Remove possible Markdown code block wrappers
         clean_content = raw_response.strip()
         if clean_content.startswith('```json'):
-            clean_content = clean_content[7:]
+            clean_content = clean_content[7:].strip() # Adicionado strip()
             if clean_content.endswith('```'):
-                clean_content = clean_content[:-3]
-        elif clean_content.startswith('```'): # Handle cases where ```json is not specified
-            clean_content = clean_content[3:]
+                clean_content = clean_content[:-3].strip() # Adicionado strip()
+        elif clean_content.startswith('```'):
+            clean_content = clean_content[3:].strip()
             if clean_content.endswith('```'):
-                clean_content = clean_content[:-3]
+                clean_content = clean_content[:-3].strip()
         
         parsed_json = json.loads(clean_content)
-        # Validação básica da estrutura esperada
-        if "action_plan" not in parsed_json or not isinstance(parsed_json["action_plan"], list):
-            return None, "JSON do plano de ação não contém a chave 'action_plan' ou não é uma lista."
+
+        if "patches_to_apply" not in parsed_json or not isinstance(parsed_json["patches_to_apply"], list):
+            logger.error("JSON do plano de patches não contém 'patches_to_apply' ou não é uma lista.")
+            return None, "JSON do plano de patches não contém a chave 'patches_to_apply' ou não é uma lista."
+
+        # Validação mais detalhada de cada patch (opcional, mas bom)
+        for i, patch in enumerate(parsed_json["patches_to_apply"]):
+            if not isinstance(patch, dict):
+                err_msg = f"Patch na posição {i} não é um dicionário."
+                logger.error(err_msg)
+                return None, err_msg
+            if "file_path" not in patch or "operation" not in patch:
+                err_msg = f"Patch na posição {i} não tem 'file_path' ou 'operation'."
+                logger.error(err_msg)
+                return None, err_msg
+            if patch["operation"] in ["INSERT", "REPLACE"] and "content" not in patch:
+                err_msg = f"Patch {patch['operation']} na posição {i} para '{patch['file_path']}' não tem 'content'."
+                logger.error(err_msg)
+                return None, err_msg
+            if patch["operation"] == "DELETE_BLOCK" and "block_to_delete" not in patch:
+                err_msg = f"Patch DELETE_BLOCK na posição {i} para '{patch['file_path']}' não tem 'block_to_delete'."
+                logger.error(err_msg)
+                return None, err_msg
+            if patch["operation"] == "REPLACE" and "block_to_replace" not in patch: # block_to_replace pode ser null
+                err_msg = f"Patch REPLACE na posição {i} para '{patch['file_path']}' não tem 'block_to_replace' (pode ser null)."
+                logger.error(err_msg)
+                return None, err_msg
+
+
         return parsed_json, None
     except json.JSONDecodeError as e:
-        return None, f"Erro ao decodificar JSON do plano de ação: {str(e)}. Resposta recebida: {raw_response}"
+        logger.error(f"Erro ao decodificar JSON do plano de patches: {str(e)}. Resposta: {raw_response[:500]}...")
+        return None, f"Erro ao decodificar JSON do plano de patches: {str(e)}. Resposta: {raw_response}"
     except Exception as e:
-        return None, f"Erro inesperado ao processar plano de ação: {str(e)}"
+        logger.error(f"Erro inesperado ao processar plano de patches: {str(e)}", exc_info=True)
+        return None, f"Erro inesperado ao processar plano de patches: {str(e)}"
 
 
-def generate_code_for_action(
-    api_key: str,
-    model: str, # Modelo para o Engenheiro de Código
-    action: dict,
-    file_content: Optional[str],
-    base_url: str = "https://openrouter.ai/api/v1"
-) -> Tuple[Optional[str], Optional[str]]:
-    """
-    Fase 3 (Engenheiro de Código): Recebe UMA ÚNICA ação do plano e gera APENAS o código para ela.
-    Retorna o código gerado ou None em caso de erro, mais uma mensagem de erro.
-    """
-    action_description = action.get("content_description", "Nenhuma descrição fornecida para esta ação.")
-    
-    prompt = f"""
-Você é um programador especialista. Sua única tarefa é escrever o bloco de código Python necessário para cumprir a seguinte instrução. Gere APENAS o código, sem explicações ou markdown.
-
-[INSTRUÇÃO]
-{action_description}
-"""
-    if file_content is not None: # Adiciona contexto do arquivo apenas se aplicável
-        prompt += f"""
-[CONTEXTO DO ARQUIVO (se aplicável)]
-```python
-{file_content}
-```
-"""
-    else: # Especifica se é um novo arquivo
-        if action.get("action") == "CREATE_FILE":
-            prompt += "\n[NOTA] Esta é a criação de um NOVO arquivo. Gere o conteúdo completo inicial conforme a instrução."
-        else: # Para outras ações que deveriam ter file_content mas não têm (ex: APPEND a arquivo inexistente, erro de lógica)
-            prompt += "\n[ALERTA] O conteúdo do arquivo não foi fornecido, mas a ação não é CREATE_FILE. Proceda com base apenas na instrução, mas isso pode ser um erro no plano."
-
-
-    print(f"Gerando código para a ação '{action.get('action')}' no arquivo '{action.get('path')}' com o modelo: {model}...")
-    # Usar temperatura mais baixa para geração de código para ser mais determinístico
-    generated_code, error = _call_llm_api(api_key, model, prompt, 0.2, base_url)
-
-    if error:
-        return None, f"Erro ao chamar LLM para geração de código: {error}"
-    if not generated_code: # Pode ser uma string vazia se o LLM decidir que nada deve ser gerado
-        return "", "Resposta vazia do LLM para geração de código (pode ser intencional)."
-
-    # O prompt pede para não incluir markdown, mas por precaução:
-    clean_code = generated_code.strip()
-    if clean_code.startswith('```python'):
-        clean_code = clean_code[9:] # Remove '```python'
-        if clean_code.endswith('```'):
-            clean_code = clean_code[:-3]
-    elif clean_code.startswith('```'): # Handle cases where ```python is not specified but ``` is
-        clean_code = clean_code[3:]
-        if clean_code.endswith('```'):
-            clean_code = clean_code[:-3] # Corrigido para clean_code
-
-    return clean_code, None
-
+# A função generate_code_for_action foi removida pois o Arquiteto agora gera patches com conteúdo diretamente.
 
 def generate_next_objective(
     api_key: str,
     model: str,
     current_manifest: str,
+    logger: Any, # logging.Logger
     base_url: str = "https://openrouter.ai/api/v1"
 ) -> str:
     """
