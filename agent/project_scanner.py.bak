@@ -5,283 +5,154 @@ import ast
 from typing import List, Optional, Tuple, Dict, Set
 
 def _extract_elements(code_string: str) -> List[Tuple[str, str, Optional[str], Optional[str]]]:
-    """
-    Analisa o código Python e extrai elementos estruturais principais.
-    
-    Args:
-        code_string: String contendo o código fonte Python
-        
-    Returns:
-        Lista de tuplas com informações dos elementos (tipo, nome, detalhes, docstring)
-    """
     try:
-        # Converte o código em uma Árvore de Sintaxe Abstrata (AST)
         tree = ast.parse(code_string)
         elements = []
         
-        # Percorre todos os nós da AST
         for node in ast.iter_child_nodes(tree):
-            # Identifica imports (normais e de módulos específicos)
             if isinstance(node, (ast.Import, ast.ImportFrom)):
                 elements.append(('import', ast.unparse(node), None, None))
             
-            # Identifica definições de classes
             elif isinstance(node, ast.ClassDef):
-                # Extrai classes herdadas (se houver)
                 bases = [ast.unparse(base) for base in node.bases]
-                # Obtém a docstring da classe
                 docstring = ast.get_docstring(node)
                 elements.append(('class', node.name, ','.join(bases) if bases else None, docstring))
             
-            # Identifica definições de funções
             elif isinstance(node, ast.FunctionDef):
-                # Extrai os argumentos da função
                 args = ast.unparse(node.args)
-                # Obtém a docstring da função
                 docstring = ast.get_docstring(node)
                 elements.append(('function', node.name, args, docstring))
         
         return elements
     
     except Exception as e:
-        # Retorna erro se houver problema na análise
         return [('error', None, None, f"Erro na análise AST: {str(e)}")]
 
 def _extract_skeleton(code_string: str) -> str:
-    """
-    Gera uma versão simplificada do código mostrando apenas a estrutura principal.
-    
-    Args:
-        code_string: String contendo o código fonte Python
-        
-    Returns:
-        String formatada mostrando imports, classes e funções (sem implementação)
-    """
-    # Extrai os elementos estruturais do código
     elements = _extract_elements(code_string)
     
-    # Trata erros na extração
     if elements and elements[0][0] == 'error':
         return f"# {elements[0][3]}"
 
     skeleton_lines = []
     for el_type, name, details, docstring in elements:
-        # Processa imports
         if el_type == 'import':
             skeleton_lines.append(name)
         
-        # Processa classes
         elif el_type == 'class':
-            # Constrói a definição da classe
             class_def = f"class {name}"
             if details:
-                class_def += f"({details})"  # Adiciona herança
+                class_def += f"({details})"
             class_def += ":"
             skeleton_lines.append(class_def)
             
-            # Adiciona docstring se existir
             if docstring:
                 skeleton_lines.append(f'    """{docstring}"""')
             
-            # Indica que o corpo foi omitido
             skeleton_lines.append("    # ... (corpo omitido para brevidade)\n")
         
-        # Processa funções
         elif el_type == 'function':
-            # Constrói a definição da função
             func_def = f"def {name}({details}):"
             skeleton_lines.append(func_def)
             
-            # Adiciona docstring se existir
             if docstring:
                 skeleton_lines.append(f'    """{docstring}"""')
             
-            # Indica que o corpo foi omitido
             skeleton_lines.append("    # ... (corpo omitido para brevidade)\n")
     
-    # Junta todas as linhas em uma única string
     return "\n".join(skeleton_lines)
 
 def update_project_manifest(root_dir: str, target_files: List[str], output_path: str = "AGENTS.md") -> None:
-    """
-    Gera o manifesto do projeto em formato Markdown com 3 seções principais.
-    
-    Args:
-        root_dir: Diretório raiz do projeto
-        target_files: Lista de arquivos para incluir o conteúdo completo
-        output_path: Caminho para salvar o manifesto
-    """
-    # Configura caminho absoluto do diretório raiz
     root_path = pathlib.Path(root_dir).resolve()
-    
-    # Diretórios que devem ser ignorados na geração do manifesto
     skip_dirs = {'venv', '__pycache__', '.git', 'node_modules'}
-    
-    # Converte a lista de arquivos alvo em conjunto para busca eficiente
     target_files_set = set(target_files)
     
-    # Cache para armazenar conteúdo de arquivos alvo
-    cached_target_files: Dict[str, Tuple[str, Exception]] = {}
+    # Cache unificado para todo conteúdo de arquivo
+    file_content_cache: Dict[str, Tuple[Optional[str], Optional[Exception]]] = {}
     
-    # Abre o arquivo de manifesto para escrita
     with open(output_path, 'w', encoding='utf-8') as manifest:
-        # Cabeçalho do manifesto
         manifest.write("# MANIFESTO DO PROJETO HEPHAESTUS\n\n")
-        
-        # Buffer para armazenar informações dos módulos (para seção 2)
-        module_info = []  # Cada item: (caminho_relativo, conteúdo, erro)
         
         ##### SEÇÃO 1: ESTRUTURA DE ARQUIVOS #####
         manifest.write("## 1. ESTRUTURA DE ARQUIVOS (OTIMIZADA)\n")
         
-        # Percorre recursivamente o diretório
         for root, dirs, files in os.walk(root_path, topdown=True):
-            # Filtra diretórios indesejados durante a travessia
             dirs[:] = [d for d in dirs if not d.startswith('.') and d not in skip_dirs]
-            
-            # Ignora diretórios vazios
             if not dirs and not files:
                 continue
                 
-            # Calcula nível de indentação baseado na profundidade do diretório
             level = pathlib.Path(root).relative_to(root_path).parts
             indent = ' ' * 4 * len(level)
-            
-            # Adiciona o diretório atual ao manifesto
             manifest.write(f"{indent}{os.path.basename(root)}/\n")
             
-            # Calcula indentação para arquivos
             sub_indent = ' ' * 4 * (len(level) + 1)
             
-            # Processa cada arquivo no diretório atual
             for f in files:
-                # Ignora arquivos ocultos
                 if not f.startswith('.'):
-                    # Adiciona o arquivo à estrutura
                     manifest.write(f"{sub_indent}{f}\n")
                     
-                    # Constrói o caminho completo do arquivo
                     file_path = pathlib.Path(root) / f
                     rel_path = file_path.relative_to(root_path)
                     rel_path_str = str(rel_path)
                     
-                    # Verifica se é um arquivo alvo (conteúdo completo na seção 3)
-                    if rel_path_str in target_files_set:
+                    # Armazena em cache apenas arquivos relevantes
+                    if rel_path_str in target_files_set or f.endswith('.py'):
                         try:
-                            # Lê e armazena o conteúdo do arquivo em cache
                             with open(file_path, 'r', encoding='utf-8') as f_obj:
                                 content = f_obj.read()
-                            cached_target_files[rel_path_str] = (content, None)
+                            file_content_cache[rel_path_str] = (content, None)
                         except Exception as e:
-                            # Armazena erro se houver problema na leitura
-                            cached_target_files[rel_path_str] = (None, e)
-                    
-                    # Processa arquivos Python para a seção de interfaces
-                    elif f.endswith('.py'):
-                        try:
-                            # Lê o conteúdo do arquivo
-                            with open(file_path, 'r', encoding='utf-8') as f_obj:
-                                content = f_obj.read()
-                            # Armazena para processamento posterior na seção 2
-                            module_info.append((rel_path_str, content, None))
-                        except Exception as e:
-                            # Armazena erro se houver problema na leitura
-                            module_info.append((rel_path_str, None, e))
+                            file_content_cache[rel_path_str] = (None, e)
         
-        ##### SEÇÃO 2: RESUMO DAS INTERFACES (APIs) #####
+        ##### SEÇÃO 2: RESUMO DAS INTERFACES #####
         manifest.write("\n## 2. RESUMO DAS INTERFACES (APIs Internas)\n")
         
-        # Processa cada módulo coletado
-        for rel_path, content, error in module_info:
-            # Cabeçalho do módulo
+        # Processa todos os arquivos .py não-alvo do cache
+        for rel_path, (content, error) in file_content_cache.items():
+            if not rel_path.endswith('.py') or rel_path in target_files_set:
+                continue  # Ignora não-Python e arquivos alvo
+                
             manifest.write(f"\n### Módulo: `{rel_path}`\n")
             
-            # Trata erros de leitura
             if error:
                 manifest.write(f"  - [ERRO] {str(error)}\n")
             elif not content:
                 manifest.write("  - [ERRO] Falha na leitura do arquivo\n")
             else:
-                # Extrai elementos estruturais do código
                 elements = _extract_elements(content)
                 
-                # Trata erros na análise do código
                 if elements and elements[0][0] == 'error':
                     manifest.write(f"  - [ERRO] {elements[0][3]}\n")
                 else:
-                    # Processa cada elemento extraído
                     for el_type, name, details, docstring in elements:
-                        # Formata classes
                         if el_type == 'class':
                             class_sig = f"{name}({details})" if details else name
                             manifest.write(f"- **Classe:** `{class_sig}`\n")
-                            # Adiciona primeira linha da docstring se existir
                             if docstring:
                                 first_line = docstring.strip().split('\n')[0]
                                 manifest.write(f"  - *{first_line}*\n")
                         
-                        # Formata funções
                         elif el_type == 'function':
                             manifest.write(f"- **Função:** `{name}({details})`\n")
-                            # Adiciona primeira linha da docstring se existir
                             if docstring:
                                 first_line = docstring.strip().split('\n')[0]
                                 manifest.write(f"  - *{first_line}*\n")
         
-        ##### SEÇÃO 3: CÓDIGO-FONTE COMPLETO #####
-        manifest.write("\n## 3. FOCO DA TAREFA (CÓDIGO-FONTE COMPLETO)\n")
+        ##### SEÇÃO 3: CONTEÚDO DOS ARQUIVOS ALVO #####
+        manifest.write("\n## 3. CONTEÚDO COMPLETO DOS ARQUIVOS ALVO\n")
         
-        # Limite máximo de tamanho para arquivos
-        MAX_FILE_SIZE = 10000  # 10KB
-        
-        # Processa cada arquivo alvo
-        for target in target_files:
-            # Verifica se o arquivo está no cache
-            if target in cached_target_files:
-                content, error = cached_target_files[target]
-                
-                # Cabeçalho do arquivo
-                manifest.write(f"\n--- INÍCIO DO CÓDIGO-FONTE: {target} ---\n")
-                manifest.write("```python\n")
-                
-                # Trata erros de leitura
-                if error:
-                    manifest.write(f"# Erro ao ler arquivo: {str(error)}\n")
-                else:
-                    if content is None:
-                        manifest.write("# Erro: conteúdo vazio\n")
-                    else:
-                        # Trunca conteúdo muito grande
-                        if len(content) > MAX_FILE_SIZE:
-                            content = content[:MAX_FILE_SIZE] + "\n# ... [conteúdo truncado por tamanho excessivo]"
-                        manifest.write(content)
-                
-                # Fechamento do bloco de código
-                manifest.write("\n```\n")
-                manifest.write(f"--- FIM DO CÓDIGO-FONTE: {target} ---\n")
+        for rel_path in target_files:
+            manifest.write(f"\n### Arquivo: `{rel_path}`\n\n```\n")
             
+            if rel_path in file_content_cache:
+                content, error = file_content_cache[rel_path]
+                if error:
+                    manifest.write(f"# ERRO: {str(error)}\n")
+                elif content is None:
+                    manifest.write("# ERRO: Conteúdo não disponível\n")
+                else:
+                    manifest.write(content + "\n")
             else:
-                # Fallback para arquivos não encontrados no cache
-                target_path = root_path / target
-                if not target_path.exists():
-                    manifest.write(f"\n# Arquivo não encontrado: {target}\n")
-                    continue
-                
-                # Cabeçalho do arquivo
-                manifest.write(f"\n--- INÍCIO DO CÓDIGO-FONTE: {target} ---\n")
-                manifest.write("```python\n")
-                
-                try:
-                    # Lê o arquivo diretamente
-                    with open(target_path, 'r', encoding='utf-8') as f:
-                        content = f.read()
-                        # Trunca conteúdo muito grande
-                        if len(content) > MAX_FILE_SIZE:
-                            content = content[:MAX_FILE_SIZE] + "\n# ... [conteúdo truncado por tamanho excessivo]"
-                        manifest.write(content)
-                except Exception as e:
-                    manifest.write(f"# Erro ao ler arquivo: {str(e)}\n")
-                
-                # Fechamento do bloco de código
-                manifest.write("\n```\n")
-                manifest.write(f"--- FIM DO CÓDIGO-FONTE: {target} ---\n")
+                manifest.write("# ARQUIVO NÃO ENCONTRADO\n")
+            
+            manifest.write("```\n")

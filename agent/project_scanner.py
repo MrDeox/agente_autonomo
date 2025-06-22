@@ -67,8 +67,9 @@ def update_project_manifest(root_dir: str, target_files: List[str], output_path:
     skip_dirs = {'venv', '__pycache__', '.git', 'node_modules'}
     target_files_set = set(target_files)
     
-    # Cache unificado para todo conteúdo de arquivo
-    file_content_cache: Dict[str, Tuple[Optional[str], Optional[Exception]]] = {}
+    # Caches otimizados
+    target_content_cache: Dict[str, Tuple[Optional[str], Optional[Exception]]] = {}
+    api_summary_cache: Dict[str, List[Tuple]] = {}
     
     with open(output_path, 'w', encoding='utf-8') as manifest:
         manifest.write("# MANIFESTO DO PROJETO HEPHAESTUS\n\n")
@@ -95,48 +96,45 @@ def update_project_manifest(root_dir: str, target_files: List[str], output_path:
                     rel_path = file_path.relative_to(root_path)
                     rel_path_str = str(rel_path)
                     
-                    # Armazena em cache apenas arquivos relevantes
-                    if rel_path_str in target_files_set or f.endswith('.py'):
+                    # Processa arquivos durante a travessia
+                    if rel_path_str in target_files_set:
                         try:
                             with open(file_path, 'r', encoding='utf-8') as f_obj:
                                 content = f_obj.read()
-                            file_content_cache[rel_path_str] = (content, None)
+                            target_content_cache[rel_path_str] = (content, None)
                         except Exception as e:
-                            file_content_cache[rel_path_str] = (None, e)
+                            target_content_cache[rel_path_str] = (None, e)
+                    
+                    elif f.endswith('.py'):
+                        try:
+                            with open(file_path, 'r', encoding='utf-8') as f_obj:
+                                content = f_obj.read()
+                            api_summary_cache[rel_path_str] = _extract_elements(content)
+                        except Exception as e:
+                            api_summary_cache[rel_path_str] = [('error', None, None, f"Erro na leitura do arquivo: {str(e)}")]
         
         ##### SEÇÃO 2: RESUMO DAS INTERFACES #####
         manifest.write("\n## 2. RESUMO DAS INTERFACES (APIs Internas)\n")
         
-        # Processa todos os arquivos .py não-alvo do cache
-        for rel_path, (content, error) in file_content_cache.items():
-            if not rel_path.endswith('.py') or rel_path in target_files_set:
-                continue  # Ignora não-Python e arquivos alvo
-                
+        for rel_path, elements in api_summary_cache.items():
             manifest.write(f"\n### Módulo: `{rel_path}`\n")
             
-            if error:
-                manifest.write(f"  - [ERRO] {str(error)}\n")
-            elif not content:
-                manifest.write("  - [ERRO] Falha na leitura do arquivo\n")
+            if elements and elements[0][0] == 'error':
+                manifest.write(f"  - [ERRO] {elements[0][3]}\n")
             else:
-                elements = _extract_elements(content)
-                
-                if elements and elements[0][0] == 'error':
-                    manifest.write(f"  - [ERRO] {elements[0][3]}\n")
-                else:
-                    for el_type, name, details, docstring in elements:
-                        if el_type == 'class':
-                            class_sig = f"{name}({details})" if details else name
-                            manifest.write(f"- **Classe:** `{class_sig}`\n")
-                            if docstring:
-                                first_line = docstring.strip().split('\n')[0]
-                                manifest.write(f"  - *{first_line}*\n")
-                        
-                        elif el_type == 'function':
-                            manifest.write(f"- **Função:** `{name}({details})`\n")
-                            if docstring:
-                                first_line = docstring.strip().split('\n')[0]
-                                manifest.write(f"  - *{first_line}*\n")
+                for el_type, name, details, docstring in elements:
+                    if el_type == 'class':
+                        class_sig = f"{name}({details})" if details else name
+                        manifest.write(f"- **Classe:** `{class_sig}`\n")
+                        if docstring:
+                            first_line = docstring.strip().split('\n')[0]
+                            manifest.write(f"  - *{first_line}*\n")
+                    
+                    elif el_type == 'function':
+                        manifest.write(f"- **Função:** `{name}({details})`\n")
+                        if docstring:
+                            first_line = docstring.strip().split('\n')[0]
+                            manifest.write(f"  - *{first_line}*\n")
         
         ##### SEÇÃO 3: CONTEÚDO DOS ARQUIVOS ALVO #####
         manifest.write("\n## 3. CONTEÚDO COMPLETO DOS ARQUIVOS ALVO\n")
@@ -144,8 +142,8 @@ def update_project_manifest(root_dir: str, target_files: List[str], output_path:
         for rel_path in target_files:
             manifest.write(f"\n### Arquivo: `{rel_path}`\n\n```\n")
             
-            if rel_path in file_content_cache:
-                content, error = file_content_cache[rel_path]
+            if rel_path in target_content_cache:
+                content, error = target_content_cache[rel_path]
                 if error:
                     manifest.write(f"# ERRO: {str(error)}\n")
                 elif content is None:
