@@ -1,0 +1,40 @@
+{
+  "description": "Este arquivo define o processo de execucao do agente Hephaestus. Modificar esta lista altera o comportamento do agente.",
+  "evolution_process": [
+    {
+      "step_name": "update_project_manifest",
+      "description": "Gera o AGENTS.md com a visao atual do projeto.",
+      "enabled": true
+    },
+    {
+      "step_name": "get_ai_suggestion",
+      "description": "Consulta a LLM com o objetivo e o manifesto.",
+      "enabled": true
+    },
+    {
+      "step_name": "validate_syntax",
+      "description": "Valida se o codigo sugerido pela IA tem sintaxe valida.",
+      "enabled": true
+    },
+    {
+      "step_name": "run_pytest_validation",
+      "description": "Executa testes pytest gerados pela IA, se houver.",
+      "enabled": true
+    },
+    {
+      "step_name": "run_benchmark_validation",
+      "description": "Executa um benchmark A/B para medir o impacto da mudança.",
+      "enabled": false
+    },
+    {
+      "step_name": "apply_changes",
+      "description": "Aplica a mudança no codigo-fonte principal.",
+      "enabled": true
+    },
+    {
+      "step_name": "ressync_manifest",
+      "description": "Gera o AGENTS.md final apos as mudanças.",
+      "enabled": true
+    }
+  ]
+}
