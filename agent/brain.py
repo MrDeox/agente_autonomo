@@ -34,18 +34,58 @@ Não se limite às ferramentas e estratégias de validação existentes. Se a me
 [OBJETIVO DA TAREFA ATUAL]
 Seu objetivo específico para esta execução é: {objective}
 
-[FORMATO DE SAÍDA OBRIGATÓRIO]
-Sua resposta DEVE SER um objeto JSON válido e NADA MAIS. Não inclua explicações, saudações ou qualquer texto fora do objeto JSON. A estrutura do JSON deve ser:
+[FORMATO DE SAÍDA OBRIGATÓRIO: PARADIGMA DE PATCHING CIRÚRGICO]
+Sua resposta DEVE SER um objeto JSON válido e NADA MAIS. Não inclua explicações, saudações ou qualquer texto fora do objeto JSON.
+Em vez de fornecer o conteúdo completo de arquivos, você especificará um conjunto de "operações de patch" para modificar os arquivos existentes de forma precisa. Pense como um cirurgião, não como um açougueiro.
+
+A estrutura do JSON deve ser:
 {{
-  "analysis_summary": "No campo 'analysis_summary', escreva como um engenheiro sênior reportando para outro, explicando o raciocínio técnico e os benefícios da mudança proposta.",
-  "files_to_update": [
+  "analysis_summary": "No campo 'analysis_summary', escreva como um engenheiro sênior reportando para outro, explicando o raciocínio técnico e os benefícios da mudança proposta. Se a mudança envolver a criação de um novo arquivo, indique isso aqui e use uma operação de patch apropriada (ex: REPLACE_BLOCK em um arquivo vazio se o patch applicator não suportar criação direta, ou especifique se uma nova ferramenta é necessária).",
+  "patches_to_apply": [
     {{
       "file_path": "caminho/do/arquivo.py",
-      "new_content": "O código completo e atualizado do arquivo."
+      "reasoning": "Breve justificativa para modificar ESTE ARQUIVO ESPECÍFICO e como as operações propostas atingem o objetivo para este arquivo.",
+      "operations": [
+        {{
+          "operation": "REPLACE_BLOCK",
+          "start_line": "<int, número da primeira linha do bloco a ser substituído (base 1)>",
+          "end_line": "<int, número da última linha do bloco a ser substituído (base 1)>",
+          "content": "<string, o novo bloco de código, incluindo quebras de linha apropriadas. Assegure-se que a indentação do conteúdo esteja correta e que as quebras de linha sejam \\n.>"
+        }},
+        {{
+          "operation": "INSERT_AFTER",
+          "line_number": "<int, número da linha APÓS a qual o conteúdo será inserido (base 1). Use 0 para inserir no início do arquivo.>",
+          "content": "<string, o código a ser inserido, incluindo quebras de linha apropriadas. Assegure-se que a indentação do conteúdo esteja correta e que as quebras de linha sejam \\n.>"
+        }},
+        {{
+          "operation": "DELETE_BLOCK",
+          "start_line": "<int, número da primeira linha do bloco a ser deletado (base 1)>",
+          "end_line": "<int, número da última linha do bloco a ser deletado (base 1)>"
+        }}
+      ]
     }}
   ],
   "validation_pytest_code": "OPCIONAL: Uma string contendo o código de um novo teste em pytest para validar a mudança proposta. Se a mudança for simples e não necessitar de um novo teste, esta chave pode ser omitida ou o valor ser null/vazio."
 }}
+
+[INSTRUÇÕES DETALHADAS PARA OPERAÇÕES DE PATCH]
+- `file_path`: Caminho completo para o arquivo a ser modificado.
+- `reasoning`: Explique por que este arquivo precisa ser alterado e como as operações alcançarão o objetivo.
+- `operations`: Uma lista de operações a serem aplicadas sequencialmente NO ARQUIVO ORIGINAL.
+    - Os números de linha (`start_line`, `end_line`, `line_number`) são SEMPRE baseados em 1 e referem-se ao estado do arquivo ANTES de qualquer operação nesta lista de patches para ESTE ARQUIVO.
+    - `REPLACE_BLOCK`: Substitui um intervalo de linhas (inclusive `start_line` e `end_line`) pelo `content`.
+        - `start_line` e `end_line` devem ser válidos e `start_line <= end_line`.
+        - O `content` substitui todas as linhas desde `start_line` até `end_line`.
+    - `INSERT_AFTER`: Insere o `content` após a `line_number` especificada.
+        - Para inserir no início do arquivo, use `line_number: 0`.
+        - O `content` será inserido começando na linha seguinte à `line_number`.
+    - `DELETE_BLOCK`: Remove um intervalo de linhas (inclusive `start_line` e `end_line`).
+        - `start_line` e `end_line` devem ser válidos e `start_line <= end_line`.
+- `content`: Para `REPLACE_BLOCK` e `INSERT_AFTER`, o `content` é uma string que pode conter múltiplas linhas. Use `\\n` para quebras de linha. Garanta que a indentação dentro do `content` esteja correta em relação ao código ao redor no arquivo.
+
+[PENSAMENTO CIRÚRGICO OBRIGATÓRIO]
+Analise o código existente com cuidado. Suas operações devem ser precisas para evitar quebrar a lógica existente.
+Se você precisar criar um novo arquivo, você pode propor uma operação `REPLACE_BLOCK` com `start_line: 1`, `end_line: 1` (ou similar, dependendo de como o `patch_applicator` lida com arquivos vazios ou se ele pode criar arquivos) em um `file_path` que ainda não existe, e o `content` será o conteúdo completo do novo arquivo. No `analysis_summary`, esclareça que se trata da criação de um novo arquivo.
 
 [DADOS DE ENTRADA]
 Abaixo está o snapshot atual do código do projeto 'Hephaestus' para sua análise:
@@ -57,7 +97,7 @@ Abaixo está o snapshot atual do código do projeto 'Hephaestus' para sua análi
             "messages": [
                 {"role": "user", "content": prompt}
             ],
-            "temperature": 0.7
+            "temperature": 0.7 # Temperatura pode ser ajustada, 0.7 permite alguma criatividade
         }
 
         attempt_log = {
