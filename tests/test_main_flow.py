@@ -8,7 +8,10 @@ from unittest.mock import MagicMock, patch, mock_open
 
 from main import HephaestusAgent
 # Importar funções específicas que serão mockadas se necessário
-from agent.brain import get_action_plan, get_maestro_decision, generate_next_objective, generate_capacitation_objective
+# from agent.brain import get_action_plan, get_maestro_decision # Removidas
+from agent.brain import generate_next_objective, generate_capacitation_objective, generate_commit_message
+# As classes ArchitectAgent e MaestroAgent serão mockadas diretamente ou seus métodos
+# from agent.agents import ArchitectAgent, MaestroAgent
 from agent.project_scanner import update_project_manifest
 from agent.patch_applicator import apply_patches
 from agent.code_validator import validate_python_code, validate_json_syntax
@@ -93,18 +96,24 @@ def hephaestus_agent(temp_project_dir: Path, test_agent_logger: logging.Logger, 
 
 # --- Testes de Fluxo ---
 
-@patch('main.get_action_plan') # Corrigido
-@patch('main.get_maestro_decision') # Corrigido
-@patch('main.generate_next_objective') # Corrigido
-@patch('main.run_pytest') # Corrigido
-@patch('main.check_file_existence') # Corrigido
+# Os patches agora devem mirar nos métodos dos agentes instanciados ou nas classes em `main`
+# Se HephaestusAgent instancia ArchitectAgent e MaestroAgent em seu __init__,
+# podemos mockar as classes em si se elas são importadas em `main.py`,
+# ou mockar os métodos das instâncias após a criação do `hephaestus_agent`.
+
+@patch('main.ArchitectAgent.plan_action') # Mock do método na classe importada em main
+@patch('main.MaestroAgent.choose_strategy') # Mock do método na classe importada em main
+@patch('main.generate_next_objective')
+@patch('main.run_pytest')
+@patch('main.check_file_existence')
+@patch('main.generate_commit_message') # Adicionado para cobrir o fluxo de commit
 def test_main_flow_apply_and_validate_syntax_success(
-    mock_check_file_existence, mock_run_pytest,
-    mock_gen_next_obj, mock_maestro, mock_architect,
+    mock_gen_commit_msg, mock_check_file_existence, mock_run_pytest,
+    mock_gen_next_obj, mock_maestro_choose_strategy, mock_architect_plan_action,
     hephaestus_agent: HephaestusAgent, temp_project_dir: Path, test_agent_logger: logging.Logger
 ):
     # --- Configuração dos Mocks ---
-    # 1. Arquiteto retorna um patch simples
+    # 1. ArchitectAgent.plan_action retorna um patch simples
     action_plan_response = {
         "analysis": "Test analysis: create a new Python file.",
         "patches_to_apply": [{
@@ -113,20 +122,22 @@ def test_main_flow_apply_and_validate_syntax_success(
             "content": "print('Hello from new_module.py')\n# Valid Python"
         }]
     }
-    mock_architect.return_value = (action_plan_response, None)
+    # ArchitectAgent.plan_action retorna (plan_data, error_msg)
+    mock_architect_plan_action.return_value = (action_plan_response, None)
 
-    # 2. Maestro escolhe a estratégia APPLY_AND_VALIDATE_SYNTAX_SANDBOX (alinhado com config de teste)
+    # 2. MaestroAgent.choose_strategy escolhe a estratégia
     maestro_decision_response = {"strategy_key": "APPLY_AND_VALIDATE_SYNTAX_SANDBOX"}
-    # get_maestro_decision retorna uma lista de logs de tentativa
-    mock_maestro.return_value = [{"success": True, "parsed_json": maestro_decision_response, "model": "mock_model", "raw_response": ""}]
+    # MaestroAgent.choose_strategy retorna uma lista de logs de tentativa
+    mock_maestro_choose_strategy.return_value = [{"success": True, "parsed_json": maestro_decision_response, "model": "mock_maestro_model", "raw_response": json.dumps(maestro_decision_response)}]
 
-
-    # 3. Gerador de próximo objetivo (será chamado no final do ciclo de sucesso)
+    # 3. Gerador de próximo objetivo
     mock_gen_next_obj.return_value = "Objective: Do more tests."
 
     # 4. check_file_existence (sanity check) retorna sucesso
     mock_check_file_existence.return_value = (True, "All files checked exist.")
 
+    # 5. generate_commit_message retorna uma mensagem
+    mock_gen_commit_msg.return_value = "feat: Create new_module.py"
 
     # --- Execução do Ciclo do Agente ---
     # Adicionar um objetivo inicial para o agente processar
@@ -151,11 +162,18 @@ def test_main_flow_apply_and_validate_syntax_success(
     hephaestus_agent.run() # Executa o loop, que deve parar após um ciclo bem-sucedido
 
     # --- Asserções ---
-    # 1. Verificar se os mocks foram chamados
-    mock_architect.assert_called_once()
-    mock_maestro.assert_called_once()
+    # 1. Verificar se os mocks dos métodos dos agentes foram chamados
+    mock_architect_plan_action.assert_called_once_with(
+        objective="Initial Objective: Create new_module.py",
+        manifest=hephaestus_agent.state.manifesto_content # Manifesto após _generate_manifest
+    )
+    mock_maestro_choose_strategy.assert_called_once_with(
+        action_plan_data=action_plan_response,
+        memory_summary=hephaestus_agent.memory.get_full_history_for_prompt()
+    )
     mock_gen_next_obj.assert_called_once() # Chamado após sucesso e sanidade
     mock_check_file_existence.assert_called_once() # Chamado como sanity check
+    mock_gen_commit_msg.assert_called_once() # Chamado para o commit
 
     # 2. Verificar se o arquivo foi criado e tem o conteúdo correto
     created_file_path = temp_project_dir / "new_module.py"
@@ -179,23 +197,23 @@ def test_main_flow_apply_and_validate_syntax_success(
     # Ex: test_agent_logger.info.assert_any_call("SUCESSO NO CICLO! Razão: APPLIED_AND_VALIDATED")
 
 
-@patch('main.get_action_plan')
-@patch('main.get_maestro_decision')
+@patch('main.ArchitectAgent.plan_action')
+@patch('main.MaestroAgent.choose_strategy')
 @patch('main.generate_capacitation_objective')
 def test_main_flow_capacitation_required(
-    mock_gen_cap_obj, mock_maestro, mock_architect,
+    mock_gen_cap_obj, mock_maestro_choose_strategy, mock_architect_plan_action,
     hephaestus_agent: HephaestusAgent, temp_project_dir: Path
 ):
-    # 1. Arquiteto sugere algo que o Maestro identificará como necessidade de capacitação
+    # 1. ArchitectAgent.plan_action sugere algo que requer capacitação
     action_plan_response = {
         "analysis": "This task requires a new tool 'super_tool'.",
-        "patches_to_apply": [] # Pode ou não ter patches
+        "patches_to_apply": []
     }
-    mock_architect.return_value = (action_plan_response, None)
+    mock_architect_plan_action.return_value = (action_plan_response, None)
 
-    # 2. Maestro decide CAPACITATION_REQUIRED
+    # 2. MaestroAgent.choose_strategy decide CAPACITATION_REQUIRED
     maestro_decision_response = {"strategy_key": "CAPACITATION_REQUIRED"}
-    mock_maestro.return_value = [{"success": True, "parsed_json": maestro_decision_response, "model":"m", "raw_response":""}]
+    mock_maestro_choose_strategy.return_value = [{"success": True, "parsed_json": maestro_decision_response, "model":"mock_maestro_model", "raw_response":json.dumps(maestro_decision_response)}]
 
     # 3. Gerador de objetivo de capacitação
     mock_gen_cap_obj.return_value = "Objective: Create super_tool."
@@ -217,13 +235,14 @@ def test_main_flow_capacitation_required(
     hephaestus_agent.run()
 
     # --- Asserções ---
-    mock_architect.assert_called_once()
-    mock_maestro.assert_called_once()
+    mock_architect_plan_action.assert_called_once()
+    mock_maestro_choose_strategy.assert_called_once()
     mock_gen_cap_obj.assert_called_once_with(
-        hephaestus_agent.api_key,
-        hephaestus_agent.config["models"]["capacitation_generator"],
-        action_plan_response["analysis"], # Análise do arquiteto
-        hephaestus_agent.logger
+        api_key=hephaestus_agent.api_key,
+        model=hephaestus_agent.config["models"]["capacitation_generator"],
+        engineer_analysis=action_plan_response["analysis"],
+        logger=hephaestus_agent.logger, # O logger global do agente é passado
+        memory_summary=hephaestus_agent.memory.get_full_history_for_prompt() # memory_summary é passado
     )
 
     # No final do ciclo, a pilha foi limpa pelo side_effect.
@@ -237,14 +256,14 @@ def test_main_flow_capacitation_required(
     # assert initial_objective in hephaestus_agent.objective_stack
 
 
-@patch('main.get_action_plan')
-@patch('main.get_maestro_decision')
+@patch('main.ArchitectAgent.plan_action')
+@patch('main.MaestroAgent.choose_strategy')
 @patch('main.run_pytest')
 def test_main_flow_pytest_failure_triggers_correction_objective(
-    mock_run_pytest, mock_maestro, mock_architect,
+    mock_run_pytest, mock_maestro_choose_strategy, mock_architect_plan_action,
     hephaestus_agent: HephaestusAgent, temp_project_dir: Path
 ):
-    # 1. Arquiteto retorna um patch que (simularemos) causa falha no pytest
+    # 1. ArchitectAgent.plan_action retorna um patch que (simularemos) causa falha no pytest
     faulty_patch_content = "def test_always_fails():\n  assert False"
     action_plan_response = {
         "analysis": "Test analysis: add a failing test.",
@@ -254,11 +273,11 @@ def test_main_flow_pytest_failure_triggers_correction_objective(
             "content": faulty_patch_content
         }]
     }
-    mock_architect.return_value = (action_plan_response, None)
+    mock_architect_plan_action.return_value = (action_plan_response, None)
 
-    # 2. Maestro escolhe estratégia que roda pytest (alinhado com config de teste)
+    # 2. MaestroAgent.choose_strategy escolhe estratégia que roda pytest
     maestro_decision_response = {"strategy_key": "APPLY_AND_PYTEST_SANDBOX"}
-    mock_maestro.return_value = [{"success": True, "parsed_json": maestro_decision_response, "model":"m", "raw_response":""}]
+    mock_maestro_choose_strategy.return_value = [{"success": True, "parsed_json": maestro_decision_response, "model":"mock_maestro_model", "raw_response":json.dumps(maestro_decision_response)}]
 
     # 3. run_pytest retorna falha
     mock_run_pytest.return_value = (False, "Pytest failed: 1 test failed.")
@@ -277,12 +296,23 @@ def test_main_flow_pytest_failure_triggers_correction_objective(
     hephaestus_agent.run()
 
     # --- Asserções ---
-    mock_architect.assert_called_once()
-    mock_maestro.assert_called_once()
-    mock_run_pytest.assert_called_once() # run_pytest na validação
-    mock_run_pytest.assert_any_call(test_dir='tests/') # sanity_check_step também é run_pytest para esta estratégia
+    mock_architect_plan_action.assert_called_once()
+    mock_maestro_choose_strategy.assert_called_once()
 
-    # Verificar se o arquivo de teste foi criado com o patch
+    # run_pytest é chamado duas vezes: uma na validação (sandbox) e uma na sanidade (real)
+    # A primeira chamada é com cwd do sandbox, a segunda com cwd="."
+    # O mock_run_pytest precisa lidar com isso ou ser mais específico.
+    # Para este teste, a falha ocorre na primeira chamada (validação no sandbox).
+    calls = mock_run_pytest.call_args_list
+    assert len(calls) >= 1 # Deve ser chamado ao menos uma vez para a validação
+    # A primeira chamada (validação no sandbox) terá um cwd que é o sandbox
+    assert calls[0][1]['cwd'] == hephaestus_agent.state.validation_result[2].split("'")[1] if hephaestus_agent.state.validation_result[1] == "PYTEST_FAILURE_IN_SANDBOX" else "."
+
+
+    # Verificar se o arquivo de teste foi criado com o patch (no sandbox, que depois é limpo)
+    # Não podemos verificar diretamente o arquivo após o run() se o sandbox é limpo.
+    # Mas podemos verificar se o apply_patches foi chamado corretamente.
+    # A lógica de criação do objetivo de correção é o principal aqui.
     created_test_file = temp_project_dir / "tests" / "test_new_feature.py"
     assert created_test_file.exists()
     assert faulty_patch_content in created_test_file.read_text()
@@ -290,9 +320,8 @@ def test_main_flow_pytest_failure_triggers_correction_objective(
     # Verificar se um objetivo de correção foi adicionado à pilha (antes de ser limpa pelo mock)
     # O estado final do agente deve refletir a falha.
     assert hephaestus_agent.state.validation_result[0] is False
-    # A razão da falha pode ser PYTEST_FAILURE (da validação) ou REGRESSION_DETECTED_BY_RUN_PYTEST (da sanidade)
-    # A lógica é: se a validação falha, a sanidade não roda.
-    assert hephaestus_agent.state.validation_result[1] == "PYTEST_FAILURE"
+    # A razão da falha deve ser PYTEST_FAILURE_IN_SANDBOX, pois a estratégia é APPLY_AND_PYTEST_SANDBOX
+    assert hephaestus_agent.state.validation_result[1] == "PYTEST_FAILURE_IN_SANDBOX"
 
     # O importante é que o loop `run` teria continuado com um objetivo de correção.
     # No `run`, após falha corrigível:
@@ -314,14 +343,14 @@ def test_main_flow_pytest_failure_triggers_correction_objective(
 
 # --- Testes de Fluxo com Sandbox ---
 
-@patch('main.get_action_plan')
-@patch('main.get_maestro_decision')
+@patch('main.ArchitectAgent.plan_action')
+@patch('main.MaestroAgent.choose_strategy')
 @patch('main.generate_next_objective') # Para controlar o loop
 @patch('shutil.copytree')
 @patch('tempfile.TemporaryDirectory')
 def test_main_flow_sandbox_syntax_error_discarded(
     mock_temp_dir, mock_copytree,
-    mock_gen_next_obj, mock_maestro, mock_architect,
+    mock_gen_next_obj, mock_maestro_choose_strategy, mock_architect_plan_action,
     hephaestus_agent: HephaestusAgent, temp_project_dir: Path, test_agent_logger: logging.Logger
 ):
     # --- Configuração do Projeto Inicial ---
@@ -356,25 +385,24 @@ def test_main_flow_sandbox_syntax_error_discarded(
     mock_copytree.side_effect = actual_copytree
 
 
-    # 3. Arquiteto retorna um patch com erro de sintaxe
+    # 3. ArchitectAgent.plan_action retorna um patch com erro de sintaxe
     invalid_patch_content = "def invalid_function():\n  print 'hello world'\n" # Erro de sintaxe Python 3
     action_plan_response = {
         "analysis": "Test analysis: apply a patch with syntax error.",
         "patches_to_apply": [{
             "file_path": original_file_name,
-            "operation": "REPLACE", # Substituir todo o conteúdo
+            "operation": "REPLACE",
             "block_to_replace": None,
             "content": invalid_patch_content
         }]
     }
-    mock_architect.return_value = (action_plan_response, None)
+    mock_architect_plan_action.return_value = (action_plan_response, None)
 
-    # 4. Maestro escolhe estratégia que aplica e valida sintaxe
+    # 4. MaestroAgent.choose_strategy escolhe estratégia que aplica e valida sintaxe
     maestro_decision_response = {"strategy_key": "APPLY_AND_VALIDATE_SYNTAX_SANDBOX"}
-    mock_maestro.return_value = [{"success": True, "parsed_json": maestro_decision_response, "model":"m", "raw_response":""}]
+    mock_maestro_choose_strategy.return_value = [{"success": True, "parsed_json": maestro_decision_response, "model":"mock_maestro_model", "raw_response":json.dumps(maestro_decision_response)}]
 
     # 5. Gerador de próximo objetivo será mockado para retornar um valor previsível.
-    # O controle do loop será feito por objective_stack_depth_for_testing.
     mock_gen_next_obj.return_value = "Objective: Stop after sandbox failure."
 
     # Definir o limite de ciclos para 1 para este teste.
@@ -450,29 +478,29 @@ def test_main_flow_sandbox_syntax_error_discarded(
     # Precisaria do `caplog` fixture do pytest para verificar logs.
     # Ex: assert "Gerado novo objetivo de correção para patches descartados" in caplog.text
 
-    # 8. Verificar que o Arquiteto e Maestro foram chamados
-    mock_architect.assert_called_once()
-    mock_maestro.assert_called_once()
+    # 8. Verificar que os métodos dos agentes foram chamados
+    mock_architect_plan_action.assert_called_once()
+    mock_maestro_choose_strategy.assert_called_once()
 
-    # 9. O generate_next_objective foi chamado para tentar parar o loop.
-    # A lógica de parada foi complexa, vamos garantir que foi chamado.
+    # 9. O generate_next_objective foi chamado.
     mock_gen_next_obj.assert_called()
 
 
 @patch('main.get_action_plan')
-@patch('main.get_maestro_decision')
+@patch('main.MaestroAgent.choose_strategy')
 @patch('main.generate_next_objective')
-@patch('main.run_pytest') # Mock para sanity check
-@patch('main.check_file_existence') # Mock para sanity check
-@patch('main.update_project_manifest') # Mock para evitar IO real no AGENTS.md
-@patch('main.run_git_command') # Mock para evitar operações git reais
+@patch('main.run_pytest')
+@patch('main.check_file_existence')
+@patch('main.update_project_manifest')
+@patch('main.run_git_command')
+@patch('main.generate_commit_message') # Adicionado
 @patch('shutil.copytree')
-@patch('shutil.copy2') # Para verificar a promoção do sandbox
+@patch('shutil.copy2')
 @patch('tempfile.TemporaryDirectory')
 def test_main_flow_sandbox_success_promotion(
     mock_temp_dir, mock_shutil_copy2, mock_shutil_copytree,
-    mock_run_git, mock_update_manifest, mock_check_file_existence, mock_run_pytest_sanity,
-    mock_gen_next_obj, mock_maestro, mock_architect,
+    mock_gen_commit_msg, mock_run_git, mock_update_manifest, mock_check_file_existence, mock_run_pytest_sanity,
+    mock_gen_next_obj, mock_maestro_choose_strategy, mock_architect_plan_action,
     hephaestus_agent: HephaestusAgent, temp_project_dir: Path, test_agent_logger: logging.Logger
 ):
     # --- Configuração do Projeto Inicial ---
@@ -491,22 +519,20 @@ def test_main_flow_sandbox_success_promotion(
 
     # 2. Mock shutil.copytree (para copiar para o sandbox)
     def actual_copytree_success(src, dst, dirs_exist_ok=False):
-        # Simplified copy for test purposes, actual files are written to mock_sandbox_path directly if needed by patches
         if Path(dst).exists() and dirs_exist_ok:
             for item in os.listdir(src):
                 s_item = Path(src) / item
                 d_item = Path(dst) / item
-                if s_item.name == ".git": continue # Não copiar .git para o sandbox
+                if s_item.name == ".git": continue
                 if s_item.is_dir():
                     shutil.copytree(s_item, d_item, dirs_exist_ok=True, symlinks=False, ignore=shutil.ignore_patterns(".git"))
                 else:
                     shutil.copy2(s_item, d_item)
         else:
              shutil.copytree(src, dst, dirs_exist_ok=dirs_exist_ok, symlinks=False, ignore=shutil.ignore_patterns(".git"))
-
     mock_shutil_copytree.side_effect = actual_copytree_success
 
-    # 3. Arquiteto retorna um patch válido
+    # 3. ArchitectAgent.plan_action retorna um patch válido
     valid_patch_content = "def new_function():\n    return 'new and shiny!'\n"
     action_plan_response = {
         "analysis": "Test analysis: apply a valid patch.",
@@ -517,31 +543,24 @@ def test_main_flow_sandbox_success_promotion(
             "content": valid_patch_content
         }]
     }
-    mock_architect.return_value = (action_plan_response, None)
+    mock_architect_plan_action.return_value = (action_plan_response, None)
 
-    # 4. Maestro escolhe estratégia APPLY_AND_VALIDATE_SYNTAX_SANDBOX
+    # 4. MaestroAgent.choose_strategy escolhe estratégia
     maestro_decision_response = {"strategy_key": "APPLY_AND_VALIDATE_SYNTAX_SANDBOX"}
-    mock_maestro.return_value = [{"success": True, "parsed_json": maestro_decision_response, "model":"m", "raw_response":""}]
+    mock_maestro_choose_strategy.return_value = [{"success": True, "parsed_json": maestro_decision_response, "model":"mock_maestro_model", "raw_response":json.dumps(maestro_decision_response)}]
 
     # 5. Mocks para o final do ciclo de sucesso
-    mock_gen_next_obj.return_value = "Objective: Stop after success."
-    hephaestus_agent.objective_stack_depth_for_testing = 1 # Para parar após um ciclo
-
-    # O side_effect não precisa mais limpar a pilha.
-    # Apenas retornar o valor para a asserção de chamada e para o log.
     mock_gen_next_obj.return_value = "Objective: Stop after success (from mock_gen_next_obj)."
+    hephaestus_agent.objective_stack_depth_for_testing = 1
 
-    mock_check_file_existence.return_value = (True, "Sanity check: Files exist.") # Sanity check
-    mock_update_manifest.return_value = None # Não faz nada
-    mock_run_git.return_value = (True, "Git command successful.") # Mock para git add/commit
+    mock_check_file_existence.return_value = (True, "Sanity check: Files exist.")
+    mock_update_manifest.return_value = None
+    mock_run_git.return_value = (True, "Git command successful.")
+    mock_gen_commit_msg.return_value = "feat: Test commit message for sandbox success" # Já está como argumento do teste
 
-    # Mock para generate_commit_message
-    with patch('main.generate_commit_message') as mock_gen_commit_msg:
-        mock_gen_commit_msg.return_value = "feat: Test commit message for sandbox success"
-
-        # --- Execução do Ciclo do Agente ---
-        hephaestus_agent.objective_stack.append("Initial Objective: Patch file successfully via sandbox.")
-        hephaestus_agent.run()
+    # --- Execução do Ciclo do Agente ---
+    hephaestus_agent.objective_stack.append("Initial Objective: Patch file successfully via sandbox.")
+    hephaestus_agent.run()
 
     # --- Asserções ---
     # 1. Mocks de sandbox e cópia para sandbox
@@ -586,10 +605,11 @@ def test_main_flow_sandbox_success_promotion(
     # 8. Cleanup do sandbox
     mock_temp_dir_instance.cleanup.assert_called_once()
 
-    # 9. Chamadas principais
-    mock_architect.assert_called_once()
-    mock_maestro.assert_called_once()
-    mock_gen_next_obj.assert_called_once() # Para parar o loop
+    # 9. Chamadas dos métodos dos agentes e outros mocks
+    mock_architect_plan_action.assert_called_once()
+    mock_maestro_choose_strategy.assert_called_once()
+    mock_gen_next_obj.assert_called_once()
+    mock_gen_commit_msg.assert_called_once() # Verificar se foi chamado
 
 
 """

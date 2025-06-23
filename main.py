@@ -12,12 +12,13 @@ from agent.project_scanner import update_project_manifest
 # Removida a duplicata de import project_scanner
 # from agent.patch_applicator import apply_patches # Será substituído por manipulação em memória # REMOVIDO - DUPLICADO E OBSOLETO
 from agent.brain import (
-    get_action_plan,
-    get_maestro_decision,
+    # get_action_plan, # Removido - agora em ArchitectAgent
+    # get_maestro_decision, # Removido - agora em MaestroAgent
     generate_next_objective,
     generate_capacitation_objective,
     generate_commit_message # ADICIONADO para auto-versionamento
 )
+from agent.agents import ArchitectAgent, MaestroAgent # NOVAS CLASSES DE AGENTE
 # from agent.patch_applicator import apply_patches # Será substituído por manipulação em memória
 # AGORA: from agent.patch_applicator import apply_patches # Será usado com o novo patch_applicator
 from agent.code_validator import validate_python_code, validate_json_syntax # Reavaliar uso
@@ -64,6 +65,24 @@ class HephaestusAgent:
         self.logger.info(f"Carregando memória de {memory_file_path}...")
         self.memory.load()
         self.logger.info(f"Memória carregada. {len(self.memory.completed_objectives)} objetivos concluídos, {len(self.memory.failed_objectives)} falharam.")
+
+        # Inicialização dos Agentes Especializados
+        architect_model = self.config.get("models", {}).get("architect_default", self.model_list[0])
+        self.architect = ArchitectAgent(
+            api_key=self.api_key,
+            model=architect_model,
+            logger=self.logger.getChild("ArchitectAgent") # Logger específico
+        )
+        self.logger.info(f"ArchitectAgent inicializado com modelo: {architect_model}")
+
+        maestro_model_list = self.config.get("models", {}).get("maestro_default_list", self.model_list) # Permite lista no config
+        self.maestro = MaestroAgent(
+            api_key=self.api_key,
+            model_list=maestro_model_list,
+            config=self.config, # Maestro pode precisar de acesso a outras partes da config
+            logger=self.logger.getChild("MaestroAgent") # Logger específico
+        )
+        self.logger.info(f"MaestroAgent inicializado com modelos: {maestro_model_list}")
 
         self._reset_cycle_state() # Inicializa o estado do ciclo
 
@@ -329,58 +348,56 @@ hephaestus.log
     #         return None
 
     def _run_architect_phase(self) -> bool:
-        self.logger.info("\nSolicitando plano de ação da IA (Arquiteto)...")
-        architect_model = self.config.get("models", {}).get("architect_default", self.model_list[0])
-        # self.state["model_architect"] = architect_model # Removido, model_architect não é usado no estado
-        action_plan_data, error_msg = get_action_plan(
-            api_key=self.api_key,
-            model=architect_model,
-            objective=self.state.current_objective, # Acesso direto
-            manifest=self.state.manifesto_content,  # Acesso direto
-            logger=self.logger
+        self.logger.info("\nSolicitando plano de ação do ArchitectAgent...")
+        action_plan_data, error_msg = self.architect.plan_action(
+            objective=self.state.current_objective,
+            manifest=self.state.manifesto_content
         )
         if error_msg:
-            self.logger.error(f"--- FALHA: Arquiteto não conseguiu gerar um plano de ação. Erro: {error_msg} ---")
+            self.logger.error(f"--- FALHA: ArchitectAgent não conseguiu gerar um plano de ação. Erro: {error_msg} ---")
             return False
-        if not action_plan_data or "patches_to_apply" not in action_plan_data: # action_plan_data é Dict ou None
-            self.logger.error(f"--- FALHA: Arquiteto retornou uma resposta inválida ou sem 'patches_to_apply'. Resposta: {action_plan_data} ---")
+        if not action_plan_data or "patches_to_apply" not in action_plan_data:
+            self.logger.error(f"--- FALHA: ArchitectAgent retornou uma resposta inválida ou sem 'patches_to_apply'. Resposta: {action_plan_data} ---")
             return False
-        self.state.action_plan_data = action_plan_data # Acesso direto
-        self.logger.info(f"--- PLANO DE AÇÃO (PATCHES) GERADO PELO ARQUITETO ({architect_model}) ---")
-        self.logger.debug(f"Análise do Arquiteto: {self.state.get_architect_analysis()}") # Usar helper
-        self.logger.debug(f"Patches: {json.dumps(self.state.get_patches_to_apply(), indent=2)}") # Usar helper
+
+        self.state.action_plan_data = action_plan_data
+        self.logger.info(f"--- PLANO DE AÇÃO (PATCHES) GERADO PELO ARCHITECTAGENT ({self.architect.model}) ---")
+        self.logger.debug(f"Análise do Arquiteto: {self.state.get_architect_analysis()}")
+        self.logger.debug(f"Patches: {json.dumps(self.state.get_patches_to_apply(), indent=2)}")
         return True
 
     def _run_maestro_phase(self) -> bool:
-        self.logger.info("\nSolicitando decisão do Maestro...")
-        if not self.state.action_plan_data: # Acesso direto
-            self.logger.error("--- FALHA: Nenhum plano de ação (patches) disponível para o Maestro avaliar. ---")
+        self.logger.info("\nSolicitando decisão do MaestroAgent...")
+        if not self.state.action_plan_data:
+            self.logger.error("--- FALHA: Nenhum plano de ação (patches) disponível para o MaestroAgent avaliar. ---")
             return False
-        maestro_model = self.config.get("models", {}).get("maestro_default", self.model_list[0])
-        maestro_logs = get_maestro_decision(
-            api_key=self.api_key,
-            model_list=[maestro_model],
-            engineer_response=self.state.action_plan_data, # Acesso direto
-            config=self.config,
-            memory_summary=self.memory.get_full_history_for_prompt(),
-            logger=self.logger
+
+        maestro_logs = self.maestro.choose_strategy(
+            action_plan_data=self.state.action_plan_data,
+            memory_summary=self.memory.get_full_history_for_prompt()
         )
-        maestro_attempt = next((a for a in maestro_logs if a.get("success")), None)
+
+        maestro_attempt = next((log for log in maestro_logs if log.get("success")), None)
+
         if not maestro_attempt or not maestro_attempt.get("parsed_json"):
-            self.logger.error("--- FALHA: Maestro não retornou uma resposta JSON válida. ---")
-            raw_resp = maestro_attempt.get("raw_response") if maestro_attempt else "Nenhuma tentativa registrada."
-            self.logger.debug(f"Resposta bruta do Maestro: {raw_resp}")
+            self.logger.error("--- FALHA: MaestroAgent não retornou uma resposta JSON válida. ---")
+            raw_resp_list = [log.get('raw_response', 'No raw response') for log in maestro_logs]
+            self.logger.debug(f"Respostas brutas do MaestroAgent: {raw_resp_list}")
             return False
+
         decision = maestro_attempt["parsed_json"]
-        strategy_key = (decision.get("strategy_key") or "").strip() # strategy_key é string
+        strategy_key = (decision.get("strategy_key") or "").strip()
+
         valid_strategies = list(self.config.get("validation_strategies", {}).keys())
         valid_strategies.append("CAPACITATION_REQUIRED")
+
         if strategy_key not in valid_strategies:
-            self.logger.error(f"--- FALHA: Maestro escolheu uma estratégia inválida ou desconhecida: '{strategy_key}' ---")
-            self.logger.debug(f"Estratégias válidas são: {valid_strategies}")
+            self.logger.error(f"--- FALHA: MaestroAgent escolheu uma estratégia inválida ou desconhecida: '{strategy_key}' ---")
+            self.logger.debug(f"Estratégias válidas são: {valid_strategies}. Resposta do Maestro: {decision}")
             return False
-        self.logger.info(f"Estratégia escolhida pelo Maestro: {strategy_key}")
-        self.state.strategy_key = strategy_key # Acesso direto
+
+        self.logger.info(f"Estratégia escolhida pelo MaestroAgent ({maestro_attempt.get('model', 'N/A')}): {strategy_key}")
+        self.state.strategy_key = strategy_key
         return True
 
     def _execute_step_apply_patches(self, patches_to_apply: List[Dict[str, Any]], current_base_path: str, use_sandbox: bool) -> bool:
