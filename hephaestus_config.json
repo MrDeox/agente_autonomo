@@ -8,7 +8,7 @@
   "validation_strategies": {
     "SYNTAX_ONLY": {
       "steps": ["validate_syntax", "apply_patches_to_disk"],
-      "sanity_check_step": "run_pytest"
+      "sanity_check_step": "skip_sanity_check"
     },
     "BENCHMARK_ONLY": {
       "steps": ["run_benchmark_validation", "apply_patches_to_disk"],

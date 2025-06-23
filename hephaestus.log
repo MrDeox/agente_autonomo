@@ -14,3 +14,138 @@ Solicitando plano de ação da IA (Arquiteto)...
 2025-06-22 22:17:17,453 - HephaestusAgent - INFO - Gerando plano de patches com o modelo: deepseek/deepseek-chat-v3-0324:free...
 2025-06-22 22:17:17,453 - urllib3.connectionpool - DEBUG - Starting new HTTPS connection (1): openrouter.ai:443
 2025-06-22 22:17:21,363 - urllib3.connectionpool - DEBUG - https://openrouter.ai:443 "POST /api/v1/chat/completions HTTP/1.1" 200 None
+2025-06-22 22:17:53,612 - HephaestusAgent - DEBUG - API Response: {'id': 'gen-1750641437-VRcnfHfiB1r7eqLqwGMU', 'provider': 'Chutes', 'model': 'deepseek/deepseek-chat-v3-0324:free', 'object': 'chat.completion', 'created': 1750641437, 'choices': [{'logprobs': None, 'finish_reason': 'stop', 'native_finish_reason': 'stop', 'index': 0, 'message': {'role': 'assistant', 'content': '```json\n{\n  "analysis": "Precisamos criar o arquivo MANIFESTO.md com a estrutura básica do projeto Hephaestus, incluindo propósito, princípios e arquitetura inicial. Como o arquivo não existe atualmente, usaremos a operação REPLACE com block_to_replace: null para criar um novo arquivo com o conteúdo completo. O manifesto deve refletir os objetivos do projeto, sua arquitetura inicial conforme descrito no manifesto do projeto, e os princípios que guiarão seu desenvolvimento.",\n  "patches_to_apply": [\n    {\n      "file_path": "MANIFESTO.md",\n      "operation": "REPLACE",\n      "block_to_replace": null,\n      "content": "# MANIFESTO DO PROJETO HEPHAESTUS\\n\\n## Propósito\\nO projeto Hephaestus é um agente autônomo de desenvolvimento de software projetado para automatizar e otimizar tarefas de engenharia de software. Seu objetivo principal é auxiliar desenvolvedores na criação, manutenção e evolução de projetos de software através de:\\n- Geração autônoma de código\\n- Validação automática de qualidade\\n- Evolução contínua da arquitetura\\n- Capacitação adaptativa baseada em necessidades\\n\\n## Princípios\\n1. **Autonomia Orientada**: O agente deve operar com mínima intervenção humana, tomando decisões baseadas em objetivos claros.\\n2. **Validação Contínua**: Todo código gerado deve passar por verificações automáticas de sintaxe e testes unitários.\\n3. **Evolução Iterativa**: O sistema deve melhorar continuamente sua capacidade através de ciclos de feedback.\\n4. **Transparência Operacional**: Todas as ações devem ser registradas e justificadas em logs claros.\\n5. **Segurança por Design**: Operações devem ser executadas em ambientes isolados quando necessário.\\n\\n## Arquitetura Inicial\\n### Componentes Principais\\n1. **Núcleo (Brain)**:\\n   - Coordena todas as operações do agente\\n   - Interface com modelos de linguagem (LLMs)\\n   - Toma decisões estratégicas\\n\\n2. **Módulos Funcionais**:\\n   - `ProjectScanner`: Analisa e documenta a estrutura do projeto\\n   - `CodeValidator`: Verifica sintaxe e valida arquivos\\n   - `PatchApplicator`: Aplica modificações no código-fonte\\n   - `ToolExecutor`: Executa ferramentas externas e testes\\n\\n3. **Infraestrutura**:\\n   - Configuração via JSON\\n   - Sistema de logging abrangente\\n   - Ambiente de execução isolado\\n\\n### Fluxo Principal\\n1. Recebe um objetivo de alto nível\\n2. Gera um plano de ação em formato JSON\\n3. Valida e aplica as modificações\\n4. Executa testes automatizados\\n5. Avalia resultados e itera\\n\\n## Estrutura de Arquivos\\n```\\nagente_autonomo/\\n    README.md\\n    hephaestus.log\\n    main.py\\n    AGENTS.md\\n    hephaestus_config.json\\n    requirements.txt\\n    agent/\\n        brain.py\\n        __init__.py\\n        code_validator.py\\n        patch_applicator.py\\n        tool_executor.py\\n        project_scanner.py\\n    tests/\\n        test_main_flow.py\\n        test_project_scanner.py\\n        __init__.py\\n        test_hephaestus.py\\n        test_code_validator.py\\n        conftest.py\\n        test_brain.py\\n        test_patch_applicator.py\\n```\\n\\n## Próximos Passos\\n- Implementar ciclos de feedback para auto-aprimoramento\\n- Expandir capacidades de análise estática\\n- Desenvolver módulo de integração contínua\\n- Criar sistema de avaliação de qualidade de código"\n    }\n  ]\n}\n```', 'refusal': None, 'reasoning': None}}], 'usage': {'prompt_tokens': 4056, 'completion_tokens': 879, 'total_tokens': 4935, 'prompt_tokens_details': None}}
+2025-06-22 22:17:53,612 - HephaestusAgent - DEBUG - Raw response before cleaning: ```json
+{
+  "analysis": "Precisamos criar o arquivo MANIFESTO.md com a estrutura básica do projeto Hephaestus, incluindo propósito, princípios e arquitetura inicial. Como o arquivo não existe atualmen...
+2025-06-22 22:17:53,612 - HephaestusAgent - DEBUG - Extracted JSON content: {
+  "analysis": "Precisamos criar o arquivo MANIFESTO.md com a estrutura básica do projeto Hephaestus, incluindo propósito, princípios e arquitetura inicial. Como o arquivo não existe atualmente, usar...
+2025-06-22 22:17:53,612 - HephaestusAgent - DEBUG - Final cleaned content before parsing: {
+  "analysis": "Precisamos criar o arquivo MANIFESTO.md com a estrutura básica do projeto Hephaestus, incluindo propósito, princípios e arquitetura inicial. Como o arquivo não existe atualmente, usar...
+2025-06-22 22:17:53,613 - HephaestusAgent - INFO - --- PLANO DE AÇÃO (PATCHES) GERADO PELO ARQUITETO (deepseek/deepseek-chat-v3-0324:free) ---
+2025-06-22 22:17:53,613 - HephaestusAgent - DEBUG - Análise do Arquiteto: Precisamos criar o arquivo MANIFESTO.md com a estrutura básica do projeto Hephaestus, incluindo propósito, princípios e arquitetura inicial. Como o arquivo não existe atualmente, usaremos a operação REPLACE com block_to_replace: null para criar um novo arquivo com o conteúdo completo. O manifesto deve refletir os objetivos do projeto, sua arquitetura inicial conforme descrito no manifesto do projeto, e os princípios que guiarão seu desenvolvimento.
+2025-06-22 22:17:53,613 - HephaestusAgent - DEBUG - Patches: [
+  {
+    "file_path": "MANIFESTO.md",
+    "operation": "REPLACE",
+    "block_to_replace": null,
+    "content": "# MANIFESTO DO PROJETO HEPHAESTUS\n\n## Prop\u00f3sito\nO projeto Hephaestus \u00e9 um agente aut\u00f4nomo de desenvolvimento de software projetado para automatizar e otimizar tarefas de engenharia de software. Seu objetivo principal \u00e9 auxiliar desenvolvedores na cria\u00e7\u00e3o, manuten\u00e7\u00e3o e evolu\u00e7\u00e3o de projetos de software atrav\u00e9s de:\n- Gera\u00e7\u00e3o aut\u00f4noma de c\u00f3digo\n- Valida\u00e7\u00e3o autom\u00e1tica de qualidade\n- Evolu\u00e7\u00e3o cont\u00ednua da arquitetura\n- Capacita\u00e7\u00e3o adaptativa baseada em necessidades\n\n## Princ\u00edpios\n1. **Autonomia Orientada**: O agente deve operar com m\u00ednima interven\u00e7\u00e3o humana, tomando decis\u00f5es baseadas em objetivos claros.\n2. **Valida\u00e7\u00e3o Cont\u00ednua**: Todo c\u00f3digo gerado deve passar por verifica\u00e7\u00f5es autom\u00e1ticas de sintaxe e testes unit\u00e1rios.\n3. **Evolu\u00e7\u00e3o Iterativa**: O sistema deve melhorar continuamente sua capacidade atrav\u00e9s de ciclos de feedback.\n4. **Transpar\u00eancia Operacional**: Todas as a\u00e7\u00f5es devem ser registradas e justificadas em logs claros.\n5. **Seguran\u00e7a por Design**: Opera\u00e7\u00f5es devem ser executadas em ambientes isolados quando necess\u00e1rio.\n\n## Arquitetura Inicial\n### Componentes Principais\n1. **N\u00facleo (Brain)**:\n   - Coordena todas as opera\u00e7\u00f5es do agente\n   - Interface com modelos de linguagem (LLMs)\n   - Toma decis\u00f5es estrat\u00e9gicas\n\n2. **M\u00f3dulos Funcionais**:\n   - `ProjectScanner`: Analisa e documenta a estrutura do projeto\n   - `CodeValidator`: Verifica sintaxe e valida arquivos\n   - `PatchApplicator`: Aplica modifica\u00e7\u00f5es no c\u00f3digo-fonte\n   - `ToolExecutor`: Executa ferramentas externas e testes\n\n3. **Infraestrutura**:\n   - Configura\u00e7\u00e3o via JSON\n   - Sistema de logging abrangente\n   - Ambiente de execu\u00e7\u00e3o isolado\n\n### Fluxo Principal\n1. Recebe um objetivo de alto n\u00edvel\n2. Gera um plano de a\u00e7\u00e3o em formato JSON\n3. Valida e aplica as modifica\u00e7\u00f5es\n4. Executa testes automatizados\n5. Avalia resultados e itera\n\n## Estrutura de Arquivos\n```\nagente_autonomo/\n    README.md\n    hephaestus.log\n    main.py\n    AGENTS.md\n    hephaestus_config.json\n    requirements.txt\n    agent/\n        brain.py\n        __init__.py\n        code_validator.py\n        patch_applicator.py\n        tool_executor.py\n        project_scanner.py\n    tests/\n        test_main_flow.py\n        test_project_scanner.py\n        __init__.py\n        test_hephaestus.py\n        test_code_validator.py\n        conftest.py\n        test_brain.py\n        test_patch_applicator.py\n```\n\n## Pr\u00f3ximos Passos\n- Implementar ciclos de feedback para auto-aprimoramento\n- Expandir capacidades de an\u00e1lise est\u00e1tica\n- Desenvolver m\u00f3dulo de integra\u00e7\u00e3o cont\u00ednua\n- Criar sistema de avalia\u00e7\u00e3o de qualidade de c\u00f3digo"
+  }
+]
+2025-06-22 22:17:53,613 - HephaestusAgent - INFO - 
+Solicitando decisão do Maestro...
+2025-06-22 22:17:53,613 - urllib3.connectionpool - DEBUG - Starting new HTTPS connection (1): openrouter.ai:443
+2025-06-22 22:17:54,692 - urllib3.connectionpool - DEBUG - https://openrouter.ai:443 "POST /api/v1/chat/completions HTTP/1.1" 200 None
+2025-06-22 22:18:06,282 - HephaestusAgent - INFO - Estratégia escolhida pelo Maestro: DOC_UPDATE_STRATEGY
+2025-06-22 22:18:06,282 - HephaestusAgent - INFO - 
+Executando estratégia 'DOC_UPDATE_STRATEGY' com os passos: ['validate_syntax', 'apply_patches_to_disk', 'check_file_existence']
+2025-06-22 22:18:06,282 - HephaestusAgent - INFO - --- Passo de Validação/Execução: validate_syntax ---
+2025-06-22 22:18:06,282 - HephaestusAgent - DEBUG - Validando sintaxe de: MANIFESTO.md
+2025-06-22 22:18:06,282 - HephaestusAgent - DEBUG - Sem validador de sintaxe para: MANIFESTO.md
+2025-06-22 22:18:06,282 - HephaestusAgent - INFO - Validação de sintaxe: SUCESSO.
+2025-06-22 22:18:06,282 - HephaestusAgent - INFO - --- Passo de Validação/Execução: apply_patches_to_disk ---
+2025-06-22 22:18:06,282 - HephaestusAgent - INFO - Aplicando 1 patches ao disco...
+2025-06-22 22:18:06,282 - HephaestusAgent - INFO - Processando patch 1/1: REPLACE em '/home/arthur/projects/agente_autonomo/MANIFESTO.md'
+2025-06-22 22:18:06,282 - HephaestusAgent - INFO - Operação REPLACE em arquivo inexistente '/home/arthur/projects/agente_autonomo/MANIFESTO.md' será tratada como CREATE.
+2025-06-22 22:18:06,282 - HephaestusAgent - INFO - REPLACE sem 'block_to_replace' para '/home/arthur/projects/agente_autonomo/MANIFESTO.md'. Arquivo será sobrescrito.
+2025-06-22 22:18:06,283 - HephaestusAgent - INFO - Arquivo '/home/arthur/projects/agente_autonomo/MANIFESTO.md' salvo com sucesso após operação 'REPLACE'.
+2025-06-22 22:18:06,283 - HephaestusAgent - INFO - Todas as 1 instruções de patch processadas. Arquivos afetados (tentativas): {'/home/arthur/projects/agente_autonomo/MANIFESTO.md'}
+2025-06-22 22:18:06,283 - HephaestusAgent - INFO - Patches aplicados com sucesso (tentativa).
+2025-06-22 22:18:06,283 - HephaestusAgent - INFO - --- Passo de Validação/Execução: check_file_existence ---
+2025-06-22 22:18:06,283 - HephaestusAgent - INFO - 
+SUCESSO NO CICLO! Razão: APPLIED_AND_VALIDATED
+2025-06-22 22:18:06,283 - HephaestusAgent - INFO - --- INICIANDO CICLO DE VERIFICAÇÃO DE SANIDADE PÓS-APLICAÇÃO ---
+2025-06-22 22:18:06,283 - HephaestusAgent - INFO - Executando verificação de sanidade com: check_file_existence
+2025-06-22 22:18:06,283 - HephaestusAgent - INFO - VERIFICAÇÃO DE SANIDADE PÓS-APLICAÇÃO (check_file_existence): SUCESSO!
+2025-06-22 22:18:06,283 - HephaestusAgent - INFO - Ressincronizando manifesto (após sucesso e sanidade)...
+2025-06-22 22:18:06,304 - HephaestusAgent - INFO - Gerando próximo objetivo evolutivo...
+2025-06-22 22:18:06,305 - urllib3.connectionpool - DEBUG - Starting new HTTPS connection (1): openrouter.ai:443
+2025-06-22 22:18:07,976 - urllib3.connectionpool - DEBUG - https://openrouter.ai:443 "POST /api/v1/chat/completions HTTP/1.1" 200 None
+2025-06-22 22:18:14,344 - HephaestusAgent - INFO - Próximo objetivo: "Remova os arquivos .bak desnecessários (main.py.bak, hephaestus_config.json.bak, agent/tool_executor.py.bak, agent/project_scanner.py.bak, agent/code_validator.py.bak) para limpar a estrutura do projeto."
+2025-06-22 22:18:14,344 - HephaestusAgent - INFO - ==================== FIM DO CICLO ====================
+2025-06-22 22:18:15,344 - HephaestusAgent - INFO - 
+
+==================== NOVO CICLO DE EVOLUÇÃO ====================
+2025-06-22 22:18:15,344 - HephaestusAgent - INFO - OBJETIVO ATUAL: "Remova os arquivos .bak desnecessários (main.py.bak, hephaestus_config.json.bak, agent/tool_executor.py.bak, agent/project_scanner.py.bak, agent/code_validator.py.bak) para limpar a estrutura do projeto."
+
+2025-06-22 22:18:15,344 - HephaestusAgent - INFO - Gerando manifesto do projeto (AGENTS.md)...
+2025-06-22 22:18:15,361 - HephaestusAgent - INFO - --- MANIFESTO GERADO (Tamanho: 18964 caracteres) ---
+2025-06-22 22:18:15,361 - HephaestusAgent - INFO - 
+Solicitando plano de ação da IA (Arquiteto)...
+2025-06-22 22:18:15,361 - HephaestusAgent - INFO - Gerando plano de patches com o modelo: deepseek/deepseek-chat-v3-0324:free...
+2025-06-22 22:18:15,362 - urllib3.connectionpool - DEBUG - Starting new HTTPS connection (1): openrouter.ai:443
+2025-06-22 22:18:25,132 - urllib3.connectionpool - DEBUG - https://openrouter.ai:443 "POST /api/v1/chat/completions HTTP/1.1" 200 None
+2025-06-22 22:18:32,567 - HephaestusAgent - DEBUG - API Response: {'id': 'gen-1750641495-ieCfidL6W88fq3UnygEO', 'provider': 'Chutes', 'model': 'deepseek/deepseek-chat-v3-0324:free', 'object': 'chat.completion', 'created': 1750641495, 'choices': [{'logprobs': None, 'finish_reason': 'stop', 'native_finish_reason': 'stop', 'index': 0, 'message': {'role': 'assistant', 'content': '```json\n{\n  "analysis": "O objetivo é remover arquivos .bak desnecessários para limpar a estrutura do projeto. Analisando o manifesto, identificamos 5 arquivos .bak que podem ser removidos: main.py.bak, hephaestus_config.json.bak, agent/tool_executor.py.bak, agent/project_scanner.py.bak e agent/code_validator.py.bak. Como esses são arquivos de backup e não são necessários para o funcionamento do projeto, podemos simplesmente deletá-los usando a operação DELETE_BLOCK com block_to_delete definido como null, o que remove o arquivo inteiro.",\n  "patches_to_apply": [\n    {\n      "file_path": "main.py.bak",\n      "operation": "DELETE_BLOCK",\n      "block_to_delete": null\n    },\n    {\n      "file_path": "hephaestus_config.json.bak",\n      "operation": "DELETE_BLOCK",\n      "block_to_delete": null\n    },\n    {\n      "file_path": "agent/tool_executor.py.bak",\n      "operation": "DELETE_BLOCK",\n      "block_to_delete": null\n    },\n    {\n      "file_path": "agent/project_scanner.py.bak",\n      "operation": "DELETE_BLOCK",\n      "block_to_delete": null\n    },\n    {\n      "file_path": "agent/code_validator.py.bak",\n      "operation": "DELETE_BLOCK",\n      "block_to_delete": null\n    }\n  ]\n}\n```', 'refusal': None, 'reasoning': None}}], 'usage': {'prompt_tokens': 6092, 'completion_tokens': 330, 'total_tokens': 6422, 'prompt_tokens_details': None}}
+2025-06-22 22:18:32,567 - HephaestusAgent - DEBUG - Raw response before cleaning: ```json
+{
+  "analysis": "O objetivo é remover arquivos .bak desnecessários para limpar a estrutura do projeto. Analisando o manifesto, identificamos 5 arquivos .bak que podem ser removidos: main.py.ba...
+2025-06-22 22:18:32,567 - HephaestusAgent - DEBUG - Extracted JSON content: {
+  "analysis": "O objetivo é remover arquivos .bak desnecessários para limpar a estrutura do projeto. Analisando o manifesto, identificamos 5 arquivos .bak que podem ser removidos: main.py.bak, hepha...
+2025-06-22 22:18:32,567 - HephaestusAgent - DEBUG - Final cleaned content before parsing: {
+  "analysis": "O objetivo é remover arquivos .bak desnecessários para limpar a estrutura do projeto. Analisando o manifesto, identificamos 5 arquivos .bak que podem ser removidos: main.py.bak, hepha...
+2025-06-22 22:18:32,567 - HephaestusAgent - INFO - --- PLANO DE AÇÃO (PATCHES) GERADO PELO ARQUITETO (deepseek/deepseek-chat-v3-0324:free) ---
+2025-06-22 22:18:32,567 - HephaestusAgent - DEBUG - Análise do Arquiteto: O objetivo é remover arquivos .bak desnecessários para limpar a estrutura do projeto. Analisando o manifesto, identificamos 5 arquivos .bak que podem ser removidos: main.py.bak, hephaestus_config.json.bak, agent/tool_executor.py.bak, agent/project_scanner.py.bak e agent/code_validator.py.bak. Como esses são arquivos de backup e não são necessários para o funcionamento do projeto, podemos simplesmente deletá-los usando a operação DELETE_BLOCK com block_to_delete definido como null, o que remove o arquivo inteiro.
+2025-06-22 22:18:32,567 - HephaestusAgent - DEBUG - Patches: [
+  {
+    "file_path": "main.py.bak",
+    "operation": "DELETE_BLOCK",
+    "block_to_delete": null
+  },
+  {
+    "file_path": "hephaestus_config.json.bak",
+    "operation": "DELETE_BLOCK",
+    "block_to_delete": null
+  },
+  {
+    "file_path": "agent/tool_executor.py.bak",
+    "operation": "DELETE_BLOCK",
+    "block_to_delete": null
+  },
+  {
+    "file_path": "agent/project_scanner.py.bak",
+    "operation": "DELETE_BLOCK",
+    "block_to_delete": null
+  },
+  {
+    "file_path": "agent/code_validator.py.bak",
+    "operation": "DELETE_BLOCK",
+    "block_to_delete": null
+  }
+]
+2025-06-22 22:18:32,567 - HephaestusAgent - INFO - 
+Solicitando decisão do Maestro...
+2025-06-22 22:18:32,568 - urllib3.connectionpool - DEBUG - Starting new HTTPS connection (1): openrouter.ai:443
+2025-06-22 22:18:34,232 - urllib3.connectionpool - DEBUG - https://openrouter.ai:443 "POST /api/v1/chat/completions HTTP/1.1" 200 None
+2025-06-22 22:19:13,229 - HephaestusAgent - INFO - Estratégia escolhida pelo Maestro: SYNTAX_ONLY
+2025-06-22 22:19:13,229 - HephaestusAgent - INFO - 
+Executando estratégia 'SYNTAX_ONLY' com os passos: ['validate_syntax', 'apply_patches_to_disk']
+2025-06-22 22:19:13,229 - HephaestusAgent - INFO - --- Passo de Validação/Execução: validate_syntax ---
+2025-06-22 22:19:13,229 - HephaestusAgent - DEBUG - Validando sintaxe de: agent/project_scanner.py.bak
+2025-06-22 22:19:13,229 - HephaestusAgent - DEBUG - Sem validador de sintaxe para: agent/project_scanner.py.bak
+2025-06-22 22:19:13,229 - HephaestusAgent - DEBUG - Validando sintaxe de: main.py.bak
+2025-06-22 22:19:13,229 - HephaestusAgent - DEBUG - Sem validador de sintaxe para: main.py.bak
+2025-06-22 22:19:13,229 - HephaestusAgent - DEBUG - Validando sintaxe de: hephaestus_config.json.bak
+2025-06-22 22:19:13,229 - HephaestusAgent - DEBUG - Sem validador de sintaxe para: hephaestus_config.json.bak
+2025-06-22 22:19:13,230 - HephaestusAgent - DEBUG - Validando sintaxe de: agent/tool_executor.py.bak
+2025-06-22 22:19:13,230 - HephaestusAgent - DEBUG - Sem validador de sintaxe para: agent/tool_executor.py.bak
+2025-06-22 22:19:13,230 - HephaestusAgent - DEBUG - Validando sintaxe de: agent/code_validator.py.bak
+2025-06-22 22:19:13,230 - HephaestusAgent - DEBUG - Sem validador de sintaxe para: agent/code_validator.py.bak
+2025-06-22 22:19:13,230 - HephaestusAgent - INFO - Validação de sintaxe: SUCESSO.
+2025-06-22 22:19:13,230 - HephaestusAgent - INFO - --- Passo de Validação/Execução: apply_patches_to_disk ---
+2025-06-22 22:19:13,230 - HephaestusAgent - INFO - Aplicando 5 patches ao disco...
+2025-06-22 22:19:13,230 - HephaestusAgent - INFO - Processando patch 1/5: DELETE_BLOCK em '/home/arthur/projects/agente_autonomo/main.py.bak'
+2025-06-22 22:19:13,230 - HephaestusAgent - INFO - Arquivo '/home/arthur/projects/agente_autonomo/main.py.bak' removido com sucesso (DELETE_BLOCK com block_to_delete=None).
+2025-06-22 22:19:13,230 - HephaestusAgent - INFO - Processando patch 2/5: DELETE_BLOCK em '/home/arthur/projects/agente_autonomo/hephaestus_config.json.bak'
+2025-06-22 22:19:13,230 - HephaestusAgent - INFO - Arquivo '/home/arthur/projects/agente_autonomo/hephaestus_config.json.bak' removido com sucesso (DELETE_BLOCK com block_to_delete=None).
+2025-06-22 22:19:13,230 - HephaestusAgent - INFO - Processando patch 3/5: DELETE_BLOCK em '/home/arthur/projects/agente_autonomo/agent/tool_executor.py.bak'
+2025-06-22 22:19:13,230 - HephaestusAgent - INFO - Arquivo '/home/arthur/projects/agente_autonomo/agent/tool_executor.py.bak' removido com sucesso (DELETE_BLOCK com block_to_delete=None).
+2025-06-22 22:19:13,230 - HephaestusAgent - INFO - Processando patch 4/5: DELETE_BLOCK em '/home/arthur/projects/agente_autonomo/agent/project_scanner.py.bak'
+2025-06-22 22:19:13,230 - HephaestusAgent - INFO - Arquivo '/home/arthur/projects/agente_autonomo/agent/project_scanner.py.bak' removido com sucesso (DELETE_BLOCK com block_to_delete=None).
+2025-06-22 22:19:13,230 - HephaestusAgent - INFO - Processando patch 5/5: DELETE_BLOCK em '/home/arthur/projects/agente_autonomo/agent/code_validator.py.bak'
+2025-06-22 22:19:13,231 - HephaestusAgent - INFO - Arquivo '/home/arthur/projects/agente_autonomo/agent/code_validator.py.bak' removido com sucesso (DELETE_BLOCK com block_to_delete=None).
+2025-06-22 22:19:13,231 - HephaestusAgent - INFO - Todas as 5 instruções de patch processadas. Arquivos afetados (tentativas): {'/home/arthur/projects/agente_autonomo/hephaestus_config.json.bak', '/home/arthur/projects/agente_autonomo/agent/code_validator.py.bak', '/home/arthur/projects/agente_autonomo/main.py.bak', '/home/arthur/projects/agente_autonomo/agent/tool_executor.py.bak', '/home/arthur/projects/agente_autonomo/agent/project_scanner.py.bak'}
+2025-06-22 22:19:13,231 - HephaestusAgent - INFO - Patches aplicados com sucesso (tentativa).
+2025-06-22 22:19:13,231 - HephaestusAgent - INFO - 
+SUCESSO NO CICLO! Razão: APPLIED_AND_VALIDATED
+2025-06-22 22:19:13,231 - HephaestusAgent - INFO - --- INICIANDO CICLO DE VERIFICAÇÃO DE SANIDADE PÓS-APLICAÇÃO ---
+2025-06-22 22:19:13,231 - HephaestusAgent - INFO - Executando verificação de sanidade com: run_pytest
