@@ -126,6 +126,7 @@ def update_project_manifest(root_dir: str, target_files: List[str], output_path:
                 # rel_path_str deve ser relativo ao root_path original do scan
                 rel_path_str = str(file_path_obj.relative_to(root_path))
 
+                # Processar arquivos alvo para conteúdo completo
                 if rel_path_str in target_files_set:
                     try:
                         with open(file_path_obj, 'r', encoding='utf-8') as f_obj:
@@ -134,18 +135,27 @@ def update_project_manifest(root_dir: str, target_files: List[str], output_path:
                     except Exception as e:
                         target_content_cache[rel_path_str] = (None, e)
 
-                elif f_name.endswith('.py'): # Processar para resumo de API mesmo se não for alvo
-                    try:
-                        with open(file_path_obj, 'r', encoding='utf-8') as f_obj:
-                            content = f_obj.read()
-                        api_summary_cache[rel_path_str] = _extract_elements(content)
-                    except Exception as e:
-                        api_summary_cache[rel_path_str] = [('error', None, None, f"Erro na leitura do arquivo: {str(e)}")]
+                # Processar todos os arquivos Python para resumo de API
+                if f_name.endswith('.py'):
+                    # Se já lemos o arquivo para conteúdo alvo, usar o conteúdo do cache
+                    if rel_path_str in target_content_cache:
+                        content, error = target_content_cache[rel_path_str]
+                        if error:
+                            api_summary_cache[rel_path_str] = [('error', None, None, f"Erro na leitura do arquivo: {str(error)}")]
+                        else:
+                            api_summary_cache[rel_path_str] = _extract_elements(content)
+                    else:
+                        try:
+                            with open(file_path_obj, 'r', encoding='utf-8') as f_obj:
+                                content = f_obj.read()
+                            api_summary_cache[rel_path_str] = _extract_elements(content)
+                        except Exception as e:
+                            api_summary_cache[rel_path_str] = [('error', None, None, f"Erro na leitura do arquivo: {str(e)}")]
         
         manifest.write("\n## 2. RESUMO DAS INTERFACES (APIs Internas)\n")
         
         for rel_path_str, elements in api_summary_cache.items():
-            manifest.write(f"\n### Módulo: `{rel_path_str}`\n")
+            manifest.write(f"\n### Arquivo: `{rel_path_str}`\n")
             
             if elements and elements[0][0] == 'error':
                 manifest.write(f"  - [ERRO] {elements[0][3]}\n")

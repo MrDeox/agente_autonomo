@@ -43,7 +43,9 @@ def test_brain_call_llm_api_success(mock_post, mock_logger):
     assert error is None
     mock_post.assert_called_once()
     # Verificar se o logger foi chamado com a mensagem específica
-    mock_logger.debug.assert_called_with(pytest.string_contains("API Response (brain._call_llm_api)"))
+    mock_logger.debug.assert_called_once()
+    args, _ = mock_logger.debug.call_args
+    assert "API Response (brain._call_llm_api)" in args[0]
 
 
 @patch('agent.brain.requests.post')

@@ -2,6 +2,7 @@ import pytest
 import json
 import logging
 from unittest.mock import MagicMock, patch
+import requests
 
 from agent.agents import ArchitectAgent, MaestroAgent, _call_llm_api, parse_json_response
 
@@ -118,7 +119,7 @@ def test_architect_plan_action_json_missing_patches_key(mock_call_llm, mock_logg
     plan_data, error = architect.plan_action("objetivo", "manifesto")
 
     assert plan_data is None
-    assert "JSON do plano de patches inválido ou não contém 'patches_to_apply' como uma lista." in error
+    assert "JSON do plano de patches inválido ou não contém a chave 'patches_to_apply' como uma lista." in error
 
 
 @patch('agent.agents._call_llm_api')

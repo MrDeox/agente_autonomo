@@ -248,19 +248,24 @@ Com base no objetivo e na análise, escreva uma mensagem de commit clara e conci
     # Para este exercício, vamos construir uma mensagem de commit baseada nos inputs.
     # Isso também evita a necessidade de ter uma API_KEY configurada para esta etapa.
 
-    # Heurística simples para determinar o tipo de commit (feat, fix, chore, etc.)
-    commit_type = "feat" # Padrão
-    if "fix" in objective.lower() or "corrigir" in objective.lower() or "bug" in objective.lower():
+    # Heurística para determinar o tipo de commit
+    commit_type = "feat"  # Padrão para novos recursos
+    objective_lower = objective.lower()
+    
+    # Primeiro verificamos palavras-chave específicas para feat
+    if any(word in objective_lower for word in ["funcionalidade", "feature", "nova capacidade", "novo recurso"]):
+        commit_type = "feat"
+    elif "fix" in objective_lower or "corrigir" in objective_lower or "bug" in objective_lower:
         commit_type = "fix"
-    elif "refactor" in objective.lower() or "refatorar" in objective.lower():
+    elif "refactor" in objective_lower or "refatorar" in objective_lower:
         commit_type = "refactor"
-    elif "doc" in objective.lower() or "documentar" in objective.lower():
+    elif "doc" in objective_lower or "documentar" in objective_lower:
         commit_type = "docs"
-    elif "test" in objective.lower() or "teste" in objective.lower():
+    elif "test" in objective_lower or "teste" in objective_lower:
         commit_type = "test"
-    elif "build" in objective.lower() or "ci" in objective.lower() or "config" in objective.lower():
+    elif "build" in objective_lower or "ci" in objective_lower or "config" in objective_lower:
         commit_type = "build"
-    elif "chore" in objective.lower() or "manutenção" in objective.lower() or "limpeza" in objective.lower():
+    elif "chore" in objective_lower or "manutenção" in objective_lower or "limpeza" in objective_lower:
         commit_type = "chore"
 
     # Simplificando o corpo da mensagem de commit para este exemplo
