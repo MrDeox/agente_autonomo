@@ -13,12 +13,13 @@ from agent.brain import (
     get_action_plan,
     get_maestro_decision,
     generate_next_objective,
-    generate_capacitation_objective
+    generate_capacitation_objective,
+    generate_commit_message # ADICIONADO para auto-versionamento
 )
 # from agent.patch_applicator import apply_patches # Será substituído por manipulação em memória
 # AGORA: from agent.patch_applicator import apply_patches # Será usado com o novo patch_applicator
 from agent.code_validator import validate_python_code, validate_json_syntax # Reavaliar uso
-from agent.tool_executor import run_in_sandbox, run_pytest, check_file_existence
+from agent.tool_executor import run_in_sandbox, run_pytest, check_file_existence, run_git_command # ADICIONADO run_git_command
 
 # Importar o novo patch_applicator
 from agent.patch_applicator import apply_patches # ADICIONADO
@@ -43,6 +44,220 @@ class HephaestusAgent:
         self.objective_stack = []  # Pilha de objetivos
         self._reset_cycle_state() # Inicializa o estado
 
+    def _initialize_git_repository(self) -> bool:
+        """
+        Verifica se um repositório Git existe. Se não, inicializa-o,
+        configura o usuário e faz um commit inicial com .gitignore.
+        Retorna True se o repositório estiver pronto, False em caso de erro crítico.
+        """
+        git_dir = Path(".git")
+        if git_dir.is_dir():
+            self.logger.info("Repositório Git já existe.")
+            # Verificar se user.name e user.email estão configurados
+            check_user_name_success, _ = run_git_command(['git', 'config', 'user.name'])
+            check_user_email_success, _ = run_git_command(['git', 'config', 'user.email'])
+
+            if not (check_user_name_success and check_user_email_success):
+                self.logger.warning("Git user.name ou user.email não configurados. Tentando configurar localmente.")
+                name_success, name_out = run_git_command(['git', 'config', '--local', 'user.name', 'Hephaestus Agent'])
+                email_success, email_out = run_git_command(['git', 'config', '--local', 'user.email', 'hephaestus@example.com'])
+                if not (name_success and email_success):
+                    self.logger.error(f"FALHA CRÍTICA ao configurar git user.name/email localmente. Name: {name_out}, Email: {email_out}")
+                    return False
+                self.logger.info("Git user.name e user.email configurados localmente com sucesso.")
+            return True
+
+        self.logger.info("Repositório Git não encontrado. Inicializando...")
+
+        # 1. git init
+        init_success, init_output = run_git_command(['git', 'init'])
+        self.logger.debug(f"Resultado 'git init': Success={init_success}, Output:\n{init_output}")
+        if not init_success:
+            self.logger.error(f"FALHA CRÍTICA: 'git init' falhou. Output:\n{init_output}")
+            return False
+        self.logger.info("Repositório Git inicializado com sucesso.")
+
+        # 2. Configurar user.name e user.email (localmente para este repo)
+        self.logger.info("Configurando user.name e user.email para o repositório local...")
+        name_config_cmd = ['git', 'config', '--local', 'user.name', 'Hephaestus Agent']
+        email_config_cmd = ['git', 'config', '--local', 'user.email', 'hephaestus@example.com']
+
+        name_success, name_out = run_git_command(name_config_cmd)
+        if not name_success:
+            self.logger.error(f"FALHA CRÍTICA ao configurar git user.name. Output:\n{name_out}")
+            return False
+
+        email_success, email_out = run_git_command(email_config_cmd)
+        if not email_success:
+            self.logger.error(f"FALHA CRÍTICA ao configurar git user.email. Output:\n{email_out}")
+            return False
+        self.logger.info("Git user.name e user.email configurados localmente.")
+
+        # 3. Criar .gitignore
+        gitignore_content = """
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.pyc
+*.$py.class
+
+# C extensions
+*.so
+
+# Distribution / packaging
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+pip-wheel-metadata/
+share/python-wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+MANIFEST
+
+# PyInstaller
+#  Usually these files are written by a python script from a template
+#  before PyInstaller builds the exe, so as to inject date/other infos into it.
+*.manifest
+*.spec
+
+# Installer logs
+pip-log.txt
+pip-delete-this-directory.txt
+
+# Unit test / coverage reports
+htmlcov/
+.tox/
+.nox/
+.coverage
+.coverage.*
+.cache
+nosetests.xml
+coverage.xml
+*.cover
+*.py,cover
+.hypothesis/
+.pytest_cache/
+
+# Translations
+*.mo
+*.pot
+
+# Django stuff:
+*.log
+local_settings.py
+db.sqlite3
+db.sqlite3-journal
+
+# Flask stuff:
+instance/
+.webassets-cache
+
+# Scrapy stuff:
+.scrapy
+
+# Sphinx documentation
+docs/_build/
+
+# PyBuilder
+target/
+
+# Jupyter Notebook
+.ipynb_checkpoints
+
+# IPython
+profile_default/
+ipython_config.py
+
+# pyenv
+.python-version
+
+# PEP 582; __pypackages__
+__pypackages__/
+
+# Celery stuff
+celerybeat-schedule
+celerybeat.pid
+
+# SageMath parsed files
+*.sage.py
+
+# Environments
+.env
+.venv
+env/
+venv/
+ENV/
+env.bak/
+venv.bak/
+
+# Spyder project settings
+.spyderproject
+.spyderworkspace
+
+# Rope project settings
+.ropeproject
+
+# mkdocs documentation
+/site
+
+# mypy
+.mypy_cache/
+.dmypy.json
+dmypy.json
+
+# Pyre type checker
+.pyre/
+
+# Hephaestus specific
+hephaestus.log
+*.DS_Store
+"""
+        gitignore_path = Path(".gitignore")
+        try:
+            with open(gitignore_path, "w", encoding="utf-8") as f:
+                f.write(gitignore_content.strip())
+            self.logger.info(f"{gitignore_path} criado com sucesso.")
+        except IOError as e:
+            self.logger.error(f"FALHA CRÍTICA ao criar {gitignore_path}: {e}")
+            return False
+
+        # 4. git add .gitignore
+        add_success, add_output = run_git_command(['git', 'add', str(gitignore_path)])
+        self.logger.debug(f"Resultado 'git add .gitignore': Success={add_success}, Output:\n{add_output}")
+        if not add_success:
+            self.logger.error(f"FALHA CRÍTICA: 'git add {gitignore_path}' falhou. Output:\n{add_output}")
+            # Se o .gitignore já existir e estiver igual, 'git add' pode não fazer nada, mas não deve falhar.
+            # Uma falha aqui é provavelmente um problema mais sério.
+            return False
+
+        # 5. git commit -m "chore: Initial commit"
+        commit_message = "chore: Initial commit by Hephaestus Agent"
+        # Usar --allow-empty se o .gitignore for a única coisa e já estiver no HEAD de alguma forma (improvável aqui)
+        # ou se quisermos garantir um commit inicial mesmo que vazio.
+        # No entanto, o add anterior deve garantir que há algo para commitar se o .gitignore foi criado/modificado.
+        commit_success, commit_output = run_git_command(['git', 'commit', '-m', commit_message])
+        self.logger.debug(f"Resultado 'git commit': Success={commit_success}, Output:\n{commit_output}")
+        if not commit_success:
+            # Verificar se o commit falhou porque não há nada para commitar
+            if "nothing to commit" in commit_output.lower() or "nada a submeter" in commit_output.lower() or "no changes added to commit" in commit_output.lower():
+                self.logger.warning(f"'git commit' informou que não há nada novo para commitar. Output:\n{commit_output}")
+                self.logger.info("Considerando a inicialização do Git como bem-sucedida, pois o estado desejado (repo inicializado com commit inicial) foi alcançado ou já existia.")
+            else:
+                self.logger.error(f"FALHA CRÍTICA: 'git commit' inicial falhou. Output:\n{commit_output}")
+                return False
+
+        self.logger.info("Commit inicial realizado com sucesso ou já existente.")
+        return True
 
     def _reset_cycle_state(self):
         """Reseta o estado transitório do ciclo, mantendo apenas o objetivo atual."""
@@ -307,6 +522,11 @@ class HephaestusAgent:
             self.logger.error("Erro: OPENROUTER_API_KEY não encontrada. Encerrando.")
             return
 
+        # Inicializar/Verificar repositório Git ANTES de qualquer outra coisa
+        if not self._initialize_git_repository():
+            self.logger.error("Falha ao inicializar o repositório Git. O agente não pode continuar sem versionamento.")
+            return
+
         if not self.objective_stack:
             self.logger.info("Gerando objetivo inicial...")
             initial_objective_model = self.config.get("models", {}).get("objective_generator", self.light_model)
@@ -406,6 +626,46 @@ class HephaestusAgent:
                             update_project_manifest(root_dir=".", target_files=[]) # Escaneia tudo
                             with open("AGENTS.md", "r", encoding="utf-8") as f:
                                 self.state["manifesto_content"] = f.read()
+
+                            # --- INÍCIO DO BLOCO DE AUTO-COMMIT ---
+                            self.logger.info("Iniciando processo de auto-commit das alterações validadas...")
+
+                            # 1. Gerar mensagem de commit
+                            analysis_summary = self.state.get("action_plan_data", {}).get("analysis", "N/A")
+                            commit_model = self.config.get("models", {}).get("commit_message_generator", self.light_model)
+
+                            self.logger.debug(f"Dados para msg de commit: Objetivo='{self.state['current_objective']}', Análise='{analysis_summary[:100]}...'")
+
+                            commit_message = generate_commit_message(
+                                api_key=self.api_key,
+                                model=commit_model,
+                                analysis_summary=analysis_summary,
+                                objective=self.state["current_objective"],
+                                logger=self.logger
+                            )
+                            self.logger.info(f"Mensagem de commit gerada: '{commit_message}'")
+
+                            # 2. Executar git add .
+                            self.logger.info("Adicionando todas as alterações ao staging (git add .)...")
+                            add_success, add_output = run_git_command(['git', 'add', '.'])
+                            self.logger.debug(f"Resultado 'git add .': Success={add_success}, Output:\n{add_output}")
+                            if not add_success:
+                                self.logger.error(f"FALHA CRÍTICA: 'git add .' falhou. Output:\n{add_output}")
+                                self.logger.error("ENCERRANDO O AGENTE devido à falha no versionamento.")
+                                return # Encerra o método run()
+
+                            # 3. Executar git commit
+                            self.logger.info(f"Realizando commit com a mensagem: '{commit_message}'...")
+                            commit_success, commit_output = run_git_command(['git', 'commit', '-m', commit_message])
+                            self.logger.debug(f"Resultado 'git commit': Success={commit_success}, Output:\n{commit_output}")
+                            if not commit_success:
+                                self.logger.error(f"FALHA CRÍTICA: 'git commit' falhou. Output:\n{commit_output}")
+                                self.logger.error("ENCERRANDO O AGENTE devido à falha no versionamento.")
+                                # Poderia tentar um 'git reset --hard HEAD' aqui, mas por ora é mais seguro parar.
+                                return # Encerra o método run()
+
+                            self.logger.info("--- AUTO-COMMIT REALIZADO COM SUCESSO ---")
+                            # --- FIM DO BLOCO DE AUTO-COMMIT ---
 
                         self.logger.info("Gerando próximo objetivo evolutivo...")
                         objective_model = self.config.get("models", {}).get("objective_generator", self.light_model)
