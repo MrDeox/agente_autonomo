@@ -103,3 +103,34 @@ def run_in_sandbox(temp_dir_path: str, objective: str) -> Dict[str, Any]:
         "exit_code": exit_code,
         "output": "".join(output_lines),
     }
+
+
+def run_git_command(command: list[str]) -> Tuple[bool, str]:
+    """
+    Executa um comando Git e retorna o status e a saída.
+
+    Args:
+        command: Uma lista de strings representando o comando Git e seus argumentos.
+                 Ex: ['git', 'add', '.'] or ['git', 'commit', '-m', 'Initial commit']
+
+    Returns:
+        Tuple[bool, str]: (success, output)
+        - success: True se o comando Git for executado com sucesso (returncode == 0), False caso contrário.
+        - output: Saída combinada de stdout e stderr da execução do comando Git.
+    """
+    if not command or command[0] != 'git':
+        return False, "Comando inválido. Deve começar com 'git'."
+    try:
+        process = subprocess.run(
+            command,
+            capture_output=True,
+            text=True,
+            check=False  # Não levanta exceção para returncodes diferentes de 0
+        )
+        success = process.returncode == 0
+        output = f"Comando: {' '.join(command)}\nExit Code: {process.returncode}\n\nStdout:\n{process.stdout}\nStderr:\n{process.stderr}"
+        return success, output
+    except FileNotFoundError:
+        return False, "Erro: O comando 'git' não foi encontrado. Certifique-se de que o Git está instalado e no PATH."
+    except Exception as e:
+        return False, f"Erro inesperado ao executar comando Git: {str(e)}"
