@@ -1,3 +1,8 @@
+import logging
+from typing import Optional, Any
+import json
+import requests
+from datetime import datetime
 import json
 import logging # Adicionado
 import requests # Removido, pois _call_llm_api foi movido para agents.py

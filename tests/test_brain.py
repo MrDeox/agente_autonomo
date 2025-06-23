@@ -1,3 +1,15 @@
+import pytest
+from unittest.mock import patch, Mock
+from datetime import datetime
+from agent.brain import _call_llm_api
+
+@pytest.fixture
+def mock_logger():
+    logger = Mock()
+    logger.info = Mock()
+    logger.debug = Mock()
+    logger.error = Mock()
+    return logger
 # tests/test_brain.py
 import pytest
 import json

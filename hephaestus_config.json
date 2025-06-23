@@ -1,9 +1,9 @@
 {
   "models": {
-    "architect_default": "deepseek/deepseek-chat-v3-0324:free",
+    "architect_default": "deepseek/deepseek-r1-0528:free",
     "maestro_default": "deepseek/deepseek-r1-0528:free",
-    "objective_generator": "deepseek/deepseek-chat-v3-0324:free",
-    "capacitation_generator": "deepseek/deepseek-chat-v3-0324:free"
+    "objective_generator": "deepseek/deepseek-r1-0528:free",
+    "capacitation_generator": "deepseek/deepseek-r1-0528:free"
   },
   "validation_strategies": {
     "SYNTAX_ONLY": {

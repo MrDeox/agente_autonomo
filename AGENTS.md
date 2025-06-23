@@ -4,6 +4,7 @@
 agente_autonomo/
     README.md
     hephaestus.log
+    example_config.json
     AGENTS.md
     HEPHAESTUS_MEMORY.json
     main.py
@@ -144,6 +145,7 @@ agente_autonomo/
 ### Arquivo: `tests/conftest.py`
 
 ### Arquivo: `tests/test_brain.py`
+- **Função:** `mock_logger()`
 - **Função:** `mock_logger()`
 - **Função:** `test_brain_call_llm_api_success(mock_post, mock_logger)`
 - **Função:** `test_brain_call_llm_api_request_exception(mock_post, mock_logger)`
