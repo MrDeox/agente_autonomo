@@ -115,8 +115,8 @@ def test_main_flow_apply_and_validate_syntax_success(
     }
     mock_architect.return_value = (action_plan_response, None)
 
-    # 2. Maestro escolhe a estratégia APPLY_AND_VALIDATE_SYNTAX
-    maestro_decision_response = {"strategy_key": "APPLY_AND_VALIDATE_SYNTAX"}
+    # 2. Maestro escolhe a estratégia APPLY_AND_VALIDATE_SYNTAX_SANDBOX (alinhado com config de teste)
+    maestro_decision_response = {"strategy_key": "APPLY_AND_VALIDATE_SYNTAX_SANDBOX"}
     # get_maestro_decision retorna uma lista de logs de tentativa
     mock_maestro.return_value = [{"success": True, "parsed_json": maestro_decision_response, "model": "mock_model", "raw_response": ""}]
 
@@ -142,11 +142,11 @@ def test_main_flow_apply_and_validate_syntax_success(
     # Podemos mockar `generate_next_objective` para que ele não adicione nada,
     # ou fazer com que ele levante uma exceção controlada para parar o loop após o primeiro ciclo.
 
-    # Uma forma de controlar: mockar generate_next_objective para esvaziar a pilha
-    def stop_loop_after_next_objective(*args, **kwargs):
-        hephaestus_agent.objective_stack.clear() # Esvazia a pilha para parar o loop
-        return "Objective: Stop loop."
-    mock_gen_next_obj.side_effect = stop_loop_after_next_objective
+    # Definir o limite de ciclos para 1 para este teste.
+    hephaestus_agent.objective_stack_depth_for_testing = 1
+    # O mock_gen_next_obj ainda é útil para fornecer um valor de retorno previsível
+    # e para a asserção de que foi chamado.
+    mock_gen_next_obj.return_value = "Objective: Stop loop." # Não mais limpa a pilha aqui
 
     hephaestus_agent.run() # Executa o loop, que deve parar após um ciclo bem-sucedido
 
@@ -256,8 +256,8 @@ def test_main_flow_pytest_failure_triggers_correction_objective(
     }
     mock_architect.return_value = (action_plan_response, None)
 
-    # 2. Maestro escolhe estratégia que roda pytest
-    maestro_decision_response = {"strategy_key": "APPLY_AND_PYTEST"}
+    # 2. Maestro escolhe estratégia que roda pytest (alinhado com config de teste)
+    maestro_decision_response = {"strategy_key": "APPLY_AND_PYTEST_SANDBOX"}
     mock_maestro.return_value = [{"success": True, "parsed_json": maestro_decision_response, "model":"m", "raw_response":""}]
 
     # 3. run_pytest retorna falha
@@ -269,14 +269,12 @@ def test_main_flow_pytest_failure_triggers_correction_objective(
 
     # Mock generate_next_objective para parar o loop após o ciclo de falha.
     # Em caso de falha corrigível, um novo objetivo de correção é adicionado.
-    # O loop continuaria.
-    with patch('agent.brain.generate_next_objective') as mock_gen_next_obj_stopper:
-        def stop_loop_after_correction_obj(*args, **kwargs):
-            hephaestus_agent.objective_stack.clear()
-            return "This should not be reached if correction happens"
-        mock_gen_next_obj_stopper.side_effect = stop_loop_after_correction_obj
+    # O loop continuaria. Para o teste, queremos que ele pare após este primeiro ciclo de falha.
+    hephaestus_agent.objective_stack_depth_for_testing = 1
 
-        hephaestus_agent.run()
+    # Não precisamos mais mockar generate_next_objective para parar o loop aqui,
+    # pois o limite de ciclo cuidará disso.
+    hephaestus_agent.run()
 
     # --- Asserções ---
     mock_architect.assert_called_once()
@@ -375,41 +373,14 @@ def test_main_flow_sandbox_syntax_error_discarded(
     maestro_decision_response = {"strategy_key": "APPLY_AND_VALIDATE_SYNTAX_SANDBOX"}
     mock_maestro.return_value = [{"success": True, "parsed_json": maestro_decision_response, "model":"m", "raw_response":""}]
 
-    # 5. Gerador de próximo objetivo para parar o loop (após tentativa de correção)
-    # O agente vai tentar um objetivo de correção. Queremos parar depois disso.
-    correction_objective_generated = False
-    def stop_loop_after_correction_objective_gen(*args, **kwargs):
-        nonlocal correction_objective_generated
-        # A primeira vez que é chamado é para o próximo objetivo normal (não será, pois falha)
-        # A segunda vez é para o objetivo de correção
-        if not correction_objective_generated:
-             correction_objective_generated = True
-             # Manter o objetivo de correção na pilha para que o agente o pegue
-             # Mas para o teste, vamos limpar e parar.
-             # Na verdade, o generate_next_objective não é chamado se a falha for corrigível.
-             # Em vez disso, um objetivo de correção é adicionado e o loop continua.
-             # Precisamos de uma maneira diferente de parar.
-             # O objetivo de correção será o próximo item na pilha.
-             # Vamos deixar o generate_next_objective não fazer nada para que a pilha se esgote
-             # após o objetivo de correção ser (hipoteticamente) processado.
-             # No entanto, o teste foca no *primeiro* ciclo de falha.
-             # O objetivo de correção é gerado *após* o validation_result ser definido.
-             # Para este teste, vamos parar o loop após o primeiro ciclo de falha.
-             hephaestus_agent.objective_stack.clear() # Esvazia a pilha
-             return "Objective: Stop after sandbox failure."
+    # 5. Gerador de próximo objetivo será mockado para retornar um valor previsível.
+    # O controle do loop será feito por objective_stack_depth_for_testing.
+    mock_gen_next_obj.return_value = "Objective: Stop after sandbox failure."
 
-        hephaestus_agent.objective_stack.clear()
-        return "Objective: Stop (should not be reached if logic is correct)."
+    # Definir o limite de ciclos para 1 para este teste.
+    hephaestus_agent.objective_stack_depth_for_testing = 1
 
-    # A lógica atual de `run()`: se falha corrigível, adiciona obj de correção e continua.
-    # Se `generate_next_objective` for mockado para limpar a pilha,
-    # o loop parará *antes* do objetivo de correção ser processado.
-    # Para testar o descarte, precisamos que o ciclo falhe e o estado `PATCH_DISCARDED` seja setado.
-    # O objetivo de correção é um efeito colateral *dessa falha*.
-
-    # Vamos mockar `generate_next_objective` para que ele pare o loop.
-    # E também `generate_capacitation_objective` e `generate_commit_message` por segurança
-    mock_gen_next_obj.side_effect = stop_loop_after_correction_objective_gen
+    # Mocks para outras funções de geração que podem ser chamadas.
     with patch('main.generate_capacitation_objective') as mock_gen_cap_obj, \
          patch('main.generate_commit_message') as mock_gen_commit_msg:
         mock_gen_cap_obj.return_value = "Dummy Capacitation Obj"
@@ -556,10 +527,9 @@ def test_main_flow_sandbox_success_promotion(
     mock_gen_next_obj.return_value = "Objective: Stop after success."
     hephaestus_agent.objective_stack_depth_for_testing = 1 # Para parar após um ciclo
 
-    def stop_loop_after_one_successful_cycle(*args, **kwargs):
-        hephaestus_agent.objective_stack.clear()
-        return "Objective: Stop after success (from mock_gen_next_obj)."
-    mock_gen_next_obj.side_effect = stop_loop_after_one_successful_cycle
+    # O side_effect não precisa mais limpar a pilha.
+    # Apenas retornar o valor para a asserção de chamada e para o log.
+    mock_gen_next_obj.return_value = "Objective: Stop after success (from mock_gen_next_obj)."
 
     mock_check_file_existence.return_value = (True, "Sanity check: Files exist.") # Sanity check
     mock_update_manifest.return_value = None # Não faz nada
