@@ -1,80 +1,36 @@
 import json
 import logging # Adicionado
-import requests
-import traceback # Mantido para uso potencial em tratamento de erros, embora não usado diretamente nas novas funções.
+import requests # Removido, pois _call_llm_api foi movido para agents.py
+import traceback # Removido, pois não é mais usado diretamente aqui
 from typing import Optional, Dict, Any, List, Tuple
 
-# Funções de comunicação com API (simuladas/reutilizadas)
-# Idealmente, haveria uma função genérica para chamadas de API para evitar duplicação.
+# As funções parse_json_response e _call_llm_api foram movidas para agent/agents.py
+# A função get_action_plan foi movida para ArchitectAgent.plan_action em agent/agents.py
+# A função get_maestro_decision foi movida para MaestroAgent.choose_strategy em agent/agents.py
 
-def parse_json_response(raw_str: str, logger: Any) -> Tuple[Optional[Dict[str, Any]], Optional[str]]:
-    """
-    Analisa uma string bruta que se espera conter JSON, limpando-a e decodificando-a.
-    Remove blocos de markdown, extrai conteúdo entre a primeira '{' e a última '}',
-    remove caracteres não imprimíveis e carrega o JSON.
+# Funções que permanecem em brain.py:
+# - generate_next_objective
+# - generate_capacitation_objective
+# - generate_commit_message (se não for movida para um agente específico no futuro)
 
-    Args:
-        raw_str: A string bruta da resposta da LLM.
-        logger: Instância do logger para registrar o processo.
+# É necessário manter _call_llm_api aqui se as funções restantes o utilizarem diretamente.
+# Vamos verificar se generate_next_objective, generate_capacitation_objective
+# e generate_commit_message usam _call_llm_api.
+# Sim, elas usam. Então _call_llm_api (e por extensão, requests) precisa ficar ou ser importado.
+# Para esta refatoração, vamos assumir que _call_llm_api é um utilitário que pode
+# ser usado por múltiplos "cérebros" ou agentes, então pode ser melhor
+# movê-lo para um local mais genérico ou duplicá-lo temporariamente.
+# O pedido era mover para agent/agents.py, então vamos remover daqui.
+# Isso significa que as funções restantes precisarão de uma forma de chamar a LLM.
 
-    Returns:
-        Uma tupla contendo o dicionário JSON parseado (ou None em caso de erro)
-        e uma mensagem de erro (ou None em caso de sucesso).
-    """
-    if not raw_str or not raw_str.strip():
-        if logger: logger.error("parse_json_response: Recebeu string vazia ou apenas com espaços.")
-        else: print("parse_json_response: Recebeu string vazia ou apenas com espaços.")
-        return None, "String de entrada vazia ou apenas com espaços."
-
-    clean_content = raw_str.strip()
-    if logger: logger.debug(f"parse_json_response: Raw response before cleaning: {raw_str[:300]}...")
-
-    # Find the first { and last } to extract just the JSON part
-    first_brace = clean_content.find('{')
-    last_brace = clean_content.rfind('}')
-
-    if first_brace != -1 and last_brace != -1 and last_brace > first_brace:
-        clean_content = clean_content[first_brace:last_brace+1]
-        if logger: logger.debug(f"parse_json_response: Extracted JSON content based on braces: {clean_content[:300]}...")
-    else:
-        # Fallback to markdown code block cleaning if braces not found or invalid
-        if clean_content.startswith('```json'):
-            clean_content = clean_content[7:].strip()
-            if clean_content.endswith('```'):
-                clean_content = clean_content[:-3].strip()
-        elif clean_content.startswith('```'): # Generic code block
-            clean_content = clean_content[3:].strip()
-            if clean_content.endswith('```'):
-                clean_content = clean_content[:-3].strip()
-        if logger: logger.debug(f"parse_json_response: Content after attempting markdown removal (if any): {clean_content[:300]}...")
-
-    # Remove control characters that might break JSON parsing, except for valid whitespace like \n, \r, \t
-    # Allow characters with ordinal value 32 and above, plus tab, newline, carriage return.
-    clean_content = ''.join(char for char in clean_content if ord(char) >= 32 or char in ['\n', '\r', '\t'])
-    if logger: logger.debug(f"parse_json_response: Final cleaned content before parsing: {clean_content[:300]}...")
-
-    if not clean_content:
-        if logger: logger.error("parse_json_response: Conteúdo ficou vazio após limpeza.")
-        else: print("parse_json_response: Conteúdo ficou vazio após limpeza.")
-        return None, "Conteúdo ficou vazio após limpeza."
-
-    try:
-        parsed_json = json.loads(clean_content)
-        return parsed_json, None
-    except json.JSONDecodeError as e:
-        error_message = f"Erro ao decodificar JSON: {str(e)}. Conteúdo limpo (parcial): {clean_content[:500]}"
-        if logger: logger.error(f"parse_json_response: {error_message}. Resposta original (parcial): {raw_str[:200]}")
-        else: print(f"parse_json_response: {error_message}. Resposta original (parcial): {raw_str[:200]}")
-        return None, f"Erro ao decodificar JSON: {str(e)}. Resposta original (parcial): {raw_str[:200]}" # Manter a mensagem de erro concisa para o retorno
-    except Exception as e: # Catch any other unexpected error during parsing
-        error_message = f"Erro inesperado durante o parsing do JSON: {str(e)}"
-        if logger: logger.error(f"parse_json_response: {error_message}\n{traceback.format_exc()}", exc_info=True)
-        else: print(f"parse_json_response: {error_message}\n{traceback.format_exc()}")
-        return None, f"Erro inesperado durante o parsing do JSON: {str(e)}"
-
+# REAVALIAÇÃO: _call_llm_api é fundamental para as funções restantes.
+# Por enquanto, vamos duplicá-la aqui e em agent/agents.py.
+# Uma refatoração futura poderia criar um `llm_client.py` ou similar.
 
 def _call_llm_api(api_key: str, model: str, prompt: str, temperature: float, base_url: str, logger: Any) -> Tuple[Optional[str], Optional[str]]:
-    """Função auxiliar para fazer chamadas à API LLM."""
+    """Função auxiliar para fazer chamadas à API LLM.
+       Esta é uma cópia temporária. A original foi movida para agent/agents.py.
+    """
     url = f"{base_url}/chat/completions"
     headers = {
         "Authorization": f"Bearer {api_key}",
@@ -89,7 +45,7 @@ def _call_llm_api(api_key: str, model: str, prompt: str, temperature: float, bas
         response = requests.post(url, json=payload, headers=headers)
         response.raise_for_status()
         response_json = response.json()
-        logger.debug(f"API Response: {response_json}")  # Log da resposta completa
+        if logger: logger.debug(f"API Response (brain._call_llm_api): {response_json}")
         if "choices" not in response_json:
             return None, f"API response missing 'choices' key. Full response: {response_json}"
         content = response_json["choices"][0]["message"]["content"]
@@ -102,153 +58,11 @@ def _call_llm_api(api_key: str, model: str, prompt: str, temperature: float, bas
         return None, f"Request failed: {error_details}"
     except KeyError as e:
         return None, f"KeyError: {str(e)} in API response"
-    except Exception as e:
-        return None, f"Unexpected error: {str(e)}\n{traceback.format_exc()}"
+    except Exception as e: # Captura de exceção mais genérica para robustez
+        # Usar traceback aqui seria útil se não estivesse sendo removido
+        # return None, f"Unexpected error: {str(e)}\n{traceback.format_exc()}"
+        return None, f"Unexpected error in _call_llm_api (brain): {str(e)}"
 
-def get_action_plan(
-    api_key: str,
-    model: str, # Modelo para o Arquiteto
-    objective: str,
-    manifest: str,
-    logger: Any, # logging.Logger, mas Any para evitar import circular se brain for importado em main typings
-    base_url: str = "https://openrouter.ai/api/v1"
-) -> Tuple[Optional[Dict[str, Any]], Optional[str]]:
-    """
-    Fase 2 (Arquiteto): Pega o objetivo e o manifesto, e retorna um plano de patches em JSON.
-    Retorna um dicionário com os patches ou None em caso de erro, mais uma mensagem de erro.
-    O Arquiteto agora gera os patches diretamente, incluindo o conteúdo.
-    """
-    prompt = f"""
-Você é o Arquiteto de Software do agente Hephaestus. Sua tarefa é pegar o objetivo de alto nível e, com base no manifesto do projeto, criar um plano de patches JSON para modificar os arquivos.
-
-[OBJETIVO]
-{objective}
-
-[MANIFESTO DO PROJETO]
-{manifest}
-
-[SUA TAREFA]
-Crie um plano JSON com uma lista de "patches" para aplicar. Cada patch DEVE incluir o conteúdo completo a ser inserido ou que substituirá um bloco.
-As operações válidas para cada patch são: "INSERT", "REPLACE", "DELETE_BLOCK".
-Para operações em arquivos existentes, analise o manifesto para entender o estado atual do arquivo antes de propor o patch.
-Se um arquivo não existe e a operação é "INSERT" ou "REPLACE" (com "block_to_replace": null), o arquivo será criado.
-
-[FORMATO DE SAÍDA OBRIGATÓRIO]
-Sua resposta DEVE ser um objeto JSON válido e nada mais.
-{{
-  "analysis": "Sua análise e raciocínio para o plano de patches.",
-  "patches_to_apply": [ // MODIFICADO de action_plan para patches_to_apply
-    {{
-      "file_path": "caminho/do/arquivo.py",
-      "operation": "INSERT",
-      "line_number": 1, // Opcional. 1-based. Se omitido ou > num_linhas, insere no final.
-      "content": "import os\\nimport sys" // Conteúdo real a ser inserido. Newlines como \\n.
-    }},
-    {{
-      "file_path": "caminho/existente/arquivo.txt",
-      "operation": "REPLACE",
-      "block_to_replace": "texto antigo a ser substituído", // String exata ou um padrão regex.
-                                                              // Se null, o arquivo inteiro é substituído (ou criado se não existir).
-      "is_regex": false, // Opcional, default false. True se block_to_replace for um regex.
-      "content": "novo texto que substitui o bloco antigo."
-    }},
-    {{
-      "file_path": "caminho/outro_arquivo.py",
-      "operation": "DELETE_BLOCK",
-      "block_to_delete": "def funcao_obsoleta(param):\\n    pass\\n", // String exata do bloco a deletar, incluindo newlines.
-                                                                     // Ou um padrão regex.
-      "is_regex": false // Opcional.
-    }},
-    {{ // Exemplo de criação de novo arquivo usando REPLACE (block_to_replace: null)
-      "file_path": "novo/arquivo_config.json",
-      "operation": "REPLACE",
-      "block_to_replace": null, // Essencial para criar/sobrescrever arquivo inteiro
-      "content": "{{\\n  \\"key\\": \\"value\\",\\n  \\"another_key\\": 123\\n}}"
-    }}
-  ]
-}}
-
-[INSTRUÇÕES IMPORTANTES PARA O CONTEÚDO DO PATCH]
-- Para "INSERT" e "REPLACE", o campo "content" DEVE conter o código/texto REAL e COMPLETO a ser usado.
-- Newlines dentro do "content" DEVEM ser representados como '\\n'.
-- Para "DELETE_BLOCK", o "block_to_delete" deve ser a string exata do bloco a ser removido, incluindo newlines se elas fazem parte do bloco e devem ser removidas. Se for um regex, ele deve casar o bloco.
-- Para "REPLACE" de arquivo inteiro ou criação de novo arquivo, use "block_to_replace": null.
-- Certifique-se de que o JSON gerado é estritamente válido. Escape caracteres especiais dentro das strings JSON conforme necessário (ex: '\\\\n' para newline, '\\\\"' para aspas).
-"""
-    logger.info(f"Gerando plano de patches com o modelo: {model}...")
-    raw_response, error = _call_llm_api(api_key, model, prompt, 0.4, base_url, logger) # Temp um pouco mais baixa
-
-    if error:
-        logger.error(f"Erro ao chamar LLM para plano de patches: {error}")
-        return None, f"Erro ao chamar LLM para plano de patches: {error}"
-    # raw_response é verificado por parse_json_response, incluindo se é None ou vazio.
-    # if not raw_response:
-    #     logger.error("Resposta vazia do LLM para plano de patches.")
-    #     return None, "Resposta vazia do LLM para plano de patches."
-
-    parsed_json, error_parsing = parse_json_response(raw_response, logger)
-
-    if error_parsing:
-        logger.error(f"Erro ao fazer parse do JSON do plano de patches: {error_parsing}")
-        # A mensagem de parse_json_response já inclui detalhes do erro e parte da resposta original.
-        return None, f"Erro ao fazer parse do JSON do plano de patches: {error_parsing}"
-
-    if not parsed_json: # Segurança adicional, embora parse_json_response deva retornar erro se None.
-        logger.error("JSON do plano de patches resultou em None sem erro de parsing explícito.")
-        return None, "JSON do plano de patches resultou em None."
-
-    # Validação específica do schema do plano de patches
-    try:
-        # Checa se parsed_json é um dict e se tem a chave 'patches_to_apply' como lista
-        if not isinstance(parsed_json, dict) or "patches_to_apply" not in parsed_json or \
-           not isinstance(parsed_json.get("patches_to_apply"), list):
-            logger.error("JSON do plano de patches inválido ou não contém 'patches_to_apply' como uma lista.")
-            return None, "JSON do plano de patches inválido ou não contém a chave 'patches_to_apply' como uma lista."
-
-        # Validação mais detalhada de cada patch (opcional, mas bom)
-        # Usar .get com fallback para uma lista vazia para evitar erro se patches_to_apply for None (embora a checagem acima deva pegar)
-        for i, patch in enumerate(parsed_json.get("patches_to_apply", [])):
-            if not isinstance(patch, dict):
-                err_msg = f"Patch na posição {i} não é um dicionário."
-                logger.error(err_msg)
-                return None, err_msg
-            if "file_path" not in patch or "operation" not in patch:
-                err_msg = f"Patch na posição {i} não tem 'file_path' ou 'operation'."
-                logger.error(err_msg)
-                return None, err_msg
-            if patch["operation"] in ["INSERT", "REPLACE"] and "content" not in patch:
-                err_msg = f"Patch {patch['operation']} na posição {i} para '{patch['file_path']}' não tem 'content'."
-                logger.error(err_msg)
-                return None, err_msg
-            if patch["operation"] == "DELETE_BLOCK" and "block_to_delete" not in patch:
-                err_msg = f"Patch DELETE_BLOCK na posição {i} para '{patch['file_path']}' não tem 'block_to_delete'."
-                logger.error(err_msg)
-                return None, err_msg
-            if patch["operation"] == "REPLACE" and "block_to_replace" not in patch: # block_to_replace pode ser null
-                err_msg = f"Patch REPLACE na posição {i} para '{patch['file_path']}' não tem 'block_to_replace' (pode ser null)."
-                logger.error(err_msg)
-                return None, err_msg
-
-
-        return parsed_json, None
-    except json.JSONDecodeError as e:
-        # A exceção json.JSONDecodeError já foi tratada em parse_json_response.
-        # Esta cláusula except é para outros erros potenciais na validação do schema.
-        # No entanto, parse_json_response já retorna o erro de JSONDecodeError, então a validação do schema é o foco aqui.
-        # Se parsed_json for None devido a um erro de parsing, as checagens acima já retornam.
-        # Esta parte do código original tratava json.JSONDecodeError que agora está em parse_json_response.
-        # Vamos manter um Exception genérico para erros na lógica de validação do schema.
-        logger.error(f"Erro inesperado ao validar o schema do plano de patches: {str(e)}", exc_info=True)
-        return None, f"Erro inesperado ao validar o schema do plano de patches: {str(e)}"
-    # except json.JSONDecodeError as e: # Removido pois é tratado em parse_json_response
-    #     logger.error(f"Erro ao decodificar JSON do plano de patches: {str(e)}. Resposta: {raw_response[:500]}...")
-    #     return None, f"Erro ao decodificar JSON do plano de patches: {str(e)}. Resposta: {raw_response}"
-    except Exception as e: # Este é o catch-all que deve permanecer para erros de validação de schema
-        logger.error(f"Erro inesperado ao processar/validar plano de patches: {str(e)}", exc_info=True)
-        return None, f"Erro inesperado ao processar/validar plano de patches: {str(e)}"
-
-
-# A função generate_code_for_action foi removida pois o Arquiteto agora gera patches com conteúdo diretamente.
 
 def generate_next_objective(
     api_key: str,
@@ -260,23 +74,10 @@ def generate_next_objective(
 ) -> str:
     """
     Gera o próximo objetivo evolutivo usando um modelo leve.
-    
-    Args:
-        api_key: Chave API do OpenRouter
-        model: Modelo a ser usado (ex: "anthropic/claude-3.5-haiku")
-        current_manifest: Conteúdo atual do manifesto do projeto
-        logger: Instância do logger.
-        base_url: URL base da API LLM.
-        memory_summary: Resumo do histórico de memória do agente.
-        
-    Returns:
-        String com o próximo objetivo evolutivo
     """
-    url = f"{base_url}/chat/completions"
-    headers = {
-        "Authorization": f"Bearer {api_key}",
-        "Content-Type": "application/json"
-    }
+    # Esta função agora usa sua própria cópia de _call_llm_api ou uma importada.
+    # url = f"{base_url}/chat/completions" # Movido para _call_llm_api
+    # headers = { ... } # Movido para _call_llm_api
 
     memory_context_str = ""
     if memory_summary and memory_summary.strip() and memory_summary != "No relevant history available.":
@@ -287,7 +88,6 @@ Considere este histórico para evitar repetir falhas, construir sobre sucessos e
 """
 
     if not current_manifest.strip():
-        # Special case for first run when no manifest exists
         prompt = f"""
 [Contexto]
 Você é o 'Planejador Estratégico' do agente de IA autônomo Hephaestus. Este é o primeiro ciclo de execução e o manifesto do projeto ainda não existe. Sua tarefa é propor um objetivo inicial para criar a documentação básica do projeto.
@@ -319,31 +119,25 @@ Você é o 'Planejador Estratégico' do agente de IA autônomo Hephaestus. Sua �
 Gere APENAS uma única string de texto contendo o próximo objetivo. Seja conciso e direto. Considere o histórico para não repetir objetivos que falharam recentemente da mesma forma ou para continuar trabalhos bem-sucedidos.
 """
     
-    payload = {
-        "model": model,
-        "messages": [{"role": "user", "content": prompt}],
-        "temperature": 0.3 # Temperatura específica para esta chamada
-    }
+    # payload = { ... } # Movido para _call_llm_api
     
-    # logger.info(f"Gerando próximo objetivo com o modelo: {model}...") # _call_llm_api já loga
     content, error = _call_llm_api(api_key, model, prompt, 0.3, base_url, logger)
 
     if error:
-        # Usar logger em vez de print, se disponível
         log_message = f"Erro ao gerar próximo objetivo: {error}"
         if logger:
             logger.error(log_message)
         else:
             print(log_message)
-        return "Analisar o estado atual do projeto e propor uma melhoria incremental" # Fallback
+        return "Analisar o estado atual do projeto e propor uma melhoria incremental"
 
-    if not content: # Resposta vazia, mas sem erro explícito da API
+    if not content:
         log_message = "Resposta vazia do LLM para próximo objetivo."
         if logger:
             logger.warn(log_message)
         else:
             print(log_message)
-        return "Analisar o estado atual do projeto e propor uma melhoria incremental" # Fallback
+        return "Analisar o estado atual do projeto e propor uma melhoria incremental"
 
     return content.strip()
 
@@ -354,26 +148,11 @@ def generate_capacitation_objective(
     engineer_analysis: str,
     base_url: str = "https://openrouter.ai/api/v1",
     memory_summary: Optional[str] = None,
-    logger: Optional[Any] = None # Adicionado logger para consistência e debug
+    logger: Optional[Any] = None
 ) -> str:
-    """Gera um objetivo para criar novas capacidades necessárias.
-    
-    Args:
-        api_key: Chave API do OpenRouter
-        model: Modelo a ser usado (ex: "anthropic/claude-3.5-haiku")
-        engineer_analysis: Análise do Engenheiro indicando a necessidade
-        base_url: URL base da API LLM.
-        memory_summary: Resumo do histórico de memória do agente.
-        logger: Instância do logger.
-        
-    Returns:
-        String com o objetivo de capacitação
-    """
-    url = f"{base_url}/chat/completions"
-    headers = {
-        "Authorization": f"Bearer {api_key}",
-        "Content-Type": "application/json"
-    }
+    """Gera um objetivo para criar novas capacidades necessárias."""
+    # url = f"{base_url}/chat/completions" # Movido para _call_llm_api
+    # headers = { ... } # Movido para _call_llm_api
 
     memory_context_str = ""
     if memory_summary and memory_summary.strip() and memory_summary != "No relevant history available.":
@@ -407,13 +186,7 @@ O objetivo DEVE começar com "[TAREFA DE CAPACITAÇÃO]". Por exemplo: "[TAREFA 
     if logger:
         logger.debug(f"Prompt para gerar objetivo de capacitação:\n{prompt}")
 
-    payload = {
-        "model": model,
-        "messages": [{"role": "user", "content": prompt}],
-        "temperature": 0.3 # Temperatura específica
-    }
-
-    # if logger: logger.info(f"Gerando objetivo de capacitação com o modelo: {model}...") # _call_llm_api já loga
+    # payload = { ... } # Movido para _call_llm_api
     content, error = _call_llm_api(api_key, model, prompt, 0.3, base_url, logger)
 
     if error:
@@ -422,7 +195,7 @@ O objetivo DEVE começar com "[TAREFA DE CAPACITAÇÃO]". Por exemplo: "[TAREFA 
             logger.error(log_message)
         else:
             print(log_message)
-        return "Analisar a necessidade de capacitação e propor uma solução" # Fallback
+        return "Analisar a necessidade de capacitação e propor uma solução"
 
     if not content:
         log_message = "Resposta vazia do LLM para objetivo de capacitação."
@@ -430,134 +203,9 @@ O objetivo DEVE começar com "[TAREFA DE CAPACITAÇÃO]". Por exemplo: "[TAREFA 
             logger.warn(log_message)
         else:
             print(log_message)
-        return "Analisar a necessidade de capacitação e propor uma solução" # Fallback
+        return "Analisar a necessidade de capacitação e propor uma solução"
 
     return content.strip()
-
-
-def get_maestro_decision(
-    api_key: str,
-    model_list: List[str],
-    engineer_response: Dict[str, Any],
-    config: Dict[str, Any],
-    base_url: str = "https://openrouter.ai/api/v1",
-    memory_summary: Optional[str] = None,
-    logger: Optional[Any] = None # Adicionado logger para consistência e debug
-) -> List[Dict[str, Any]]:
-    """Consulta a LLM para decidir qual estratégia de validação adotar."""
-
-    attempt_logs = []
-    available_keys = ", ".join(config.get("validation_strategies", {}).keys())
-    engineer_summary = json.dumps(engineer_response, ensure_ascii=False, indent=2)
-
-    memory_context_str = ""
-    if memory_summary and memory_summary.strip() and memory_summary != "No relevant history available.":
-        memory_context_str = f"""
-[HISTÓRICO RECENTE (OBJETIVOS E ESTRATÉGIAS USADAS)]
-{memory_summary}
-Considere este histórico ao tomar sua decisão. Evite repetir estratégias que falharam recentemente para objetivos semelhantes, a menos que a causa da falha pareça ter sido resolvida ou a proposta atual seja significativamente diferente.
-"""
-
-    for model in model_list:
-        if logger:
-            logger.info(f"Tentando com o modelo: {model} para decisão do Maestro...")
-        else:
-            print(f"Tentando com o modelo: {model} para decisão do Maestro...")
-
-        url = f"{base_url}/chat/completions"
-        headers = {
-            "Authorization": f"Bearer {api_key}",
-            "Content-Type": "application/json",
-        }
-
-        prompt = f"""
-[IDENTIDADE]
-Você é o Maestro do agente Hephaestus. Sua tarefa é analisar a proposta do Engenheiro (plano de patches) e o histórico recente do agente para decidir a melhor ação a seguir.
-
-[CONTEXTO E HISTÓRICO]
-{memory_context_str}
-
-[PROPOSTA DO ENGENHEIRO (PLANO DE PATCHES)]
-{engineer_summary}
-
-[SUA DECISÃO]
-Com base na proposta do Engenheiro e no histórico:
-1. Se a solução parece razoável e não requer novas capacidades fundamentais que o agente Hephaestus não possui, escolha a estratégia de validação mais adequada dentre as disponíveis.
-2. Se a solução proposta pelo Engenheiro claramente requer novas capacidades (novas ferramentas, acesso a novas bibliotecas, novas estratégias de validação complexas que não existem) que o agente Hephaestus precisa desenvolver internamente, responda com `CAPACITATION_REQUIRED`.
-
-Estratégias de Validação Disponíveis: {available_keys}
-Opção Adicional: CAPACITATION_REQUIRED
-
-[FORMATO DE SAÍDA OBRIGATÓRIO]
-Responda APENAS com um objeto JSON contendo a chave "strategy_key" e o valor sendo UMA das estratégias de validação disponíveis OU "CAPACITATION_REQUIRED".
-Exemplo: {{"strategy_key": "sandbox_pytest_validation"}}
-Exemplo: {{"strategy_key": "CAPACITATION_REQUIRED"}}
-"""
-        if logger:
-            logger.debug(f"Prompt para decisão do Maestro:\n{prompt}")
-
-        payload = {
-            "model": model,
-            "messages": [{"role": "user", "content": prompt}],
-            "temperature": 0.2,
-        }
-
-        attempt_log = {
-            "model": model,
-            "raw_response": "",
-            "parsed_json": None,
-            "success": False,
-        }
-
-        # _call_llm_api lida com requests.post, raise_for_status, e erros de request/key.
-        # Também lida com a extração inicial de 'content'.
-        # A temperatura é 0.2 para esta chamada.
-        content, error_api = _call_llm_api(api_key, model, prompt, 0.2, base_url, logger)
-
-        if error_api:
-            attempt_log["raw_response"] = f"Erro da API ao obter decisão do Maestro (modelo {model}): {error_api}"
-            # success é False por padrão.
-            attempt_logs.append(attempt_log)
-            continue # Tentar próximo modelo
-
-        if not content:
-            attempt_log["raw_response"] = f"Resposta de conteúdo vazia da API ao obter decisão do Maestro (modelo {model})"
-            attempt_logs.append(attempt_log)
-            continue # Tentar próximo modelo
-
-        attempt_log["raw_response"] = content # Guardar a resposta bruta original do LLM
-
-        # Agora, parsear o 'content' que é esperado ser um JSON
-        parsed_json, error_parsing = parse_json_response(content, logger)
-
-        if error_parsing:
-            attempt_log["raw_response"] = f"Erro ao fazer parse da decisão do Maestro (modelo {model}): {error_parsing}. Conteúdo original: {content[:200]}"
-            attempt_logs.append(attempt_log)
-            continue
-
-        if not parsed_json: # Segurança adicional
-            attempt_log["raw_response"] = f"Decisão do Maestro (modelo {model}) resultou em JSON None sem erro de parsing explícito. Conteúdo original: {content[:200]}"
-            attempt_logs.append(attempt_log)
-            continue
-
-        # Validação do schema da decisão do Maestro
-        if not isinstance(parsed_json, dict) or "strategy_key" not in parsed_json:
-            error_msg = f"JSON da decisão do Maestro (modelo {model}) com formato inválido ou faltando 'strategy_key'. Recebido: {parsed_json}"
-            if logger: logger.warn(error_msg)
-            else: print(error_msg) # Manter print se não houver logger
-            attempt_log["raw_response"] = f"{error_msg}. Original: {content[:200]}"
-            attempt_logs.append(attempt_log)
-            continue
-
-        attempt_log["parsed_json"] = parsed_json
-        attempt_log["success"] = True
-
-        # Se sucesso, adicionar ao log e sair do loop de modelos
-        attempt_logs.append(attempt_log)
-        break
-
-    return attempt_logs
-# Removido o return attempt_logs duplicado que estava aqui
 
 
 def generate_commit_message(
