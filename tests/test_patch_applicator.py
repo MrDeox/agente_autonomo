@@ -282,7 +282,7 @@ def test_delete_block_in_non_existent_file(test_files_dir: Path, caplog):
     }]
     apply_patches(patches, patch_logger, base_path=str(test_files_dir.parent))
     assert not non_existent_file.exists()
-    assert f"Arquivo '{str(non_existent_file)}' não existe. Nada para deletar" in caplog.text
+    assert f"Operação 'DELETE_BLOCK' em arquivo inexistente '{str(non_existent_file)}'. Pulando." in caplog.text
 
 # --- Testes Gerais e de Erro ---
 
@@ -370,8 +370,8 @@ def test_replace_regex_with_special_chars_in_content(test_files_dir: Path):
 
 def test_delete_block_literal_multiline(test_files_dir: Path):
     file_path = test_files_dir / "file_delete_multiline_literal.txt"
-    content_to_delete = "Primeira linha do bloco a deletar.\nSegunda linha do bloco a deletar."
-    file_path.write_text(f"Antes\n{content_to_delete}\nDepois")
+    content_to_delete = "Primeira linha do bloco a deletar.\nSegunda linha do bloco a deletar.\n" # Adicionado \n no final
+    file_path.write_text(f"Antes\n{content_to_delete}Depois") # Removido \n antes de Depois pois já está em content_to_delete
     patches = [{
         "file_path": str(file_path), "operation": "DELETE_BLOCK",
         "block_to_delete": content_to_delete

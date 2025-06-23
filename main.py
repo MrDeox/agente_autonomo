@@ -333,7 +333,7 @@ class HephaestusAgent:
             # Fase do Engenheiro de Código foi removida. Patches vêm direto do Arquiteto.
 
             if not self._run_maestro_phase():
-                self.logger.warn("Falha na fase do Maestro. Tentando próximo objetivo se houver.")
+                self.logger.warning("Falha na fase do Maestro. Tentando próximo objetivo se houver.") # CORRIGIDO
                 if not self.objective_stack: break
                 continue
 

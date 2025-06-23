@@ -313,7 +313,8 @@ def test_get_maestro_decision_invalid_json_response(mock_post_direct, mock_logge
 
     decision_logs = get_maestro_decision("key", ["model1"], {}, {"validation_strategies": {}})
     assert decision_logs[0]["success"] is False
-    assert "Erro na decisão do Maestro: Expecting property name enclosed in double quotes" in decision_logs[0]["raw_response"] # ou similar
+    # Corrigindo a mensagem de erro esperada para o JSON inválido "json { invalido"
+    assert "Erro na decisão do Maestro: Expecting value: line 1 column 1 (char 0)" in decision_logs[0]["raw_response"]
 
 @patch('agent.brain.requests.post')
 def test_get_maestro_decision_json_missing_strategy_key(mock_post_direct, mock_logger):
