@@ -59,7 +59,7 @@ def apply_patches(instructions: list[dict], logger: logging.Logger, base_path: s
                 with open(full_path, "r", encoding="utf-8") as f:
                     lines = f.read().splitlines()
             elif operation not in ["INSERT", "REPLACE"]:
-                logger.warn(f"Operação '{operation}' em arquivo inexistente '{full_path}'. Pulando.")
+                logger.warning(f"Operação '{operation}' em arquivo inexistente '{full_path}'. Pulando.") # CORRIGIDO
                 # overall_success não é afetado aqui, pois a "operação" de deletar algo que não existe pode ser considerada sucesso.
                 continue
             elif operation == "REPLACE" and not instruction.get("block_to_replace"): # Se REPLACE e sem block_to_replace, é create/overwrite
@@ -80,7 +80,7 @@ def apply_patches(instructions: list[dict], logger: logging.Logger, base_path: s
                     try:
                         line_number = int(line_number)
                         if line_number <= 0: # Considerar 1 como a primeira linha
-                            logger.warn(f"line_number {line_number} inválido para INSERT em '{full_path}', usando 1.")
+                            logger.warning(f"line_number {line_number} inválido para INSERT em '{full_path}', usando 1.") # CORRIGIDO
                             line_number = 1
                     except ValueError:
                         logger.error(f"line_number '{line_number}' inválido para INSERT em '{full_path}'. Pulando patch.")
@@ -124,7 +124,7 @@ def apply_patches(instructions: list[dict], logger: logging.Logger, base_path: s
                                 logger.debug(f"Bloco(s) regex '{block_to_replace_pattern}' substituído(s) em '{full_path}' ({num_subs} ocorrências).")
                                 replaced = True
                             else:
-                                logger.warn(f"Padrão regex '{block_to_replace_pattern}' não encontrado em '{full_path}' para REPLACE.")
+                        logger.warning(f"Padrão regex '{block_to_replace_pattern}' não encontrado em '{full_path}' para REPLACE.")
                         except re.error as e:
                             logger.error(f"Erro de regex em 'block_to_replace': '{block_to_replace_pattern}' para '{full_path}'. Erro: {e}. Tentando como string literal.")
                             # Fallback para string literal
@@ -134,7 +134,7 @@ def apply_patches(instructions: list[dict], logger: logging.Logger, base_path: s
                                 logger.debug(f"Bloco '{block_to_replace_pattern}' (literal fallback) substituído em '{full_path}'.")
                                 replaced = True
                             else:
-                                logger.warn(f"Bloco '{block_to_replace_pattern}' (literal fallback) não encontrado em '{full_path}' para REPLACE.")
+                                logger.warning(f"Bloco '{block_to_replace_pattern}' (literal fallback) não encontrado em '{full_path}' para REPLACE.") # CORRIGIDO
                     else:
                         if block_to_replace_pattern in file_content_str:
                             modified_content = file_content_str.replace(block_to_replace_pattern, "\n".join(new_content_lines), 1)
@@ -145,14 +145,14 @@ def apply_patches(instructions: list[dict], logger: logging.Logger, base_path: s
                               # Se o arquivo não existia, e block_to_replace_pattern não era None (ou seja, não era para sobrescrever tudo),
                               # então é um erro lógico do patch.
                             if full_path.exists():
-                                logger.warn(f"Bloco literal '{block_to_replace_pattern}' não encontrado em '{full_path}' para REPLACE.")
+                                logger.warning(f"Bloco literal '{block_to_replace_pattern}' não encontrado em '{full_path}' para REPLACE.")
                             else: # Arquivo não existia e um bloco específico deveria ser substituído (impossível)
                                 logger.error(f"Tentativa de REPLACE de bloco específico '{block_to_replace_pattern}' em arquivo inexistente '{full_path}'. Pulando.")
                                 overall_success = False # Isso é uma falha lógica do patch
                                 continue # Pula a escrita do arquivo
 
                     if not replaced and full_path.exists() and block_to_replace_pattern is not None :
-                         logger.warn(f"Nenhuma substituição realizada para '{block_to_replace_pattern}' em '{full_path}'.")
+                         logger.warning(f"Nenhuma substituição realizada para '{block_to_replace_pattern}' em '{full_path}'.")  # Mantido como warning
                     elif not full_path.exists() and block_to_replace_pattern is None: # Arquivo não existia, block_to_replace é None (sobrescrever)
                         logger.info(f"Arquivo '{full_path}' será criado com o novo conteúdo.")
                         # 'lines' já está com new_content_lines, então está correto.
@@ -214,7 +214,7 @@ def apply_patches(instructions: list[dict], logger: logging.Logger, base_path: s
                             logger.debug(f"Bloco(s) regex '{block_to_delete_pattern}' deletado(s) em '{full_path}' ({num_subs} ocorrências).")
                             deleted = True
                         else:
-                            logger.warn(f"Padrão regex '{block_to_delete_pattern}' não encontrado em '{full_path}' para DELETE_BLOCK.")
+                            logger.warning(f"Padrão regex '{block_to_delete_pattern}' não encontrado em '{full_path}' para DELETE_BLOCK.")
                     except re.error as e:
                         logger.error(f"Erro de regex em 'block_to_delete': '{block_to_delete_pattern}'. Erro: {e}. Tentando como literal.")
                         if block_to_delete_pattern in file_content_str:
@@ -223,7 +223,7 @@ def apply_patches(instructions: list[dict], logger: logging.Logger, base_path: s
                             logger.debug(f"Bloco '{block_to_delete_pattern}' (literal fallback) deletado em '{full_path}'.")
                             deleted = True
                         else:
-                            logger.warn(f"Bloco '{block_to_delete_pattern}' (literal fallback) não encontrado em '{full_path}' para DELETE_BLOCK.")
+                            logger.warning(f"Bloco '{block_to_delete_pattern}' (literal fallback) não encontrado em '{full_path}' para DELETE_BLOCK.")
                 else:
                     if block_to_delete_pattern in file_content_str:
                         # Para deleção literal, é mais seguro se o LLM fornecer o bloco com newlines exatos.
@@ -232,7 +232,7 @@ def apply_patches(instructions: list[dict], logger: logging.Logger, base_path: s
                         logger.debug(f"Bloco literal '{block_to_delete_pattern}' deletado em '{full_path}'.")
                         deleted = True
                     else:
-                        logger.warn(f"Bloco literal '{block_to_delete_pattern}' não encontrado em '{full_path}' para DELETE_BLOCK.")
+                        logger.warning(f"Bloco literal '{block_to_delete_pattern}' não encontrado em '{full_path}' para DELETE_BLOCK.")
 
                 if deleted:
                     # Uma limpeza final de linhas que ficaram totalmente vazias por causa da deleção.
@@ -252,7 +252,7 @@ def apply_patches(instructions: list[dict], logger: logging.Logger, base_path: s
                     # O LLM deve ser instruído a incluir o `\n` no `block_to_delete` se a linha inteira deve sumir.
                     pass # A lógica de splitlines já trata bem se o bloco removido era a linha inteira.
                 elif full_path.exists():
-                     logger.warn(f"Nenhuma deleção realizada para '{block_to_delete_pattern}' em '{full_path}'.")
+                     logger.warning(f"Nenhuma deleção realizada para '{block_to_delete_pattern}' em '{full_path}'.") # CORRIGIDO
 
 
             else:
@@ -275,7 +275,7 @@ def apply_patches(instructions: list[dict], logger: logging.Logger, base_path: s
     if overall_success:
         logger.info(f"Todas as {len(instructions)} instruções de patch processadas. Arquivos afetados (tentativas): {processed_files}")
     else:
-        logger.warn(f"Algumas instruções de patch falharam ou foram puladas. Verifique os logs. Arquivos afetados (tentativas): {processed_files}")
+        logger.warning(f"Algumas instruções de patch falharam ou foram puladas. Verifique os logs. Arquivos afetados (tentativas): {processed_files}") # CORRIGIDO
 
     return overall_success
 

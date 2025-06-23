@@ -404,12 +404,15 @@ Responda apenas com um JSON no formato:
             parsed = json.loads(clean_content)
             if not isinstance(parsed, dict) or "strategy_key" not in parsed:
                 attempt_log["raw_response"] = f"Invalid JSON format or missing strategy_key: {parsed}"
+                # BUG FIX: Append before continue if this is the path taken
+                attempt_logs.append(attempt_log)
                 continue
                 
             attempt_log["parsed_json"] = parsed
             attempt_log["success"] = True
         except Exception as e:
             attempt_log["raw_response"] = f"Erro na decisão do Maestro: {str(e)}"
+            # success is already False by default in attempt_log
 
         attempt_logs.append(attempt_log)
 

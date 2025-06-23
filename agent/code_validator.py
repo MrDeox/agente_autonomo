@@ -39,7 +39,7 @@ def validate_python_code(file_path: str | Path, logger: logging.Logger) -> tuple
         return True, None
     
     except py_compile.PyCompileError as e:
-        logger.warn(f"Erro de sintaxe Python em '{path_obj}': {e.msg}")
+        logger.warning(f"Erro de sintaxe Python em '{path_obj}': {e.msg}") # CORRIGIDO warn para warning
         return False, e.msg # e.msg é geralmente mais limpo que str(e)
     except Exception as e: # Capturar outros erros, como problemas de permissão, etc.
         logger.error(f"Erro inesperado ao validar Python em '{path_obj}': {e}", exc_info=True)

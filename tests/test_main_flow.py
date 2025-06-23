@@ -87,11 +87,11 @@ def hephaestus_agent(temp_project_dir: Path, test_agent_logger: logging.Logger, 
 
 # --- Testes de Fluxo ---
 
-@patch('agent.brain.get_action_plan')
-@patch('agent.brain.get_maestro_decision')
-@patch('agent.brain.generate_next_objective')
-@patch('agent.tool_executor.run_pytest') # Mockar run_pytest
-@patch('agent.tool_executor.check_file_existence') # Mockar check_file_existence
+@patch('main.get_action_plan') # Corrigido
+@patch('main.get_maestro_decision') # Corrigido
+@patch('main.generate_next_objective') # Corrigido
+@patch('main.run_pytest') # Corrigido
+@patch('main.check_file_existence') # Corrigido
 def test_main_flow_apply_and_validate_syntax_success(
     mock_check_file_existence, mock_run_pytest,
     mock_gen_next_obj, mock_maestro, mock_architect,
@@ -173,9 +173,9 @@ def test_main_flow_apply_and_validate_syntax_success(
     # Ex: test_agent_logger.info.assert_any_call("SUCESSO NO CICLO! Razão: APPLIED_AND_VALIDATED")
 
 
-@patch('agent.brain.get_action_plan')
-@patch('agent.brain.get_maestro_decision')
-@patch('agent.brain.generate_capacitation_objective') # Mockar este
+@patch('main.get_action_plan')
+@patch('main.get_maestro_decision')
+@patch('main.generate_capacitation_objective')
 def test_main_flow_capacitation_required(
     mock_gen_cap_obj, mock_maestro, mock_architect,
     hephaestus_agent: HephaestusAgent, temp_project_dir: Path
@@ -231,9 +231,9 @@ def test_main_flow_capacitation_required(
     # assert initial_objective in hephaestus_agent.objective_stack
 
 
-@patch('agent.brain.get_action_plan')
-@patch('agent.brain.get_maestro_decision')
-@patch('agent.tool_executor.run_pytest')
+@patch('main.get_action_plan')
+@patch('main.get_maestro_decision')
+@patch('main.run_pytest')
 def test_main_flow_pytest_failure_triggers_correction_objective(
     mock_run_pytest, mock_maestro, mock_architect,
     hephaestus_agent: HephaestusAgent, temp_project_dir: Path
