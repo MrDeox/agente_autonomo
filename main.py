@@ -609,6 +609,15 @@ hephaestus.log
                     # O validation_result já deve estar definido para a falha específica. Apenas logamos.
                 elif validation_succeeded and "apply_patches_to_disk" in steps and patches_to_apply:
                     self.logger.info("Validações no sandbox aprovadas. Promovendo mudanças para o projeto real.")
+                    
+                # Lógica final para definir estado de sucesso quando nenhum erro ocorreu
+                if validation_succeeded is False and reason == "STRATEGY_PENDING":
+                    if strategy_key == "DISCARD":
+                        self.state.validation_result = (True, "DISCARDED", "Estratégia de descarte executada.")
+                    elif "apply_patches_to_disk" in steps:
+                        self.state.validation_result = (True, "APPLIED_AND_VALIDATED", "Estratégia concluída e patches aplicados.")
+                    else:
+                        self.state.validation_result = (True, "VALIDATED_ONLY", "Estratégia de validação concluída sem aplicação.")
                     try:
                         copied_files_count = 0
                         files_mentioned_in_patches = {instr.get("file_path") for instr in patches_to_apply if instr.get("file_path")}

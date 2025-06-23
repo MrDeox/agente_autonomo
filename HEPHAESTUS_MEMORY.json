@@ -1,0 +1,12 @@
+{
+    "completed_objectives": [],
+    "failed_objectives": [
+        {
+            "objective": "\"Crie o arquivo MANIFESTO.md com a estrutura básica do projeto e os princípios fundamentais do agente.\"",
+            "reason": "STRATEGY_PENDING",
+            "details": "Iniciando estratégia FULL_VALIDATION",
+            "date": "2025-06-23T23:40:01.089275"
+        }
+    ],
+    "acquired_capabilities": []
+}
