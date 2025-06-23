@@ -31,6 +31,11 @@ def apply_patches(instructions: list[dict], logger: logging.Logger, base_path: s
     overall_success = True
     processed_files = set()
 
+    if base_path != ".":
+        logger.info(f"Aplicando patches com base_path: '{Path(base_path).resolve()}'")
+    else:
+        logger.info(f"Aplicando patches com base_path: '.' (diretório atual)")
+
     for i, instruction in enumerate(instructions):
         file_path_str = instruction.get("file_path")
         operation = instruction.get("operation")

@@ -236,22 +236,16 @@ hephaestus.log
         self.logger.debug(f"Resultado 'git add .gitignore': Success={add_success}, Output:\n{add_output}")
         if not add_success:
             self.logger.error(f"FALHA CRÍTICA: 'git add {gitignore_path}' falhou. Output:\n{add_output}")
-            # Se o .gitignore já existir e estiver igual, 'git add' pode não fazer nada, mas não deve falhar.
-            # Uma falha aqui é provavelmente um problema mais sério.
             return False
 
         # 5. git commit -m "chore: Initial commit"
         commit_message = "chore: Initial commit by Hephaestus Agent"
-        # Usar --allow-empty se o .gitignore for a única coisa e já estiver no HEAD de alguma forma (improvável aqui)
-        # ou se quisermos garantir um commit inicial mesmo que vazio.
-        # No entanto, o add anterior deve garantir que há algo para commitar se o .gitignore foi criado/modificado.
         commit_success, commit_output = run_git_command(['git', 'commit', '-m', commit_message])
         self.logger.debug(f"Resultado 'git commit': Success={commit_success}, Output:\n{commit_output}")
         if not commit_success:
-            # Verificar se o commit falhou porque não há nada para commitar
             if "nothing to commit" in commit_output.lower() or "nada a submeter" in commit_output.lower() or "no changes added to commit" in commit_output.lower():
                 self.logger.warning(f"'git commit' informou que não há nada novo para commitar. Output:\n{commit_output}")
-                self.logger.info("Considerando a inicialização do Git como bem-sucedida, pois o estado desejado (repo inicializado com commit inicial) foi alcançado ou já existia.")
+                self.logger.info("Considerando a inicialização do Git como bem-sucedida.")
             else:
                 self.logger.error(f"FALHA CRÍTICA: 'git commit' inicial falhou. Output:\n{commit_output}")
                 return False
@@ -260,8 +254,6 @@ hephaestus.log
         return True
 
     def _reset_cycle_state(self):
-        """Reseta o estado transitório do ciclo, mantendo apenas o objetivo atual."""
-        # Preserva apenas o current_objective entre os ciclos
         current_objective = self.state.get("current_objective")
         self.state = {
             "current_objective": current_objective,
@@ -274,17 +266,14 @@ hephaestus.log
             "validation_result": (False, "PENDING", "Ciclo não iniciado"),
             "applied_files_report": {}
         }
-        # Reseta variáveis de ciclo que não devem persistir
         self.objective_stack = [obj for obj in self.objective_stack if obj != current_objective]
 
     @staticmethod
     def load_config() -> dict:
-        """Carrega o arquivo de configuração do agente."""
         with open("hephaestus_config.json", "r", encoding="utf-8") as f:
             return json.load(f)
 
     def _generate_manifest(self) -> bool:
-        """Gera o manifesto do projeto."""
         self.logger.info("Gerando manifesto do projeto (AGENTS.md)...")
         try:
             target_files = []
@@ -299,8 +288,7 @@ hephaestus.log
             self.logger.error(f"ERRO CRÍTICO ao gerar manifesto: {e}", exc_info=True)
             return False
 
-    def _get_file_content_from_memory_or_disk(self, file_path: str) -> list[str] | None: # MODIFICADO Optional para | None
-        """Obtém o conteúdo do arquivo da memória, se existir, senão do disco."""
+    def _get_file_content_from_memory_or_disk(self, file_path: str) -> list[str] | None:
         if file_path in self.state["in_memory_files"]:
             self.logger.debug(f"Lendo {file_path} da memória.")
             return self.state["in_memory_files"][file_path]
@@ -315,54 +303,38 @@ hephaestus.log
             self.logger.error(f"Erro ao ler arquivo {file_path} do disco: {e}", exc_info=True)
             return None
 
-    # _write_files_from_memory_to_disk será substituído pela lógica de apply_patches
-    # A função apply_patches (a ser criada em patch_applicator.py) cuidará da escrita.
-
-    # _apply_action_to_in_memory_files será removido pois o novo patch_applicator.py
-    # lidará com a aplicação de patches diretamente nos arquivos (ou em cópias temporárias antes da persistência)
-
     def _run_architect_phase(self) -> bool:
-        """Fase 2: Arquiteto gera o plano de ação (patches)."""
         self.logger.info("\nSolicitando plano de ação da IA (Arquiteto)...")
         architect_model = self.config.get("models", {}).get("architect_default", self.model_list[0])
         self.state["model_architect"] = architect_model
-
-        action_plan_data, error_msg = get_action_plan( # Esta função precisará ser ajustada em brain.py para gerar patches
+        action_plan_data, error_msg = get_action_plan(
             api_key=self.api_key,
             model=architect_model,
             objective=self.state["current_objective"],
             manifest=self.state["manifesto_content"],
-            logger=self.logger # Passando o logger
+            logger=self.logger
         )
         if error_msg:
             self.logger.error(f"--- FALHA: Arquiteto não conseguiu gerar um plano de ação. Erro: {error_msg} ---")
             return False
-        # A validação do formato do plano (patches_to_apply) será feita após a chamada
-        if not action_plan_data or "patches_to_apply" not in action_plan_data: # MODIFICADO para patches_to_apply
+        if not action_plan_data or "patches_to_apply" not in action_plan_data:
             self.logger.error(f"--- FALHA: Arquiteto retornou uma resposta inválida ou sem 'patches_to_apply'. Resposta: {action_plan_data} ---")
             return False
-
-        self.state["action_plan_data"] = action_plan_data # Armazena toda a resposta do arquiteto
+        self.state["action_plan_data"] = action_plan_data
         self.logger.info(f"--- PLANO DE AÇÃO (PATCHES) GERADO PELO ARQUITETO ({architect_model}) ---")
         self.logger.debug(f"Análise do Arquiteto: {action_plan_data.get('analysis', 'Nenhuma análise fornecida.')}")
         self.logger.debug(f"Patches: {json.dumps(action_plan_data.get('patches_to_apply', []), indent=2)}")
         return True
 
-    # _run_code_engineer_phase_and_apply será removido. O Arquiteto agora gera os patches diretamente.
-    # A aplicação dos patches ocorrerá na fase de _execute_validation_strategy se a estratégia incluir persistência.
-
     def _run_maestro_phase(self) -> bool:
-        """Executa a fase de decisão do maestro."""
         self.logger.info("\nSolicitando decisão do Maestro...")
-        if not self.state.get("action_plan_data"): # O plano do arquiteto (com patches)
+        if not self.state.get("action_plan_data"):
             self.logger.error("--- FALHA: Nenhum plano de ação (patches) disponível para o Maestro avaliar. ---")
             return False
-
         maestro_model = self.config.get("models", {}).get("maestro_default", self.model_list[0])
-
         maestro_logs = get_maestro_decision(
             api_key=self.api_key, model_list=[maestro_model],
-            engineer_response=self.state["action_plan_data"], # Passando o plano do arquiteto com patches
+            engineer_response=self.state["action_plan_data"],
             config=self.config
         )
         maestro_attempt = next((a for a in maestro_logs if a.get("success")), None)
@@ -371,166 +343,179 @@ hephaestus.log
             raw_resp = maestro_attempt.get("raw_response") if maestro_attempt else "Nenhuma tentativa registrada."
             self.logger.debug(f"Resposta bruta do Maestro: {raw_resp}")
             return False
-        
         decision = maestro_attempt["parsed_json"]
         strategy_key = (decision.get("strategy_key") or "").strip()
-
         valid_strategies = list(self.config.get("validation_strategies", {}).keys())
         valid_strategies.append("CAPACITATION_REQUIRED")
-
         if strategy_key not in valid_strategies:
             self.logger.error(f"--- FALHA: Maestro escolheu uma estratégia inválida ou desconhecida: '{strategy_key}' ---")
             self.logger.debug(f"Estratégias válidas são: {valid_strategies}")
             return False
-
         self.logger.info(f"Estratégia escolhida pelo Maestro: {strategy_key}")
         self.state["strategy_key"] = strategy_key
         return True
 
     def _execute_validation_strategy(self) -> None:
-        """Executa os passos de validação conforme a estratégia escolhida, incluindo aplicação de patches."""
         strategy_key = self.state["strategy_key"]
         strategy_config = self.config["validation_strategies"].get(strategy_key, {})
         steps = strategy_config.get("steps", [])
         self.logger.info(f"\nExecutando estratégia '{strategy_key}' com os passos: {steps}")
-
         self.state["validation_result"] = (False, "STRATEGY_PENDING", f"Iniciando estratégia {strategy_key}")
-
-        # Os patches são obtidos do estado, onde foram colocados pela fase do arquiteto
         patches_to_apply = self.state.get("action_plan_data", {}).get("patches_to_apply", [])
+        sandbox_dir_obj = None
+        try:
+            use_sandbox = any(step in ["apply_patches_to_disk", "validate_syntax", "run_pytest_validation"] for step in steps) and patches_to_apply
+            current_base_path = "."
+            if use_sandbox:
+                sandbox_dir_obj = tempfile.TemporaryDirectory(prefix="hephaestus_sandbox_")
+                current_base_path = sandbox_dir_obj.name
+                self.logger.info(f"Criado sandbox temporário em: {current_base_path}")
+                self.logger.info(f"Copiando projeto para o sandbox: {current_base_path}...")
+                shutil.copytree(".", current_base_path, dirs_exist_ok=True)
+                self.logger.info("Cópia para o sandbox concluída.")
 
-        for step_name in steps:
-            self.logger.info(f"--- Passo de Validação/Execução: {step_name} ---")
-            
-            if step_name == "apply_patches_to_disk": # NOVO PASSO para aplicar patches
-                if not patches_to_apply:
-                    self.logger.info("Nenhum patch para aplicar. Pulando passo.")
-                    continue
-
-                self.logger.info(f"Aplicando {len(patches_to_apply)} patches ao disco...")
-                # A função apply_patches (de agent.patch_applicator) fará a escrita.
-                # Ela precisa retornar um status e talvez um relatório de arquivos modificados.
-                # Por enquanto, vamos supor que ela modifica os arquivos diretamente ou lança exceção.
-                try:
-                    # `apply_patches` deve ser capaz de lidar com múltiplos patches para diferentes arquivos.
-                    # O `base_path` pode ser útil se os file_path nos patches forem relativos a um subdiretório.
-                    # Para agora, assumimos que são relativos ao root do projeto.
-                    # TODO: Definir o que apply_patches retorna para o relatório.
-                    # Por ora, se não lançar exceção, consideramos sucesso parcial.
-                    # A validação subsequente (pytest, etc.) confirmará.
-                    apply_patches(instructions=patches_to_apply, logger=self.logger, base_path=".") # Chamada ao novo patch_applicator
-                    self.logger.info("Patches aplicados com sucesso (tentativa).")
-                    # Aqui poderíamos popular self.state["applied_files_report"] se apply_patches retornar info
-                    # Por exemplo, applied_files_report = apply_patches(...)
-                    # Vamos simular que os arquivos mencionados nos patches foram tentados:
-                    self.state["applied_files_report"] = {
-                        patch_instr.get("file_path"): {"status": "attempted", "message": "Patch application attempted."}
-                        for patch_instr in patches_to_apply if patch_instr.get("file_path")
-                    }
-
-                except Exception as e:
-                    self.logger.error(f"ERRO CRÍTICO ao aplicar patches: {e}", exc_info=True)
-                    self.state["validation_result"] = (False, "PATCH_APPLICATION_FAILED", str(e))
-                    return # Interrompe a estratégia
-
-            elif step_name == "validate_syntax": # NOVO PASSO de validação de sintaxe
-                if not patches_to_apply:
-                    self.logger.info("Nenhum patch aplicado, pulando validação de sintaxe.")
-                    continue
-
-                all_syntax_valid = True
-                error_details = []
-                # Validar apenas os arquivos que foram modificados pelos patches
-                # Idealmente, applied_files_report teria os caminhos exatos.
-                # Se não, iteramos sobre os patches.
-                files_to_validate = {p.get("file_path") for p in patches_to_apply if p.get("file_path")}
-
-                for file_path in files_to_validate:
-                    self.logger.debug(f"Validando sintaxe de: {file_path}")
-                    if file_path.endswith(".py"):
-                        is_valid, msg = validate_python_code(file_path, self.logger) # Passar logger
+            for step_name in steps:
+                self.logger.info(f"--- Passo de Validação/Execução: {step_name} ---")
+                if step_name == "apply_patches_to_disk":
+                    if not patches_to_apply:
+                        self.logger.info("Nenhum patch para aplicar. Pulando passo.")
+                        continue
+                    self.logger.info(f"Aplicando {len(patches_to_apply)} patches em '{current_base_path}'...")
+                    try:
+                        apply_patches(instructions=patches_to_apply, logger=self.logger, base_path=current_base_path)
+                        self.logger.info(f"Patches aplicados com sucesso em '{current_base_path}'.")
+                        self.state["applied_files_report"] = {
+                            patch_instr.get("file_path"): {"status": f"attempted_in_{'sandbox' if use_sandbox else 'real_project'}",
+                                                           "message": f"Patch application attempted in {'sandbox' if use_sandbox else 'real project'}."}
+                            for patch_instr in patches_to_apply if patch_instr.get("file_path")
+                        }
+                    except Exception as e:
+                        self.logger.error(f"ERRO CRÍTICO ao aplicar patches em '{current_base_path}': {e}", exc_info=True)
+                        reason_code = "PATCH_APPLICATION_FAILED_IN_SANDBOX" if use_sandbox else "PATCH_APPLICATION_FAILED"
+                        self.state["validation_result"] = (False, reason_code, str(e))
+                        break
+                elif step_name == "validate_syntax":
+                    if not patches_to_apply:
+                        self.logger.info("Nenhum patch para validar sintaxe. Pulando passo.")
+                        continue
+                    self.logger.info(f"Iniciando validação de sintaxe em: {current_base_path}")
+                    all_syntax_valid = True
+                    error_details = []
+                    files_to_validate = {p.get("file_path") for p in patches_to_apply if p.get("file_path")}
+                    for file_path_relative in files_to_validate:
+                        full_file_path_in_target = Path(current_base_path) / file_path_relative
+                        self.logger.debug(f"Validando sintaxe de: {full_file_path_in_target}")
+                        if not full_file_path_in_target.exists():
+                            self.logger.warning(f"Arquivo {full_file_path_in_target} não encontrado em '{current_base_path}' para validação. Pode ter sido removido.")
+                            continue
+                        if file_path_relative.endswith(".py"):
+                            is_valid, msg = validate_python_code(full_file_path_in_target, self.logger)
+                            if not is_valid:
+                                self.logger.warn(f"Erro de sintaxe Python em {full_file_path_in_target}: {msg}")
+                                all_syntax_valid = False
+                                error_details.append(f"{file_path_relative}: {msg}")
+                        elif file_path_relative.endswith(".json"):
+                            is_valid, msg = validate_json_syntax(full_file_path_in_target, self.logger)
+                            if not is_valid:
+                                self.logger.warn(f"Erro de sintaxe JSON em {full_file_path_in_target}: {msg}")
+                                all_syntax_valid = False
+                                error_details.append(f"{file_path_relative}: {msg}")
+                    if not all_syntax_valid:
+                        reason_code = "SYNTAX_VALIDATION_FAILED_IN_SANDBOX" if use_sandbox else "SYNTAX_VALIDATION_FAILED"
+                        self.state["validation_result"] = (False, reason_code, "\n".join(error_details))
+                        break
+                    self.logger.info(f"Validação de sintaxe em '{current_base_path}': SUCESSO.")
+                elif step_name == "validate_json_syntax":
+                    if not patches_to_apply:
+                        self.logger.info("Nenhum patch para validar sintaxe JSON. Pulando passo.")
+                        continue
+                    self.logger.info(f"Iniciando validação de sintaxe JSON em: {current_base_path}")
+                    json_syntax_valid = True
+                    json_error_details = []
+                    files_to_validate_json = {p.get("file_path") for p in patches_to_apply if p.get("file_path","").endswith(".json")}
+                    for file_path_relative in files_to_validate_json:
+                        full_file_path_in_target = Path(current_base_path) / file_path_relative
+                        if not full_file_path_in_target.exists():
+                            self.logger.warning(f"Arquivo JSON {full_file_path_in_target} não encontrado em '{current_base_path}' para validação.")
+                            continue
+                        is_valid, msg = validate_json_syntax(full_file_path_in_target, self.logger)
                         if not is_valid:
-                            self.logger.warn(f"Erro de sintaxe Python em {file_path}: {msg}")
-                            all_syntax_valid = False
-                            error_details.append(f"{file_path}: {msg}")
-                    elif file_path.endswith(".json"):
-                        is_valid, msg = validate_json_syntax(file_path, self.logger) # Passar logger
-                        if not is_valid:
-                            self.logger.warn(f"Erro de sintaxe JSON em {file_path}: {msg}")
-                            all_syntax_valid = False
-                            error_details.append(f"{file_path}: {msg}")
-                    else:
-                        self.logger.debug(f"Sem validador de sintaxe para: {file_path}")
+                            self.logger.warn(f"Erro de sintaxe JSON em {full_file_path_in_target}: {msg}")
+                            json_syntax_valid = False
+                            json_error_details.append(f"{file_path_relative}: {msg}")
+                    if not json_syntax_valid:
+                        reason_code = "JSON_SYNTAX_VALIDATION_FAILED_IN_SANDBOX" if use_sandbox else "JSON_SYNTAX_VALIDATION_FAILED"
+                        self.state["validation_result"] = (False, reason_code, "\n".join(json_error_details))
+                        break
+                    self.logger.info(f"Validação de sintaxe JSON em '{current_base_path}': SUCESSO.")
+                elif step_name == "run_pytest_validation":
+                    self.logger.info(f"Executando Pytest em: {current_base_path}...")
+                    success_pytest, details_pytest = run_pytest(test_dir='tests/', cwd=current_base_path)
+                    if not success_pytest:
+                        self.logger.warn(f"Falha no Pytest em '{current_base_path}': {details_pytest}")
+                        reason_code = "PYTEST_FAILURE_IN_SANDBOX" if use_sandbox else "PYTEST_FAILURE"
+                        self.state["validation_result"] = (False, reason_code, details_pytest)
+                        break
+                    self.logger.info(f"Validação Pytest em '{current_base_path}': SUCESSO.")
+                elif step_name == "run_benchmark_validation":
+                    self.logger.info(f"Passo de Benchmark executado (simulado) em '{current_base_path}'.")
 
-                if not all_syntax_valid:
-                    self.state["validation_result"] = (False, "SYNTAX_VALIDATION_FAILED", "\n".join(error_details))
-                    return # Interrompe a estratégia
-                self.logger.info("Validação de sintaxe: SUCESSO.")
+            validation_succeeded, reason, details = self.state["validation_result"]
+            if use_sandbox:
+                if not validation_succeeded and "_IN_SANDBOX" in reason:
+                    self.logger.warn(f"Validação no sandbox falhou ({reason}). Descartando patches.")
+                    self.state["validation_result"] = (False, "PATCH_DISCARDED", f"Patches descartados devido a: {reason}. Detalhes: {details}")
+                elif validation_succeeded and "apply_patches_to_disk" in steps and patches_to_apply:
+                    self.logger.info("Validações no sandbox aprovadas. Promovendo mudanças para o projeto real.")
+                    try:
+                        copied_files_count = 0
+                        files_mentioned_in_patches = {instr.get("file_path") for instr in patches_to_apply if instr.get("file_path")}
+                        for file_path_relative_str in files_mentioned_in_patches:
+                            sandbox_file = Path(current_base_path) / file_path_relative_str
+                            real_project_file = Path(".") / file_path_relative_str
+                            if sandbox_file.exists():
+                                real_project_file.parent.mkdir(parents=True, exist_ok=True)
+                                shutil.copy2(sandbox_file, real_project_file)
+                                copied_files_count += 1
+                            elif real_project_file.exists():
+                                real_project_file.unlink()
+                                copied_files_count +=1
+                        self.logger.info(f"{copied_files_count} arquivos/diretórios sincronizados do sandbox para o projeto real.")
+                        self.state["validation_result"] = (True, "APPLIED_AND_VALIDATED", f"Estratégia '{strategy_key}' concluída, patches aplicados e validados via sandbox.")
+                    except Exception as e:
+                        self.logger.error(f"ERRO CRÍTICO ao promover mudanças do sandbox para o projeto real: {e}", exc_info=True)
+                        self.state["validation_result"] = (False, "PROMOTION_FAILED", str(e))
+                elif not patches_to_apply and strategy_key != "DISCARD":
+                     self.logger.info("Nenhum patch foi fornecido ou aplicado. Estratégia concluída sem alterações.")
+                     self.state["validation_result"] = (True, "NO_PATCHES_APPLIED", f"Estratégia '{strategy_key}' concluída sem patches.")
 
+            if not use_sandbox and validation_succeeded and "apply_patches_to_disk" in steps and patches_to_apply:
+                 self.state["validation_result"] = (True, "APPLIED_AND_VALIDATED", f"Estratégia '{strategy_key}' concluída, patches aplicados e validados (sem sandbox).")
+            elif not use_sandbox and validation_succeeded and (not patches_to_apply or "apply_patches_to_disk" not in steps) and strategy_key != "DISCARD":
+                 self.state["validation_result"] = (True, "VALIDATED_ONLY", f"Estratégia '{strategy_key}' de validação concluída (sem aplicação de patches no disco).")
 
-            elif step_name == "validate_json_syntax": # Este passo específico pode ser redundante se validate_syntax já cobre JSON
-                                                      # Mas mantendo por ora se houver lógica diferenciada.
-                self.logger.info("Executando validação de sintaxe JSON (se aplicável)...")
-                # Esta lógica é similar à de validate_syntax, mas focada em JSON.
-                # Se validate_syntax já faz isso, este passo pode ser removido da config.
-                # Ou, pode ser usado para validar JSONs específicos que não são código-fonte.
-                # Por ora, vamos replicar a lógica de JSON de validate_syntax.
-                json_syntax_valid = True
-                json_error_details = []
-                files_to_validate_json = {p.get("file_path") for p in patches_to_apply if p.get("file_path", "").endswith(".json")}
-
-                for file_path in files_to_validate_json:
-                    is_valid, msg = validate_json_syntax(file_path, self.logger)
-                    if not is_valid:
-                        self.logger.warn(f"Erro de sintaxe JSON em {file_path}: {msg}")
-                        json_syntax_valid = False
-                        json_error_details.append(f"{file_path}: {msg}")
-
-                if not json_syntax_valid:
-                    self.state["validation_result"] = (False, "JSON_SYNTAX_VALIDATION_FAILED", "\n".join(json_error_details))
-                    return
-                self.logger.info("Validação de sintaxe JSON: SUCESSO (ou nenhum arquivo JSON para validar).")
-
-
-            elif step_name == "run_pytest_validation":
-                self.logger.info("Executando Pytest...")
-                success, details = run_pytest(test_dir='tests/')
-                if not success:
-                    self.logger.warn(f"Falha no Pytest: {details}")
-                    self.state["validation_result"] = (False, "PYTEST_FAILURE", details)
-                    return
-                self.logger.info("Validação Pytest: SUCESSO.")
-
-            elif step_name == "run_benchmark_validation":
-                self.logger.info("Passo de Benchmark executado (simulado).")
-                # Adicionar lógica real de benchmark aqui se necessário
-
-        # Se todos os passos da estratégia passaram:
-        if strategy_key == "DISCARD": # DISCARD significa que os patches não foram aplicados
-            self.state["validation_result"] = (True, "DISCARDED", "Estratégia de descarte executada, patches não aplicados.")
-        elif "apply_patches_to_disk" in steps:
-            # Se apply_patches_to_disk estava nos passos e não falhou E outras validações passaram:
-            self.state["validation_result"] = (True, "APPLIED_AND_VALIDATED", f"Estratégia '{strategy_key}' concluída, patches aplicados e validados.")
-        else:
-            # Se a estratégia não envolvia aplicação de patches (ex: só validação teórica do plano)
-            self.state["validation_result"] = (True, "VALIDATED_ONLY", f"Estratégia '{strategy_key}' de validação concluída (sem aplicação de patches).")
-
+            if strategy_key == "DISCARD":
+                self.state["validation_result"] = (True, "DISCARDED", "Estratégia de descarte executada.")
+            elif self.state["validation_result"][1] == "STRATEGY_PENDING":
+                self.state["validation_result"] = (True, "NO_ACTION_TAKEN", f"Estratégia '{strategy_key}' concluída sem ações de modificação ou falha.")
+        finally:
+            if sandbox_dir_obj:
+                self.logger.info(f"Limpando sandbox temporário: {sandbox_dir_obj.name}")
+                sandbox_dir_obj.cleanup()
+                self.logger.info("Sandbox limpo.")
+        return
 
     def run(self) -> None:
-        """Executa o ciclo de vida completo do agente de forma perpétua."""
         if not self.api_key:
             self.logger.error("Erro: OPENROUTER_API_KEY não encontrada. Encerrando.")
             return
-
-        # Inicializar/Verificar repositório Git ANTES de qualquer outra coisa
         if not self._initialize_git_repository():
             self.logger.error("Falha ao inicializar o repositório Git. O agente não pode continuar sem versionamento.")
             return
-
         if not self.objective_stack:
             self.logger.info("Gerando objetivo inicial...")
             initial_objective_model = self.config.get("models", {}).get("objective_generator", self.light_model)
-            initial_objective = generate_next_objective(self.api_key, initial_objective_model, "", self.logger) # Passar logger
+            initial_objective = generate_next_objective(self.api_key, initial_objective_model, "", self.logger)
             self.objective_stack.append(initial_objective)
             self.logger.info(f"Objetivo inicial: {initial_objective}")
 
@@ -538,80 +523,62 @@ hephaestus.log
             current_objective = self.objective_stack.pop()
             self.logger.info(f"\n\n{'='*20} NOVO CICLO DE EVOLUÇÃO {'='*20}")
             self.logger.info(f"OBJETIVO ATUAL: {current_objective}\n")
-
             self._reset_cycle_state()
             self.state["current_objective"] = current_objective
-
             if not self._generate_manifest():
                 self.logger.error("Falha crítica ao gerar manifesto. Encerrando ciclo.")
                 break
-
-            if not self._run_architect_phase(): # Arquiteto agora gera patches
+            if not self._run_architect_phase():
                 self.logger.warn("Falha na fase do Arquiteto. Tentando próximo objetivo se houver.")
                 if not self.objective_stack: break
                 continue
-
-            # Fase do Engenheiro de Código foi removida. Patches vêm direto do Arquiteto.
-
             if not self._run_maestro_phase():
-                self.logger.warning("Falha na fase do Maestro. Tentando próximo objetivo se houver.") # CORRIGIDO
+                self.logger.warning("Falha na fase do Maestro. Tentando próximo objetivo se houver.")
                 if not self.objective_stack: break
                 continue
-
             if self.state["strategy_key"] == "CAPACITATION_REQUIRED":
                 self.logger.info("Maestro identificou a necessidade de uma nova capacidade.")
                 self.objective_stack.append(current_objective)
-
-                architect_analysis = self.state.get("action_plan_data", {}).get("analysis",
-                                        "Nenhuma análise do arquiteto disponível para gerar objetivo de capacitação.")
-                
+                architect_analysis = self.state.get("action_plan_data", {}).get("analysis", "Nenhuma análise do arquiteto.")
                 capacitation_objective_model = self.config.get("models", {}).get("capacitation_generator", self.light_model)
                 capacitation_objective = generate_capacitation_objective(
-                    self.api_key,
-                    capacitation_objective_model,
-                    architect_analysis,
-                    self.logger # Passar logger
+                    self.api_key, capacitation_objective_model, architect_analysis, self.logger
                 )
                 self.logger.info(f"Gerado novo objetivo de capacitação: {capacitation_objective}")
                 self.objective_stack.append(capacitation_objective)
                 continue
 
-            # Executar a estratégia de validação (que agora inclui aplicação de patches)
             self._execute_validation_strategy()
-
-            success, reason, context = self.state.get("validation_result",
-                                                      (False, "UNKNOWN_ERROR", "Resultado da validação não encontrado"))
+            success, reason, context = self.state.get("validation_result", (False, "UNKNOWN_ERROR", "Validação não encontrada"))
 
             if success:
                 self.logger.info(f"\nSUCESSO NO CICLO! Razão: {reason}")
                 if reason == "APPLIED_AND_VALIDATED":
                     self.logger.info("--- INICIANDO CICLO DE VERIFICAÇÃO DE SANIDADE PÓS-APLICAÇÃO ---")
                     current_strategy_key = self.state.get("strategy_key")
-                    strategy_config_sanity = self.config["validation_strategies"].get(current_strategy_key, {}) # Renomeada para evitar conflito
+                    strategy_config_sanity = self.config["validation_strategies"].get(current_strategy_key, {})
                     sanity_check_tool_name = strategy_config_sanity.get("sanity_check_step", "run_pytest")
-
                     sanity_check_success = True
                     sanity_check_details = "Nenhuma verificação de sanidade executada."
-
                     if sanity_check_tool_name == "run_pytest":
-                        self.logger.info(f"Executando verificação de sanidade com: {sanity_check_tool_name}")
-                        sanity_check_success, sanity_check_details = run_pytest(test_dir='tests/')
+                        self.logger.info(f"Executando verificação de sanidade com: {sanity_check_tool_name} no projeto real.")
+                        sanity_check_success, sanity_check_details = run_pytest(test_dir='tests/', cwd=".")
                     elif sanity_check_tool_name == "check_file_existence":
-                        self.logger.info(f"Executando verificação de sanidade com: {sanity_check_tool_name}")
+                        self.logger.info(f"Executando verificação de sanidade com: {sanity_check_tool_name} no projeto real.")
                         files_to_check = list(self.state.get("applied_files_report", {}).keys())
                         if files_to_check:
                             sanity_check_success, sanity_check_details = check_file_existence(files_to_check)
                         else:
                             sanity_check_success = True
-                            sanity_check_details = "Nenhum arquivo foi reportado como aplicado para verificação de existência."
+                            sanity_check_details = "Nenhum arquivo reportado como aplicado para verificação."
                             self.logger.info(sanity_check_details)
                     elif sanity_check_tool_name == "skip_sanity_check":
                         sanity_check_success = True
-                        sanity_check_details = "Verificação de sanidade pulada conforme configuração."
+                        sanity_check_details = "Verificação de sanidade pulada."
                         self.logger.info(sanity_check_details)
                     else:
                         sanity_check_success = False
-                        sanity_check_details = f"Ferramenta de verificação de sanidade desconhecida: {sanity_check_tool_name}"
+                        sanity_check_details = f"Ferramenta de sanidade desconhecida: {sanity_check_tool_name}"
                         self.logger.warn(f"AVISO: {sanity_check_details}")
 
                     if not sanity_check_success:
@@ -623,128 +590,83 @@ hephaestus.log
                         self.logger.info(f"VERIFICAÇÃO DE SANIDADE PÓS-APLICAÇÃO ({sanity_check_tool_name}): SUCESSO!")
                         if sanity_check_tool_name != "skip_sanity_check":
                             self.logger.info("Ressincronizando manifesto (após sucesso e sanidade)...")
-                            update_project_manifest(root_dir=".", target_files=[]) # Escaneia tudo
+                            update_project_manifest(root_dir=".", target_files=[])
                             with open("AGENTS.md", "r", encoding="utf-8") as f:
                                 self.state["manifesto_content"] = f.read()
-
-                            # --- INÍCIO DO BLOCO DE AUTO-COMMIT ---
-                            self.logger.info("Iniciando processo de auto-commit das alterações validadas...")
-
-                            # 1. Gerar mensagem de commit
+                            self.logger.info("Iniciando processo de auto-commit...")
                             analysis_summary = self.state.get("action_plan_data", {}).get("analysis", "N/A")
                             commit_model = self.config.get("models", {}).get("commit_message_generator", self.light_model)
-
-                            self.logger.debug(f"Dados para msg de commit: Objetivo='{self.state['current_objective']}', Análise='{analysis_summary[:100]}...'")
-
                             commit_message = generate_commit_message(
-                                api_key=self.api_key,
-                                model=commit_model,
-                                analysis_summary=analysis_summary,
-                                objective=self.state["current_objective"],
-                                logger=self.logger
+                                self.api_key, commit_model, analysis_summary, self.state["current_objective"], self.logger
                             )
                             self.logger.info(f"Mensagem de commit gerada: '{commit_message}'")
-
-                            # 2. Executar git add .
                             self.logger.info("Adicionando todas as alterações ao staging (git add .)...")
-                            add_success, add_output = run_git_command(['git', 'add', '.'])
-                            self.logger.debug(f"Resultado 'git add .': Success={add_success}, Output:\n{add_output}")
-                            if not add_success:
-                                self.logger.error(f"FALHA CRÍTICA: 'git add .' falhou. Output:\n{add_output}")
-                                self.logger.error("ENCERRANDO O AGENTE devido à falha no versionamento.")
-                                return # Encerra o método run()
-
-                            # 3. Executar git commit
+                            add_success_git, add_output_git = run_git_command(['git', 'add', '.'])
+                            if not add_success_git:
+                                self.logger.error(f"FALHA CRÍTICA: 'git add .' falhou. Output:\n{add_output_git}")
+                                return
                             self.logger.info(f"Realizando commit com a mensagem: '{commit_message}'...")
-                            commit_success, commit_output = run_git_command(['git', 'commit', '-m', commit_message])
-                            self.logger.debug(f"Resultado 'git commit': Success={commit_success}, Output:\n{commit_output}")
-                            if not commit_success:
-                                self.logger.error(f"FALHA CRÍTICA: 'git commit' falhou. Output:\n{commit_output}")
-                                self.logger.error("ENCERRANDO O AGENTE devido à falha no versionamento.")
-                                # Poderia tentar um 'git reset --hard HEAD' aqui, mas por ora é mais seguro parar.
-                                return # Encerra o método run()
-
+                            commit_success_git, commit_output_git = run_git_command(['git', 'commit', '-m', commit_message])
+                            if not commit_success_git:
+                                self.logger.error(f"FALHA CRÍTICA: 'git commit' falhou. Output:\n{commit_output_git}")
+                                return
                             self.logger.info("--- AUTO-COMMIT REALIZADO COM SUCESSO ---")
-                            # --- FIM DO BLOCO DE AUTO-COMMIT ---
-
                         self.logger.info("Gerando próximo objetivo evolutivo...")
                         objective_model = self.config.get("models", {}).get("objective_generator", self.light_model)
-                        next_obj = generate_next_objective(self.api_key, objective_model, self.state["manifesto_content"], self.logger) # Passar logger
+                        next_obj = generate_next_objective(self.api_key, objective_model, self.state["manifesto_content"], self.logger)
                         self.objective_stack.append(next_obj)
                         self.logger.info(f"Próximo objetivo: {next_obj}")
-
-                elif reason == "DISCARDED" or reason == "VALIDATED_ONLY":
-                    self.logger.info(f"Alterações {reason}. Gerando próximo objetivo evolutivo...")
+                elif reason in ["DISCARDED", "VALIDATED_ONLY", "NO_PATCHES_APPLIED", "NO_ACTION_TAKEN"]:
+                    self.logger.info(f"Ciclo concluído com status: {reason}. Gerando próximo objetivo evolutivo...")
                     objective_model = self.config.get("models", {}).get("objective_generator", self.light_model)
-                    next_obj = generate_next_objective(self.api_key, objective_model, self.state["manifesto_content"], self.logger) # Passar logger
+                    next_obj = generate_next_objective(self.api_key, objective_model, self.state["manifesto_content"], self.logger)
                     self.objective_stack.append(next_obj)
                     self.logger.info(f"Próximo objetivo: {next_obj}")
 
-            correctable_failure_reasons = {
-                "PATCH_APPLICATION_FAILED", "SYNTAX_VALIDATION_FAILED", "JSON_SYNTAX_VALIDATION_FAILED",
-                "PYTEST_FAILURE"
-            }
-            if 'sanity_check_tool_name' in locals() and sanity_check_tool_name: # locals() pode ser problemático, melhor passar explicitamente
-                 correctable_failure_reasons.add(f"REGRESSION_DETECTED_BY_{sanity_check_tool_name.upper()}")
-
-
-            if not success and reason in correctable_failure_reasons:
-                self.logger.warn(f"\nFALHA CORRIGÍVEL NO CICLO! Razão: {reason}\nContexto: {context}")
-                self.objective_stack.append(current_objective)
-                
-                # Usar os patches_to_apply do arquiteto em vez do action_plan para o objetivo de correção
-                original_patches = self.state.get("action_plan_data", {}).get("patches_to_apply", "N/A")
-
-                correction_obj_text = f"""
+            if not success:
+                correctable_failure_reasons = {
+                    "PATCH_APPLICATION_FAILED_IN_SANDBOX", "SYNTAX_VALIDATION_FAILED_IN_SANDBOX",
+                    "JSON_SYNTAX_VALIDATION_FAILED_IN_SANDBOX", "PYTEST_FAILURE_IN_SANDBOX",
+                    "PROMOTION_FAILED", "PATCH_DISCARDED"
+                }
+                if 'sanity_check_tool_name' in locals() and sanity_check_tool_name and sanity_check_tool_name != "skip_sanity_check":
+                    correctable_failure_reasons.add(f"REGRESSION_DETECTED_BY_{sanity_check_tool_name.upper()}")
+                if reason in correctable_failure_reasons:
+                    self.logger.warn(f"\nFALHA CORRIGÍVEL NO CICLO! Razão: {reason}\nContexto: {context}")
+                    self.objective_stack.append(current_objective)
+                    original_patches = self.state.get("action_plan_data", {}).get("patches_to_apply", "N/A")
+                    correction_details = f"FALHA ENCONTRADA: {reason}\nDETALHES: {context}"
+                    if reason == "PATCH_DISCARDED":
+                         correction_details = f"RAZÃO DO DESCARTE (FALHA NO SANDBOX): {context}"
+                    correction_obj_text = f"""
 [TAREFA DE CORREÇÃO AUTOMÁTICA]
-A tentativa anterior de alcançar o objetivo falhou.
-OBJETIVO ORIGINAL:
-{current_objective}
-FALHA ENCONTRADA: {reason}
-DETALHES DO ERRO/CONTEXTO:
-{context}
-PATCHES ORIGINAIS PROPOSTOS PELO ARQUITETO:
-{json.dumps(original_patches, indent=2)}
-Sua nova missão é analisar o erro e os patches originais, e então gerar um NOVO conjunto de patches para corrigir o problema e alcançar o objetivo original.
-Se a falha foi na aplicação de um patch ou validação de sintaxe, revise a operação do patch, o conteúdo ou os seletores/linhas.
-Se a falha foi numa validação funcional (ex: Pytest), os novos patches devem visar corrigir o código que causou a falha.
+OBJETIVO ORIGINAL: {current_objective}
+{correction_details}
+PATCHES ENVOLVIDOS: {json.dumps(original_patches, indent=2)}
+Sua missão é analisar o erro e os patches, e então gerar um NOVO conjunto de patches para corrigir o problema e alcançar o objetivo original.
 """
-                self.objective_stack.append(correction_obj_text)
-                self.logger.info(f"Gerado novo objetivo de correção e adicionado à pilha.")
+                    self.objective_stack.append(correction_obj_text)
+                    self.logger.info("Gerado novo objetivo de correção e adicionado à pilha.")
+                else:
+                    self.logger.error(f"\nFALHA NÃO RECUPERÁVEL OU DESCONHECIDA. Razão: {reason}. Contexto: {context}. Encerrando ciclo de objetivos.")
+                    break
 
-            elif not success:
-                self.logger.error(f"\nFALHA NÃO RECUPERÁVEL OU DESCONHECIDA. Razão: {reason}. Contexto: {context}. Encerrando.")
-                break
-
-            self.logger.info(f"{'='*20} FIM DO CICLO {'='*20}")
-            time.sleep(self.config.get("cycle_delay_seconds", 1)) # Reduzido para testes mais rápidos
-
+            self.logger.info(f"{'='*20} FIM DO CICLO DE EVOLUÇÃO {'='*20}")
+            time.sleep(self.config.get("cycle_delay_seconds", 1))
 
 if __name__ == "__main__":
-    # Configuração do logging
     log_formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
-
-    # Handler para o console
     console_handler = logging.StreamHandler()
     console_handler.setFormatter(log_formatter)
     console_handler.setLevel(logging.INFO)
-
-    # Handler para o arquivo
-    file_handler = logging.FileHandler("hephaestus.log", mode='w') # mode='w' para sobrescrever a cada execução
+    file_handler = logging.FileHandler("hephaestus.log", mode='w')
     file_handler.setFormatter(log_formatter)
     file_handler.setLevel(logging.DEBUG)
-
-    # Configurar o logger raiz ou o logger específico
-    # logging.basicConfig(level=logging.DEBUG, handlers=[console_handler, file_handler])
-    # Ou configurar o logger que estamos usando no HephaestusAgent
-    root_logger = logging.getLogger() # Pega o logger raiz
-    root_logger.setLevel(logging.DEBUG) # Define o nível mais baixo no logger raiz
+    root_logger = logging.getLogger()
+    root_logger.setLevel(logging.DEBUG)
     root_logger.addHandler(console_handler)
     root_logger.addHandler(file_handler)
-
-    # Obter uma instância do logger configurado para passar para o agente
-    agent_logger = logging.getLogger("HephaestusAgent") # Pode ser o mesmo que __name__ em main.py, mas mais explícito
-
-    load_dotenv() # Carrega variáveis de ambiente do .env
-    agent = HephaestusAgent(logger_instance=agent_logger) # Passa a instância do logger
+    agent_logger = logging.getLogger("HephaestusAgent")
+    load_dotenv()
+    agent = HephaestusAgent(logger_instance=agent_logger)
     agent.run()

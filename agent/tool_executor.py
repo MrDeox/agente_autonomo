@@ -5,31 +5,45 @@ from typing import Tuple, Dict, Any
 
 import psutil
 import os
+from pathlib import Path # ADICIONADO
 
-def run_pytest(test_dir: str = "tests/") -> Tuple[bool, str]:
+def run_pytest(test_dir: str = "tests/", cwd: str | Path | None = None) -> Tuple[bool, str]:
     """
     Executa testes pytest no diretório especificado e retorna resultados.
     
     Args:
-        test_dir: Diretório contendo os testes (padrão: 'tests/')
+        test_dir: Diretório contendo os testes (padrão: 'tests/'), relativo ao cwd.
+        cwd: Diretório de trabalho atual para executar o pytest (padrão: None, usa o CWD atual).
     
     Returns:
         Tuple[bool, str]: (success, output) 
         - success: True se todos os testes passarem, False caso contrário
         - output: Saída combinada de stdout e stderr da execução
     """
+    command = ["pytest", test_dir]
+
+    # Normalizar cwd para string, se for Path
+    if isinstance(cwd, Path):
+        cwd_str = str(cwd)
+    else:
+        cwd_str = cwd
+
     try:
         result = subprocess.run(
-            ["pytest", test_dir],
+            command,
             capture_output=True,
             text=True,
-            check=False
+            check=False,
+            cwd=cwd_str # Definir o diretório de trabalho se fornecido
         )
         success = result.returncode == 0
-        output = f"Exit Code: {result.returncode}\n\nStdout:\n{result.stdout}\nStderr:\n{result.stderr}"
-        return success, output
+        output_message = f"Pytest Command: {' '.join(command)} (CWD: {cwd_str or '.'})\n"
+        output_message += f"Exit Code: {result.returncode}\n\nStdout:\n{result.stdout}\nStderr:\n{result.stderr}"
+        return success, output_message
+    except FileNotFoundError: # Se o executável pytest não for encontrado
+        return False, f"Erro ao executar pytest: Comando 'pytest' não encontrado. Certifique-se de que pytest está instalado e no PATH."
     except Exception as e:
-        return False, f"Erro ao executar pytest: {str(e)}"
+        return False, f"Erro inesperado ao executar pytest: {str(e)}"
 
 
 def check_file_existence(file_paths: list[str]) -> Tuple[bool, str]:
