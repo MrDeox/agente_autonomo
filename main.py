@@ -555,22 +555,58 @@ hephaestus.log
                     step_success = self._execute_step_run_pytest(current_base_path, use_sandbox)
                 elif step_name == "run_benchmark_validation":
                     step_success = self._execute_step_run_benchmark(current_base_path, use_sandbox)
+                elif step_name == "check_file_existence":
+                    # Este passo normalmente seria usado para verificar se arquivos esperados existem
+                    # após uma operação, como a criação de documentação ou arquivos de configuração.
+                    # Como é um passo de verificação, ele não falha a menos que a verificação em si falhe.
+                    # A lógica de `check_file_existence` em `tool_executor.py` já retorna True/False.
+                    # Aqui, vamos assumir que os arquivos a serem verificados são os que foram aplicados.
+                    files_to_check = [patch.get("file_path") for patch in patches_to_apply if patch.get("file_path")]
+                    if files_to_check:
+                        step_success, details = check_file_existence(files_to_check, base_path=current_base_path)
+                        if not step_success:
+                            self.logger.warn(f"Falha no passo 'check_file_existence': {details}")
+                            # A falha aqui é uma falha de validação, então atualizamos o validation_result
+                            reason_code = "FILE_EXISTENCE_CHECK_FAILED_IN_SANDBOX" if use_sandbox else "FILE_EXISTENCE_CHECK_FAILED"
+                            self.state.validation_result = (False, reason_code, details)
+                        else:
+                            self.logger.info(f"Passo 'check_file_existence' concluído com sucesso em '{current_base_path}'.")
+                    else:
+                        self.logger.info("Nenhum arquivo para verificar em 'check_file_existence'. Passo considerado bem-sucedido.")
+                        step_success = True
                 else:
-                    self.logger.warn(f"Passo de validação desconhecido: {step_name}. Pulando.")
-                    step_success = True # Considerar como sucesso para não parar a estratégia por um passo desconhecido
+                    self.logger.error(f"Passo de validação desconhecido: {step_name}. Tratando como FALHA.")
+                    self.state.validation_result = (False, "UNKNOWN_VALIDATION_STEP", f"Passo desconhecido: {step_name}")
+                    step_success = False
 
                 if not step_success:
-                    self.logger.error(f"Falha no passo '{step_name}'. Interrompendo estratégia '{strategy_key}'.")
+                    # Se o validation_result já foi definido por uma falha interna no passo (ex: check_file_existence),
+                    # não sobrescreva com uma mensagem genérica.
+                    if self.state.validation_result[0] is not False or self.state.validation_result[1] == "STRATEGY_PENDING":
+                         reason_code = f"{step_name.upper()}_FAILED_IN_SANDBOX" if use_sandbox else f"{step_name.upper()}_FAILED"
+                         self.state.validation_result = (False, reason_code, f"Falha no passo '{step_name}' durante a execução da estratégia '{strategy_key}'.")
+                    self.logger.error(f"Falha no passo '{step_name}'. Interrompendo estratégia '{strategy_key}'. Detalhes: {self.state.validation_result[2]}")
                     break # Sai do loop de passos
 
             # A lógica de promoção do sandbox e finalização da estratégia permanece aqui,
             # mas agora depende do self.state.validation_result que foi atualizado pelos métodos _execute_step_*
+            # ou pela lógica de tratamento de passo desconhecido.
             validation_succeeded, reason, details = self.state.validation_result
+
+            # Se nenhum passo falhou e o resultado ainda é "STRATEGY_PENDING", significa que todos os passos
+            # foram bem-sucedidos (ou não houve passos que pudessem falhar ativamente o validation_result).
+            if validation_succeeded is False and reason == "STRATEGY_PENDING": # Caso onde nenhum passo falhou explicitamente
+                self.logger.info(f"Todos os passos da estratégia '{strategy_key}' completados, mas o resultado final da validação ainda está pendente. Verificando...")
+                # Isso pode acontecer se a estratégia não tiver passos que modifiquem o validation_result para True.
+                # Se chegamos aqui sem um 'break' no loop de passos, consideramos sucesso se não houve falha.
+                # No entanto, o estado `validation_result` já deve ter sido definido para (False, "UNKNOWN_VALIDATION_STEP", ...)
+                # ou similar se um passo desconhecido foi encontrado e `step_success` tornou-se `False`.
+                # A lógica abaixo garante que o estado final seja consistente.
 
             if use_sandbox: # Esta lógica de promoção/descarte do sandbox permanece centralizada
                 if not validation_succeeded and "_IN_SANDBOX" in reason: # Se um passo no sandbox falhou
-                    self.logger.warn(f"Validação no sandbox falhou ({reason}). Descartando patches.")
-                    self.state.validation_result = (False, "PATCH_DISCARDED", f"Patches descartados devido a: {reason}. Detalhes: {details}") # Acesso direto
+                    self.logger.warn(f"Validação no sandbox falhou ({reason}). Descartando patches. Detalhes: {details}")
+                    # O validation_result já deve estar definido para a falha específica. Apenas logamos.
                 elif validation_succeeded and "apply_patches_to_disk" in steps and patches_to_apply:
                     self.logger.info("Validações no sandbox aprovadas. Promovendo mudanças para o projeto real.")
                     try:
@@ -583,27 +619,37 @@ hephaestus.log
                                 real_project_file.parent.mkdir(parents=True, exist_ok=True)
                                 shutil.copy2(sandbox_file, real_project_file)
                                 copied_files_count += 1
-                            elif real_project_file.exists():
-                                real_project_file.unlink()
-                                copied_files_count +=1
+                            elif real_project_file.exists(): # Se o arquivo não existe mais no sandbox (foi removido por um patch)
+                                real_project_file.unlink(missing_ok=True) # Garante que ele seja removido do projeto real também
+                                self.logger.info(f"Arquivo {real_project_file} removido do projeto real pois não existe mais no sandbox.")
+                                copied_files_count +=1 # Considera uma "sincronização"
                         self.logger.info(f"{copied_files_count} arquivos/diretórios sincronizados do sandbox para o projeto real.")
-                        self.state.validation_result = (True, "APPLIED_AND_VALIDATED", f"Estratégia '{strategy_key}' concluída, patches aplicados e validados via sandbox.") # Acesso direto
+                        self.state.validation_result = (True, "APPLIED_AND_VALIDATED", f"Estratégia '{strategy_key}' concluída, patches aplicados e validados via sandbox.")
                     except Exception as e:
                         self.logger.error(f"ERRO CRÍTICO ao promover mudanças do sandbox para o projeto real: {e}", exc_info=True)
-                        self.state.validation_result = (False, "PROMOTION_FAILED", str(e)) # Acesso direto
-                elif not patches_to_apply and strategy_key != "DISCARD":
-                     self.logger.info("Nenhum patch foi fornecido ou aplicado. Estratégia concluída sem alterações.")
-                     self.state.validation_result = (True, "NO_PATCHES_APPLIED", f"Estratégia '{strategy_key}' concluída sem patches.") # Acesso direto
+                        self.state.validation_result = (False, "PROMOTION_FAILED", str(e))
+                elif validation_succeeded and (not patches_to_apply and strategy_key != "DISCARD"): # Sucesso, mas sem patches para aplicar (ex: estratégia só de validação)
+                     self.logger.info("Nenhum patch foi fornecido ou aplicado, mas a estratégia (possivelmente de validação) foi bem-sucedida no sandbox.")
+                     # Se a estratégia era só de validação (sem apply_patches_to_disk) e passou, é um sucesso.
+                     if reason == "STRATEGY_PENDING": # Se nenhum passo modificou o resultado, mas todos passaram
+                        self.state.validation_result = (True, "VALIDATED_IN_SANDBOX", f"Estratégia '{strategy_key}' concluída com sucesso no sandbox (sem patches para aplicar).")
 
-            if not use_sandbox and validation_succeeded and "apply_patches_to_disk" in steps and patches_to_apply:
-                 self.state.validation_result = (True, "APPLIED_AND_VALIDATED", f"Estratégia '{strategy_key}' concluída, patches aplicados e validados (sem sandbox).") # Acesso direto
-            elif not use_sandbox and validation_succeeded and (not patches_to_apply or "apply_patches_to_disk" not in steps) and strategy_key != "DISCARD":
-                 self.state.validation_result = (True, "VALIDATED_ONLY", f"Estratégia '{strategy_key}' de validação concluída (sem aplicação de patches no disco).") # Acesso direto
+
+            # Lógica para quando não se usa sandbox ou após promoção bem-sucedida
+            if not use_sandbox or (use_sandbox and validation_succeeded and reason == "APPLIED_AND_VALIDATED"):
+                if validation_succeeded and "apply_patches_to_disk" in steps and patches_to_apply:
+                    # Se usou sandbox, já foi definido como APPLIED_AND_VALIDATED. Se não usou, define agora.
+                    if reason != "APPLIED_AND_VALIDATED": # Evita sobrescrever se já veio do sandbox
+                         self.state.validation_result = (True, "APPLIED_AND_VALIDATED", f"Estratégia '{strategy_key}' concluída, patches aplicados e validados (sem sandbox ou após promoção).")
+                elif validation_succeeded and (not patches_to_apply or "apply_patches_to_disk" not in steps) and strategy_key != "DISCARD":
+                    if reason == "STRATEGY_PENDING": # Se nenhum passo modificou o resultado, mas todos passaram
+                        self.state.validation_result = (True, "VALIDATED_ONLY", f"Estratégia '{strategy_key}' de validação concluída (sem aplicação de patches no disco).")
+                    # Se já era VALIDATED_IN_SANDBOX, mantém.
 
             if strategy_key == "DISCARD":
-                self.state.validation_result = (True, "DISCARDED", "Estratégia de descarte executada.") # Acesso direto
-            elif self.state.validation_result[1] == "STRATEGY_PENDING": # Acesso direto
-                self.state.validation_result = (True, "NO_ACTION_TAKEN", f"Estratégia '{strategy_key}' concluída sem ações de modificação ou falha.") # Acesso direto
+                self.state.validation_result = (True, "DISCARDED", "Estratégia de descarte executada.")
+            elif validation_succeeded and self.state.validation_result[1] == "STRATEGY_PENDING": # Se ainda está pendente e não falhou
+                self.state.validation_result = (True, "NO_ACTION_SUCCESS", f"Estratégia '{strategy_key}' concluída sem ações de modificação ou falha explícita, todos os passos OK.")
         finally:
             if sandbox_dir_obj:
                 self.logger.info(f"Limpando sandbox temporário: {sandbox_dir_obj.name}")
