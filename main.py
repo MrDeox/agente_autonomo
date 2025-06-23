@@ -34,10 +34,19 @@ logger = logging.getLogger(__name__) # ADICIONADO
 class HephaestusAgent:
     """Classe principal que encapsula a lógica do agente autônomo."""
 
-    def __init__(self, logger_instance): # MODIFICADO
-        """Inicializa o agente com configuração."""
+    def __init__(self, logger_instance, objective_stack_depth_for_testing: Optional[int] = None): # MODIFICADO
+        """
+        Inicializa o agente com configuração.
+
+        Args:
+            logger_instance: Instância do logger a ser usada.
+            objective_stack_depth_for_testing: Limite opcional para o número de ciclos de execução,
+                                                  usado principalmente para testes. Se None, o agente
+                                                  executa continuamente.
+        """
         self.logger = logger_instance # ADICIONADO
         self.config = self.load_config()
+        self.objective_stack_depth_for_testing = objective_stack_depth_for_testing
         self.api_key = os.getenv("OPENROUTER_API_KEY")
         self.model_list = [
             "deepseek/deepseek-chat-v3-0324:free",
@@ -606,9 +615,22 @@ hephaestus.log
             self.objective_stack.append(initial_objective)
             self.logger.info(f"Objetivo inicial: {initial_objective}")
 
+        cycle_count = 0 # Contador de ciclos
+        # Nota: Em ambiente de teste, self.objective_stack_depth_for_testing pode ser usado
+        # para limitar o número de ciclos e evitar loops infinitos.
+        # Em produção, deixe como None para execução contínua.
+
         while self.objective_stack:
+            if self.objective_stack_depth_for_testing is not None and \
+               cycle_count >= self.objective_stack_depth_for_testing:
+                self.logger.info(
+                    f"Limite de ciclos de teste ({self.objective_stack_depth_for_testing}) atingido. Encerrando loop."
+                )
+                break
+
+            cycle_count += 1
             current_objective = self.objective_stack.pop()
-            self.logger.info(f"\n\n{'='*20} NOVO CICLO DE EVOLUÇÃO {'='*20}")
+            self.logger.info(f"\n\n{'='*20} NOVO CICLO DE EVOLUÇÃO (Ciclo #{cycle_count}) {'='*20}")
             self.logger.info(f"OBJETIVO ATUAL: {current_objective}\n")
 
             try:
@@ -776,5 +798,7 @@ if __name__ == "__main__":
     root_logger.addHandler(file_handler)
     agent_logger = logging.getLogger("HephaestusAgent")
     load_dotenv()
+    # Exemplo de como definir o limite de ciclos ao instanciar, se necessário:
+    # agent = HephaestusAgent(logger_instance=agent_logger, objective_stack_depth_for_testing=3)
     agent = HephaestusAgent(logger_instance=agent_logger)
     agent.run()
