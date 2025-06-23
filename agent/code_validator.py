@@ -77,7 +77,7 @@ def validate_json_syntax(file_path: str | Path, logger: logging.Logger) -> tuple
         logger.debug(f"Sintaxe JSON de '{path_obj}' é válida.")
         return True, None
     except json.JSONDecodeError as e:
-        logger.warn(f"Erro de sintaxe JSON em '{path_obj}': {e.msg}")
+        logger.warning(f"Erro de sintaxe JSON em '{path_obj}': {e.msg}") # Corrigido para warning
         return False, e.msg # e.msg é geralmente mais limpo
     except Exception as e:
         logger.error(f"Erro inesperado ao validar JSON em '{path_obj}': {e}", exc_info=True)
