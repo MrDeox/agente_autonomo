@@ -1,10 +1,77 @@
 import json
+import logging # Adicionado
 import requests
 import traceback # Mantido para uso potencial em tratamento de erros, embora não usado diretamente nas novas funções.
-from typing import Optional, Dict, Any, List, Tuple # Tuple não é usado, mas pode ser mantido por enquanto.
+from typing import Optional, Dict, Any, List, Tuple
 
 # Funções de comunicação com API (simuladas/reutilizadas)
 # Idealmente, haveria uma função genérica para chamadas de API para evitar duplicação.
+
+def parse_json_response(raw_str: str, logger: Any) -> Tuple[Optional[Dict[str, Any]], Optional[str]]:
+    """
+    Analisa uma string bruta que se espera conter JSON, limpando-a e decodificando-a.
+    Remove blocos de markdown, extrai conteúdo entre a primeira '{' e a última '}',
+    remove caracteres não imprimíveis e carrega o JSON.
+
+    Args:
+        raw_str: A string bruta da resposta da LLM.
+        logger: Instância do logger para registrar o processo.
+
+    Returns:
+        Uma tupla contendo o dicionário JSON parseado (ou None em caso de erro)
+        e uma mensagem de erro (ou None em caso de sucesso).
+    """
+    if not raw_str or not raw_str.strip():
+        if logger: logger.error("parse_json_response: Recebeu string vazia ou apenas com espaços.")
+        else: print("parse_json_response: Recebeu string vazia ou apenas com espaços.")
+        return None, "String de entrada vazia ou apenas com espaços."
+
+    clean_content = raw_str.strip()
+    if logger: logger.debug(f"parse_json_response: Raw response before cleaning: {raw_str[:300]}...")
+
+    # Find the first { and last } to extract just the JSON part
+    first_brace = clean_content.find('{')
+    last_brace = clean_content.rfind('}')
+
+    if first_brace != -1 and last_brace != -1 and last_brace > first_brace:
+        clean_content = clean_content[first_brace:last_brace+1]
+        if logger: logger.debug(f"parse_json_response: Extracted JSON content based on braces: {clean_content[:300]}...")
+    else:
+        # Fallback to markdown code block cleaning if braces not found or invalid
+        if clean_content.startswith('```json'):
+            clean_content = clean_content[7:].strip()
+            if clean_content.endswith('```'):
+                clean_content = clean_content[:-3].strip()
+        elif clean_content.startswith('```'): # Generic code block
+            clean_content = clean_content[3:].strip()
+            if clean_content.endswith('```'):
+                clean_content = clean_content[:-3].strip()
+        if logger: logger.debug(f"parse_json_response: Content after attempting markdown removal (if any): {clean_content[:300]}...")
+
+    # Remove control characters that might break JSON parsing, except for valid whitespace like \n, \r, \t
+    # Allow characters with ordinal value 32 and above, plus tab, newline, carriage return.
+    clean_content = ''.join(char for char in clean_content if ord(char) >= 32 or char in ['\n', '\r', '\t'])
+    if logger: logger.debug(f"parse_json_response: Final cleaned content before parsing: {clean_content[:300]}...")
+
+    if not clean_content:
+        if logger: logger.error("parse_json_response: Conteúdo ficou vazio após limpeza.")
+        else: print("parse_json_response: Conteúdo ficou vazio após limpeza.")
+        return None, "Conteúdo ficou vazio após limpeza."
+
+    try:
+        parsed_json = json.loads(clean_content)
+        return parsed_json, None
+    except json.JSONDecodeError as e:
+        error_message = f"Erro ao decodificar JSON: {str(e)}. Conteúdo limpo (parcial): {clean_content[:500]}"
+        if logger: logger.error(f"parse_json_response: {error_message}. Resposta original (parcial): {raw_str[:200]}")
+        else: print(f"parse_json_response: {error_message}. Resposta original (parcial): {raw_str[:200]}")
+        return None, f"Erro ao decodificar JSON: {str(e)}. Resposta original (parcial): {raw_str[:200]}" # Manter a mensagem de erro concisa para o retorno
+    except Exception as e: # Catch any other unexpected error during parsing
+        error_message = f"Erro inesperado durante o parsing do JSON: {str(e)}"
+        if logger: logger.error(f"parse_json_response: {error_message}\n{traceback.format_exc()}", exc_info=True)
+        else: print(f"parse_json_response: {error_message}\n{traceback.format_exc()}")
+        return None, f"Erro inesperado durante o parsing do JSON: {str(e)}"
+
 
 def _call_llm_api(api_key: str, model: str, prompt: str, temperature: float, base_url: str, logger: Any) -> Tuple[Optional[str], Optional[str]]:
     """Função auxiliar para fazer chamadas à API LLM."""
@@ -114,44 +181,33 @@ Sua resposta DEVE ser um objeto JSON válido e nada mais.
     if error:
         logger.error(f"Erro ao chamar LLM para plano de patches: {error}")
         return None, f"Erro ao chamar LLM para plano de patches: {error}"
-    if not raw_response:
-        logger.error("Resposta vazia do LLM para plano de patches.")
-        return None, "Resposta vazia do LLM para plano de patches."
+    # raw_response é verificado por parse_json_response, incluindo se é None ou vazio.
+    # if not raw_response:
+    #     logger.error("Resposta vazia do LLM para plano de patches.")
+    #     return None, "Resposta vazia do LLM para plano de patches."
 
+    parsed_json, error_parsing = parse_json_response(raw_response, logger)
+
+    if error_parsing:
+        logger.error(f"Erro ao fazer parse do JSON do plano de patches: {error_parsing}")
+        # A mensagem de parse_json_response já inclui detalhes do erro e parte da resposta original.
+        return None, f"Erro ao fazer parse do JSON do plano de patches: {error_parsing}"
+
+    if not parsed_json: # Segurança adicional, embora parse_json_response deva retornar erro se None.
+        logger.error("JSON do plano de patches resultou em None sem erro de parsing explícito.")
+        return None, "JSON do plano de patches resultou em None."
+
+    # Validação específica do schema do plano de patches
     try:
-        clean_content = raw_response.strip()
-        logger.debug(f"Raw response before cleaning: {raw_response[:200]}...")  # Log parcial
-        
-        # Find the first { and last } to extract just the JSON part
-        first_brace = clean_content.find('{')
-        last_brace = clean_content.rfind('}')
-        
-        if first_brace != -1 and last_brace != -1 and last_brace > first_brace:
-            clean_content = clean_content[first_brace:last_brace+1]
-            logger.debug(f"Extracted JSON content: {clean_content[:200]}...")  # Log parcial
-        else:
-            # Fallback to original cleaning if braces not found
-            if clean_content.startswith('```json'):
-                clean_content = clean_content[7:].strip()
-                if clean_content.endswith('```'):
-                    clean_content = clean_content[:-3].strip()
-            elif clean_content.startswith('```'):
-                clean_content = clean_content[3:].strip()
-                if clean_content.endswith('```'):
-                    clean_content = clean_content[:-3].strip()
-        
-        # Remove control characters that might break JSON parsing
-        clean_content = ''.join(char for char in clean_content if ord(char) >= 32 or char in '\n\r\t')
-        logger.debug(f"Final cleaned content before parsing: {clean_content[:200]}...")  # Log parcial
-        
-        parsed_json = json.loads(clean_content)
-
-        if "patches_to_apply" not in parsed_json or not isinstance(parsed_json["patches_to_apply"], list):
-            logger.error("JSON do plano de patches não contém 'patches_to_apply' ou não é uma lista.")
-            return None, "JSON do plano de patches não contém a chave 'patches_to_apply' ou não é uma lista."
+        # Checa se parsed_json é um dict e se tem a chave 'patches_to_apply' como lista
+        if not isinstance(parsed_json, dict) or "patches_to_apply" not in parsed_json or \
+           not isinstance(parsed_json.get("patches_to_apply"), list):
+            logger.error("JSON do plano de patches inválido ou não contém 'patches_to_apply' como uma lista.")
+            return None, "JSON do plano de patches inválido ou não contém a chave 'patches_to_apply' como uma lista."
 
         # Validação mais detalhada de cada patch (opcional, mas bom)
-        for i, patch in enumerate(parsed_json["patches_to_apply"]):
+        # Usar .get com fallback para uma lista vazia para evitar erro se patches_to_apply for None (embora a checagem acima deva pegar)
+        for i, patch in enumerate(parsed_json.get("patches_to_apply", [])):
             if not isinstance(patch, dict):
                 err_msg = f"Patch na posição {i} não é um dicionário."
                 logger.error(err_msg)
@@ -176,11 +232,20 @@ Sua resposta DEVE ser um objeto JSON válido e nada mais.
 
         return parsed_json, None
     except json.JSONDecodeError as e:
-        logger.error(f"Erro ao decodificar JSON do plano de patches: {str(e)}. Resposta: {raw_response[:500]}...")
-        return None, f"Erro ao decodificar JSON do plano de patches: {str(e)}. Resposta: {raw_response}"
-    except Exception as e:
-        logger.error(f"Erro inesperado ao processar plano de patches: {str(e)}", exc_info=True)
-        return None, f"Erro inesperado ao processar plano de patches: {str(e)}"
+        # A exceção json.JSONDecodeError já foi tratada em parse_json_response.
+        # Esta cláusula except é para outros erros potenciais na validação do schema.
+        # No entanto, parse_json_response já retorna o erro de JSONDecodeError, então a validação do schema é o foco aqui.
+        # Se parsed_json for None devido a um erro de parsing, as checagens acima já retornam.
+        # Esta parte do código original tratava json.JSONDecodeError que agora está em parse_json_response.
+        # Vamos manter um Exception genérico para erros na lógica de validação do schema.
+        logger.error(f"Erro inesperado ao validar o schema do plano de patches: {str(e)}", exc_info=True)
+        return None, f"Erro inesperado ao validar o schema do plano de patches: {str(e)}"
+    # except json.JSONDecodeError as e: # Removido pois é tratado em parse_json_response
+    #     logger.error(f"Erro ao decodificar JSON do plano de patches: {str(e)}. Resposta: {raw_response[:500]}...")
+    #     return None, f"Erro ao decodificar JSON do plano de patches: {str(e)}. Resposta: {raw_response}"
+    except Exception as e: # Este é o catch-all que deve permanecer para erros de validação de schema
+        logger.error(f"Erro inesperado ao processar/validar plano de patches: {str(e)}", exc_info=True)
+        return None, f"Erro inesperado ao processar/validar plano de patches: {str(e)}"
 
 
 # A função generate_code_for_action foi removida pois o Arquiteto agora gera patches com conteúdo diretamente.
@@ -257,17 +322,30 @@ Gere APENAS uma única string de texto contendo o próximo objetivo. Seja concis
     payload = {
         "model": model,
         "messages": [{"role": "user", "content": prompt}],
-        "temperature": 0.3
+        "temperature": 0.3 # Temperatura específica para esta chamada
     }
     
-    try:
-        response = requests.post(url, json=payload, headers=headers)
-        response.raise_for_status()
-        content = response.json()["choices"][0]["message"]["content"]
-        return content.strip()
-    except Exception as e:
-        print(f"Erro ao gerar próximo objetivo: {str(e)}")
-        return "Analisar o estado atual do projeto e propor uma melhoria incremental"
+    # logger.info(f"Gerando próximo objetivo com o modelo: {model}...") # _call_llm_api já loga
+    content, error = _call_llm_api(api_key, model, prompt, 0.3, base_url, logger)
+
+    if error:
+        # Usar logger em vez de print, se disponível
+        log_message = f"Erro ao gerar próximo objetivo: {error}"
+        if logger:
+            logger.error(log_message)
+        else:
+            print(log_message)
+        return "Analisar o estado atual do projeto e propor uma melhoria incremental" # Fallback
+
+    if not content: # Resposta vazia, mas sem erro explícito da API
+        log_message = "Resposta vazia do LLM para próximo objetivo."
+        if logger:
+            logger.warn(log_message)
+        else:
+            print(log_message)
+        return "Analisar o estado atual do projeto e propor uma melhoria incremental" # Fallback
+
+    return content.strip()
 
 
 def generate_capacitation_objective(
@@ -332,17 +410,29 @@ O objetivo DEVE começar com "[TAREFA DE CAPACITAÇÃO]". Por exemplo: "[TAREFA 
     payload = {
         "model": model,
         "messages": [{"role": "user", "content": prompt}],
-        "temperature": 0.3
+        "temperature": 0.3 # Temperatura específica
     }
-    
-    try:
-        response = requests.post(url, json=payload, headers=headers)
-        response.raise_for_status()
-        content = response.json()["choices"][0]["message"]["content"]
-        return content.strip()
-    except Exception as e:
-        print(f"Erro ao gerar objetivo de capacitação: {str(e)}")
-        return "Analisar a necessidade de capacitação e propor uma solução"
+
+    # if logger: logger.info(f"Gerando objetivo de capacitação com o modelo: {model}...") # _call_llm_api já loga
+    content, error = _call_llm_api(api_key, model, prompt, 0.3, base_url, logger)
+
+    if error:
+        log_message = f"Erro ao gerar objetivo de capacitação: {error}"
+        if logger:
+            logger.error(log_message)
+        else:
+            print(log_message)
+        return "Analisar a necessidade de capacitação e propor uma solução" # Fallback
+
+    if not content:
+        log_message = "Resposta vazia do LLM para objetivo de capacitação."
+        if logger:
+            logger.warn(log_message)
+        else:
+            print(log_message)
+        return "Analisar a necessidade de capacitação e propor uma solução" # Fallback
+
+    return content.strip()
 
 
 def get_maestro_decision(
@@ -419,62 +509,55 @@ Exemplo: {{"strategy_key": "CAPACITATION_REQUIRED"}}
             "success": False,
         }
 
-        try:
-            response = requests.post(url, json=payload, headers=headers)
-            response.raise_for_status()
-            response_json = response.json()
-            print(f"API Response: {response_json}")  # Debug
-            
-            if "choices" not in response_json:
-                attempt_log["raw_response"] = f"API response missing 'choices' key: {response_json}"
-                attempt_logs.append(attempt_log)
-                continue
-                
-            content = response_json["choices"][0]["message"]["content"]
-            attempt_log["raw_response"] = content
-            print(f"Raw content: {content}")  # Debug
+        # _call_llm_api lida com requests.post, raise_for_status, e erros de request/key.
+        # Também lida com a extração inicial de 'content'.
+        # A temperatura é 0.2 para esta chamada.
+        content, error_api = _call_llm_api(api_key, model, prompt, 0.2, base_url, logger)
 
-            clean_content = content.strip()
-            print(f"Initial clean content: {clean_content[:200]}...")  # Debug parcial
-            
-            # Try to find JSON between first { and last }
-            first_brace = clean_content.find('{')
-            last_brace = clean_content.rfind('}')
-            
-            if first_brace != -1 and last_brace != -1 and last_brace > first_brace:
-                clean_content = clean_content[first_brace:last_brace+1]
-                print(f"Extracted JSON: {clean_content[:200]}...")  # Debug parcial
-            else:
-                # Fallback to original cleaning
-                if clean_content.startswith('```json'):
-                    clean_content = clean_content[7:].strip()
-                    if clean_content.endswith('```'):
-                        clean_content = clean_content[:-3].strip()
-                elif clean_content.startswith('```'):
-                    clean_content = clean_content[3:].strip()
-                    if clean_content.endswith('```'):
-                        clean_content = clean_content[:-3].strip()
+        if error_api:
+            attempt_log["raw_response"] = f"Erro da API ao obter decisão do Maestro (modelo {model}): {error_api}"
+            # success é False por padrão.
+            attempt_logs.append(attempt_log)
+            continue # Tentar próximo modelo
 
-            # Remove any non-printable characters except newlines and tabs
-            clean_content = ''.join(char for char in clean_content if ord(char) >= 32 or char in '\n\r\t')
-            print(f"Final clean content: {clean_content[:200]}...")  # Debug parcial
+        if not content:
+            attempt_log["raw_response"] = f"Resposta de conteúdo vazia da API ao obter decisão do Maestro (modelo {model})"
+            attempt_logs.append(attempt_log)
+            continue # Tentar próximo modelo
 
-            parsed = json.loads(clean_content)
-            if not isinstance(parsed, dict) or "strategy_key" not in parsed:
-                attempt_log["raw_response"] = f"Invalid JSON format or missing strategy_key: {parsed}"
-                # BUG FIX: Append before continue if this is the path taken
-                attempt_logs.append(attempt_log)
-                continue
-                
-            attempt_log["parsed_json"] = parsed
-            attempt_log["success"] = True
-        except Exception as e:
-            attempt_log["raw_response"] = f"Erro na decisão do Maestro: {str(e)}"
-            # success is already False by default in attempt_log
+        attempt_log["raw_response"] = content # Guardar a resposta bruta original do LLM
 
+        # Agora, parsear o 'content' que é esperado ser um JSON
+        parsed_json, error_parsing = parse_json_response(content, logger)
+
+        if error_parsing:
+            attempt_log["raw_response"] = f"Erro ao fazer parse da decisão do Maestro (modelo {model}): {error_parsing}. Conteúdo original: {content[:200]}"
+            attempt_logs.append(attempt_log)
+            continue
+
+        if not parsed_json: # Segurança adicional
+            attempt_log["raw_response"] = f"Decisão do Maestro (modelo {model}) resultou em JSON None sem erro de parsing explícito. Conteúdo original: {content[:200]}"
+            attempt_logs.append(attempt_log)
+            continue
+
+        # Validação do schema da decisão do Maestro
+        if not isinstance(parsed_json, dict) or "strategy_key" not in parsed_json:
+            error_msg = f"JSON da decisão do Maestro (modelo {model}) com formato inválido ou faltando 'strategy_key'. Recebido: {parsed_json}"
+            if logger: logger.warn(error_msg)
+            else: print(error_msg) # Manter print se não houver logger
+            attempt_log["raw_response"] = f"{error_msg}. Original: {content[:200]}"
+            attempt_logs.append(attempt_log)
+            continue
+
+        attempt_log["parsed_json"] = parsed_json
+        attempt_log["success"] = True
+
+        # Se sucesso, adicionar ao log e sair do loop de modelos
         attempt_logs.append(attempt_log)
+        break
 
     return attempt_logs
+# Removido o return attempt_logs duplicado que estava aqui
 
 
 def generate_commit_message(

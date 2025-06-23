@@ -165,8 +165,8 @@ def test_main_flow_apply_and_validate_syntax_success(
     assert "# Valid Python" in content
 
     # 3. Verificar o estado final do agente (ex: resultado da validação)
-    assert hephaestus_agent.state["validation_result"][0] is True # Sucesso
-    assert hephaestus_agent.state["validation_result"][1] == "APPLIED_AND_VALIDATED"
+    assert hephaestus_agent.state.validation_result[0] is True # Sucesso
+    assert hephaestus_agent.state.validation_result[1] == "APPLIED_AND_VALIDATED"
 
     # 4. Verificar se AGENTS.md foi atualizado (após sucesso e sanidade)
     # update_project_manifest é chamado com root_dir="." e target_files=[]
@@ -291,10 +291,10 @@ def test_main_flow_pytest_failure_triggers_correction_objective(
 
     # Verificar se um objetivo de correção foi adicionado à pilha (antes de ser limpa pelo mock)
     # O estado final do agente deve refletir a falha.
-    assert hephaestus_agent.state["validation_result"][0] is False
+    assert hephaestus_agent.state.validation_result[0] is False
     # A razão da falha pode ser PYTEST_FAILURE (da validação) ou REGRESSION_DETECTED_BY_RUN_PYTEST (da sanidade)
     # A lógica é: se a validação falha, a sanidade não roda.
-    assert hephaestus_agent.state["validation_result"][1] == "PYTEST_FAILURE"
+    assert hephaestus_agent.state.validation_result[1] == "PYTEST_FAILURE"
 
     # O importante é que o loop `run` teria continuado com um objetivo de correção.
     # No `run`, após falha corrigível:
@@ -462,7 +462,7 @@ def test_main_flow_sandbox_syntax_error_discarded(
     assert original_file_path_project.read_text() == original_file_content
 
     # 5. Estado de validação é PATCH_DISCARDED
-    validation_status, reason, details = hephaestus_agent.state["validation_result"]
+    validation_status, reason, details = hephaestus_agent.state.validation_result # Acesso direto
     assert validation_status is False
     assert reason == "PATCH_DISCARDED"
     # Detalhes devem conter a razão da falha no sandbox
@@ -598,7 +598,7 @@ def test_main_flow_sandbox_success_promotion(
     assert original_file_path_project.read_text() == valid_patch_content
 
     # 6. Estado de validação é APPLIED_AND_VALIDATED
-    validation_status, reason, details = hephaestus_agent.state["validation_result"]
+    validation_status, reason, details = hephaestus_agent.state.validation_result # Acesso direto
     assert validation_status is True
     assert reason == "APPLIED_AND_VALIDATED"
     assert "sandbox" in details # Mensagem deve indicar que foi via sandbox

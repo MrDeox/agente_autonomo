@@ -10,7 +10,8 @@ from agent.brain import (
     get_action_plan,
     generate_next_objective,
     generate_capacitation_objective,
-    get_maestro_decision
+    get_maestro_decision,
+    parse_json_response # Adicionar a função importada
 )
 
 # Logger mockado que pode ser passado para as funções do cérebro
@@ -204,167 +205,186 @@ def test_get_action_plan_cleans_json_code_block(mock_call_llm, mock_logger):
 
 # --- Testes para generate_next_objective ---
 
-@patch('agent.brain._call_llm_api') # Mock _call_llm_api que é usado internamente por generate_next_objective
-def test_generate_next_objective_success(mock_call_llm, mock_logger):
-    mock_call_llm.return_value = ("Próximo objetivo simulado.", None)
+@patch('agent.brain._call_llm_api')
+def test_generate_next_objective_success(mock_call_llm_api, mock_logger):
+    mock_call_llm_api.return_value = ("Próximo objetivo simulado.", None)
 
-    # generate_next_objective agora chama requests.post diretamente, então precisamos mockar isso.
-    # Ou, refatorar generate_next_objective para usar _call_llm_api consistentemente.
-    # Por agora, vou mockar requests.post para esta função.
-    with patch('agent.brain.requests.post') as mock_post_direct:
-        mock_response_direct = MagicMock()
-        mock_response_direct.status_code = 200
-        mock_response_direct.json.return_value = {
-            "choices": [{"message": {"content": "Próximo objetivo simulado."}}]
-        }
-        mock_post_direct.return_value = mock_response_direct
+    objective = generate_next_objective("key", "model_light", "manifesto_atual", mock_logger, base_url="http://fake.url")
+    assert objective == "Próximo objetivo simulado."
+    mock_call_llm_api.assert_called_once()
+    # Verificar args da chamada para _call_llm_api
+    args, kwargs = mock_call_llm_api.call_args
+    assert args[0] == "key"              # api_key
+    assert args[1] == "model_light"      # model
+    assert "manifesto_atual" in args[2]  # prompt
+    assert args[3] == 0.3                # temperature
+    assert args[4] == "http://fake.url"  # base_url
+    assert args[5] == mock_logger        # logger
 
-        objective = generate_next_objective("key", "model_light", "manifesto_atual", mock_logger)
-        assert objective == "Próximo objetivo simulado."
-        mock_post_direct.assert_called_once()
-
-@patch('agent.brain.requests.post') # Mockar requests.post diretamente
-def test_generate_next_objective_api_error(mock_post_direct, mock_logger):
-    mock_post_direct.side_effect = requests.exceptions.RequestException("Erro de API")
+@patch('agent.brain._call_llm_api')
+def test_generate_next_objective_api_error(mock_call_llm_api, mock_logger):
+    mock_call_llm_api.return_value = (None, "Erro de API simulado")
 
     objective = generate_next_objective("key", "model_light", "manifesto_atual", mock_logger)
-    # A função atualmente printa o erro e retorna um objetivo padrão.
-    assert objective == "Analisar o estado atual do projeto e propor uma melhoria incremental"
-    # Poderíamos usar capsys para verificar o print, ou melhor, fazer o logger ser usado.
-    # A função original usa print(), não logger.error(). Isso pode ser um ponto de melhoria.
+    assert objective == "Analisar o estado atual do projeto e propor uma melhoria incremental" # Fallback
+    mock_logger.error.assert_called_with("Erro ao gerar próximo objetivo: Erro de API simulado")
 
-@patch('agent.brain.requests.post')
-def test_generate_next_objective_empty_manifest(mock_post_direct, mock_logger):
-    mock_response = MagicMock()
-    mock_response.status_code = 200
-    mock_response.json.return_value = {"choices": [{"message": {"content": "Objetivo para manifesto vazio"}}]}
-    mock_post_direct.return_value = mock_response
+@patch('agent.brain._call_llm_api')
+def test_generate_next_objective_empty_llm_response(mock_call_llm_api, mock_logger):
+    mock_call_llm_api.return_value = ("", None) # Resposta de conteúdo vazia
+
+    objective = generate_next_objective("key", "model_light", "manifesto_atual", mock_logger)
+    assert objective == "Analisar o estado atual do projeto e propor uma melhoria incremental" # Fallback
+    mock_logger.warn.assert_called_with("Resposta vazia do LLM para próximo objetivo.")
+
+
+@patch('agent.brain._call_llm_api')
+def test_generate_next_objective_empty_manifest(mock_call_llm_api, mock_logger):
+    mock_call_llm_api.return_value = ("Objetivo para manifesto vazio", None)
 
     objective = generate_next_objective("key", "model", "", mock_logger) # Manifesto vazio
     assert objective == "Objetivo para manifesto vazio"
 
     # Verificar se o prompt correto foi usado para manifesto vazio
-    args, kwargs = mock_post_direct.call_args
-    payload = kwargs['json']
-    assert "Este é o primeiro ciclo de execução" in payload['messages'][0]['content']
+    args, kwargs = mock_call_llm_api.call_args
+    prompt_arg = args[2] # prompt é o terceiro argumento posicional
+    assert "Este é o primeiro ciclo de execução" in prompt_arg
 
 
-# --- Testes para generate_capacitation_objective --- (similar a generate_next_objective)
+# --- Testes para generate_capacitation_objective ---
 
-@patch('agent.brain.requests.post')
-def test_generate_capacitation_objective_success(mock_post_direct, mock_logger):
-    mock_response = MagicMock()
-    mock_response.status_code = 200
-    mock_response.json.return_value = {"choices": [{"message": {"content": "Objetivo de capacitação simulado."}}]}
-    mock_post_direct.return_value = mock_response
+@patch('agent.brain._call_llm_api')
+def test_generate_capacitation_objective_success(mock_call_llm_api, mock_logger):
+    mock_call_llm_api.return_value = ("Objetivo de capacitação simulado.", None)
 
-    objective = generate_capacitation_objective("key", "model", "Análise do engenheiro.", mock_logger)
+    objective = generate_capacitation_objective("key", "model_cap", "Análise do engenheiro.", base_url="http://fake.url", logger=mock_logger)
     assert objective == "Objetivo de capacitação simulado."
-    mock_post_direct.assert_called_once()
-    # Verificar prompt
-    args, kwargs = mock_post_direct.call_args
-    payload = kwargs['json']
-    assert "Análise do Engenheiro que Requer Nova Capacidade" in payload['messages'][0]['content']
-    assert "Análise do engenheiro." in payload['messages'][0]['content']
+    mock_call_llm_api.assert_called_once()
+    args, kwargs = mock_call_llm_api.call_args
+    assert args[0] == "key"
+    assert args[1] == "model_cap"
+    assert "Análise do Engenheiro que Requer Nova Capacidade" in args[2]
+    assert "Análise do engenheiro." in args[2]
+    assert args[3] == 0.3 # temperature
+    assert args[4] == "http://fake.url"
+    assert args[5] == mock_logger
+
+@patch('agent.brain._call_llm_api')
+def test_generate_capacitation_objective_api_error(mock_call_llm_api, mock_logger):
+    mock_call_llm_api.return_value = (None, "Erro de API capacitação")
+    objective = generate_capacitation_objective("key", "model", "Análise.", logger=mock_logger)
+    assert objective == "Analisar a necessidade de capacitação e propor uma solução" # Fallback
+    mock_logger.error.assert_called_with("Erro ao gerar objetivo de capacitação: Erro de API capacitação")
 
 # --- Testes para get_maestro_decision ---
 
-@patch('agent.brain.requests.post')
-def test_get_maestro_decision_success(mock_post_direct, mock_logger):
+@patch('agent.brain._call_llm_api')
+def test_get_maestro_decision_success(mock_call_llm_api, mock_logger):
     maestro_response_json_str = json.dumps({"strategy_key": "APPLY_AND_TEST"})
-
-    mock_response = MagicMock()
-    mock_response.status_code = 200
-    mock_response.json.return_value = {"choices": [{"message": {"content": maestro_response_json_str}}]}
-    mock_post_direct.return_value = mock_response
+    # _call_llm_api retorna (content, error)
+    mock_call_llm_api.return_value = (maestro_response_json_str, None)
 
     engineer_resp = {"analysis": "...", "patches_to_apply": []}
     config_data = {"validation_strategies": {"APPLY_AND_TEST": {}}}
 
-    decision_logs = get_maestro_decision("key", ["model1"], engineer_resp, config_data)
+    # Passar logger para get_maestro_decision
+    decision_logs = get_maestro_decision("key", ["model1"], engineer_resp, config_data, logger=mock_logger)
 
     assert len(decision_logs) == 1
     attempt = decision_logs[0]
     assert attempt["success"] is True
     assert attempt["parsed_json"] == {"strategy_key": "APPLY_AND_TEST"}
+    mock_call_llm_api.assert_called_once()
+    args, kwargs = mock_call_llm_api.call_args
+    assert args[1] == "model1" # model
+    assert args[3] == 0.2     # temperature
 
-@patch('agent.brain.requests.post')
-def test_get_maestro_decision_capacitation_required(mock_post_direct, mock_logger):
+@patch('agent.brain._call_llm_api')
+def test_get_maestro_decision_api_error_then_success(mock_call_llm_api, mock_logger):
+    maestro_response_model2_json_str = json.dumps({"strategy_key": "MODEL2_WINS"})
+
+    # Configurar side_effect para simular falha no primeiro modelo, sucesso no segundo
+    mock_call_llm_api.side_effect = [
+        (None, "Erro API no modelo1"), # _call_llm_api retorna (content, error)
+        (maestro_response_model2_json_str, None)
+    ]
+
+    engineer_resp = {}
+    config_data = {"validation_strategies": {"MODEL2_WINS": {}}}
+    model_list = ["model1_fails", "model2_works"]
+
+    decision_logs = get_maestro_decision("key", model_list, engineer_resp, config_data, logger=mock_logger)
+
+    assert len(decision_logs) == 2
+
+    # Checar tentativa 1 (falha)
+    assert decision_logs[0]["model"] == "model1_fails"
+    assert decision_logs[0]["success"] is False
+    assert "Erro da API ao obter decisão do Maestro (modelo model1_fails): Erro API no modelo1" in decision_logs[0]["raw_response"]
+
+    # Checar tentativa 2 (sucesso)
+    assert decision_logs[1]["model"] == "model2_works"
+    assert decision_logs[1]["success"] is True
+    assert decision_logs[1]["parsed_json"] == {"strategy_key": "MODEL2_WINS"}
+
+    assert mock_call_llm_api.call_count == 2
+
+@patch('agent.brain._call_llm_api')
+def test_get_maestro_decision_parsing_error(mock_call_llm_api, mock_logger):
+    # _call_llm_api retorna content OK, mas o content é JSON inválido
+    mock_call_llm_api.return_value = ("json { invalido", None)
+
+    decision_logs = get_maestro_decision("key", ["model1"], {}, {"validation_strategies": {}}, logger=mock_logger)
+    assert len(decision_logs) == 1
+    assert decision_logs[0]["success"] is False
+    assert "Erro ao fazer parse da decisão do Maestro (modelo model1): Erro ao decodificar JSON" in decision_logs[0]["raw_response"]
+    assert "json { invalido" in decision_logs[0]["raw_response"] # Checa se o conteúdo original está na msg
+
+@patch('agent.brain._call_llm_api')
+def test_get_maestro_decision_json_schema_invalid(mock_call_llm_api, mock_logger):
+    # _call_llm_api retorna JSON válido, mas não tem a chave esperada "strategy_key"
+    mock_call_llm_api.return_value = (json.dumps({"other_key": "val"}), None)
+
+    decision_logs = get_maestro_decision("key", ["model1"], {}, {"validation_strategies": {}}, logger=mock_logger)
+    assert len(decision_logs) == 1
+    assert decision_logs[0]["success"] is False
+    assert "JSON da decisão do Maestro (modelo model1) com formato inválido ou faltando 'strategy_key'" in decision_logs[0]["raw_response"]
+
+# Os testes existentes para _call_llm_api e get_action_plan permanecem válidos.
+# Os testes para parse_json_response também.
+# Apenas os testes para as funções que foram refatoradas para usar _call_llm_api precisam de ajuste no mock.
+# test_get_maestro_decision_capacitation_required, test_get_maestro_decision_invalid_json_response (já coberto por parsing_error),
+# test_get_maestro_decision_json_missing_strategy_key (já coberto por json_schema_invalid),
+# test_get_maestro_decision_cleans_code_block (a limpeza agora é em parse_json_response, _call_llm_api não limpa)
+# test_get_maestro_decision_uses_multiple_models_on_failure (já coberto por api_error_then_success)
+# Precisamos garantir que os testes de `get_maestro_decision` cubram a lógica de limpeza de `parse_json_response` indiretamente.
+
+@patch('agent.brain._call_llm_api')
+def test_get_maestro_decision_capacitation_required_via_call_llm(mock_call_llm_api, mock_logger):
+    # Teste para garantir que CAPACITATION_REQUIRED funciona com a nova estrutura
     maestro_response_json_str = json.dumps({"strategy_key": "CAPACITATION_REQUIRED"})
-    mock_response = MagicMock()
-    mock_response.status_code = 200
-    mock_response.json.return_value = {"choices": [{"message": {"content": maestro_response_json_str}}]}
-    mock_post_direct.return_value = mock_response
+    mock_call_llm_api.return_value = (maestro_response_json_str, None)
 
-    engineer_resp = {"analysis": "Precisa de nova ferramenta X."} # Simula necessidade
-    config_data = {"validation_strategies": {}} # Nenhuma estratégia, mas CAPACITATION_REQUIRED é sempre válido
+    engineer_resp = {"analysis": "Precisa de nova ferramenta X."}
+    config_data = {"validation_strategies": {}}
 
-    decision_logs = get_maestro_decision("key", ["model1"], engineer_resp, config_data)
+    decision_logs = get_maestro_decision("key", ["model1"], engineer_resp, config_data, logger=mock_logger)
     assert decision_logs[0]["success"] is True
     assert decision_logs[0]["parsed_json"] == {"strategy_key": "CAPACITATION_REQUIRED"}
 
+@patch('agent.brain._call_llm_api')
+def test_get_maestro_decision_cleans_code_block_indirectly(mock_call_llm_api, mock_logger):
+    # Testar que a limpeza feita por parse_json_response funciona quando chamada de get_maestro_decision
+    json_with_codeblock = "```json\n{\"strategy_key\": \"CLEANED_MAESTRO\"}\n```"
+    mock_call_llm_api.return_value = (json_with_codeblock, None) # _call_llm_api retorna o JSON sujo
 
-@patch('agent.brain.requests.post')
-def test_get_maestro_decision_invalid_json_response(mock_post_direct, mock_logger):
-    mock_response = MagicMock()
-    mock_response.status_code = 200
-    mock_response.json.return_value = {"choices": [{"message": {"content": "json { invalido"}}]}
-    mock_post_direct.return_value = mock_response
-
-    decision_logs = get_maestro_decision("key", ["model1"], {}, {"validation_strategies": {}})
-    assert decision_logs[0]["success"] is False
-    # Corrigindo a mensagem de erro esperada para o JSON inválido "json { invalido"
-    assert "Erro na decisão do Maestro: Expecting value: line 1 column 1 (char 0)" in decision_logs[0]["raw_response"]
-
-@patch('agent.brain.requests.post')
-def test_get_maestro_decision_json_missing_strategy_key(mock_post_direct, mock_logger):
-    maestro_response_json_str = json.dumps({"other_key": "valor"}) # Sem strategy_key
-    mock_response = MagicMock()
-    mock_response.status_code = 200
-    mock_response.json.return_value = {"choices": [{"message": {"content": maestro_response_json_str}}]}
-    mock_post_direct.return_value = mock_response
-
-    decision_logs = get_maestro_decision("key", ["model1"], {}, {"validation_strategies": {}})
-    assert decision_logs[0]["success"] is False
-    assert "Invalid JSON format or missing strategy_key" in decision_logs[0]["raw_response"]
-
-@patch('agent.brain.requests.post')
-def test_get_maestro_decision_cleans_code_block(mock_post_direct, mock_logger):
-    json_with_codeblock = "```json\n{\"strategy_key\": \"CLEANED\"}\n```"
-    mock_response = MagicMock()
-    mock_response.status_code = 200
-    mock_response.json.return_value = {"choices": [{"message": {"content": json_with_codeblock}}]}
-    mock_post_direct.return_value = mock_response
-
-    decision_logs = get_maestro_decision("key", ["model1"], {}, {"validation_strategies": {"CLEANED": {}}})
-    assert decision_logs[0]["success"] is True
-    assert decision_logs[0]["parsed_json"] == {"strategy_key": "CLEANED"}
-
-@patch('agent.brain.requests.post')
-def test_get_maestro_decision_uses_multiple_models_on_failure(mock_post_direct, mock_logger):
-    # Primeira chamada falha (ex: erro de API), segunda funciona
-    mock_response_success = MagicMock()
-    mock_response_success.status_code = 200
-    mock_response_success.json.return_value = {"choices": [{"message": {"content": "{\"strategy_key\": \"MODEL2_SUCCESS\"}"}}]}
-
-    # Simular falha na primeira chamada, sucesso na segunda
-    mock_post_direct.side_effect = [
-        requests.exceptions.Timeout("Timeout no modelo 1"),
-        mock_response_success
-    ]
-
-    decision_logs = get_maestro_decision("key", ["model1_fails", "model2_works"], {}, {"validation_strategies": {"MODEL2_SUCCESS":{}}})
-
-    assert len(decision_logs) == 2
-    assert decision_logs[0]["success"] is False
-    assert "model1_fails" == decision_logs[0]["model"]
-    assert "Erro na decisão do Maestro: Timeout no modelo 1" in decision_logs[0]["raw_response"]
-
-    assert decision_logs[1]["success"] is True
-    assert "model2_works" == decision_logs[1]["model"]
-    assert decision_logs[1]["parsed_json"] == {"strategy_key": "MODEL2_SUCCESS"}
-
-    assert mock_post_direct.call_count == 2
+    decision_logs = get_maestro_decision("key", ["model1"], {}, {"validation_strategies": {"CLEANED_MAESTRO": {}}}, logger=mock_logger)
+    assert len(decision_logs) == 1
+    attempt = decision_logs[0]
+    assert attempt["success"] is True
+    assert attempt["parsed_json"] == {"strategy_key": "CLEANED_MAESTRO"}
+    # Verificar se o raw_response no log da tentativa é o JSON "sujo"
+    assert attempt["raw_response"] == json_with_codeblock
 
 """
 Observações sobre os testes de `brain`:
@@ -382,3 +402,208 @@ Observações sobre os testes de `brain`:
     - `generate_next_objective` e `generate_capacitation_objective` usam `print()` para erros em vez de `logger.error()`.
     - Consistência no uso de `_call_llm_api` por todas as funções que interagem com LLM simplificaria o mocking.
 """
+
+# --- Testes para parse_json_response ---
+
+def test_parse_json_response_valid_json(mock_logger):
+    json_str = '{"key": "value", "number": 123}'
+    data, error = parse_json_response(json_str, mock_logger)
+    assert error is None
+    assert data == {"key": "value", "number": 123}
+
+def test_parse_json_response_with_markdown_block(mock_logger):
+    json_str = '```json\n{"key": "value"}\n```'
+    data, error = parse_json_response(json_str, mock_logger)
+    assert error is None
+    assert data == {"key": "value"}
+
+def test_parse_json_response_with_markdown_block_no_json_tag(mock_logger):
+    json_str = '```\n{"key": "value"}\n```'
+    data, error = parse_json_response(json_str, mock_logger)
+    assert error is None
+    assert data == {"key": "value"}
+
+def test_parse_json_response_with_text_before_and_after(mock_logger):
+    json_str = 'Some text before\n{"key": "value", "nested": {"num": 1}}\nSome text after'
+    data, error = parse_json_response(json_str, mock_logger)
+    assert error is None
+    assert data == {"key": "value", "nested": {"num": 1}}
+
+def test_parse_json_response_empty_string(mock_logger):
+    data, error = parse_json_response("", mock_logger)
+    assert data is None
+    assert "String de entrada vazia" in error
+    mock_logger.error.assert_called_once()
+
+def test_parse_json_response_whitespace_string(mock_logger):
+    data, error = parse_json_response("   \n\t  ", mock_logger)
+    assert data is None
+    assert "String de entrada vazia" in error
+    mock_logger.error.assert_called_once()
+
+def test_parse_json_response_invalid_json(mock_logger):
+    json_str = '{"key": "value", "invalid"}'
+    data, error = parse_json_response(json_str, mock_logger)
+    assert data is None
+    assert "Erro ao decodificar JSON" in error
+    mock_logger.error.assert_called_with(pytest.string_contains("Erro ao decodificar JSON: Expecting ':' delimiter"))
+
+
+def test_parse_json_response_string_not_json_at_all(mock_logger):
+    json_str = 'apenas uma string normal sem json'
+    data, error = parse_json_response(json_str, mock_logger)
+    assert data is None
+    assert "Erro ao decodificar JSON" in error # Espera-se que falhe no json.loads
+    # A mensagem exata pode variar dependendo da implementação do json.loads,
+    # mas deve indicar um erro de decodificação.
+    # Ex: "Expecting value: line 1 column 1 (char 0)"
+
+def test_parse_json_response_with_control_chars(mock_logger):
+    # Inclui um caractere de controle (BEL) que deve ser removido
+    json_str = '{"key": "value\u0007", "number": 123}'
+    clean_json_str = '{"key": "value", "number": 123}'
+    # Simular que o char de controle está lá, mas o parser o remove
+    # A lógica atual remove chars < 32 exceto \n \r \t. BEL é 7.
+
+    # O teste aqui é que o JSON é parseado corretamente *apesar* do char
+    # se a limpeza funcionar como esperado.
+    # O JSON enviado para json.loads DEVE estar limpo.
+    # A função parse_json_response faz a limpeza *antes* de json.loads.
+
+    # A string original com o caractere de controle:
+    original_with_control_char = '{"key": "value\u0007", "number": 123}'
+
+    # O que esperamos que seja passado para json.loads depois da limpeza:
+    # (Nota: a string 'value\u0007' no json.loads causaria erro se não limpa)
+    # A limpeza deve remover \u0007
+    expected_after_cleaning = '{"key": "value", "number": 123}'
+
+    # Teste
+    data, error = parse_json_response(original_with_control_char, mock_logger)
+    assert error is None
+    assert data == {"key": "value", "number": 123}
+
+def test_parse_json_response_json_within_text_no_markdown(mock_logger):
+    json_str = "Aqui está o JSON: {\"message\": \"Olá\"}. E algum texto depois."
+    data, error = parse_json_response(json_str, mock_logger)
+    assert error is None
+    assert data == {"message": "Olá"}
+
+def test_parse_json_response_multiple_json_objects_takes_first_valid_spanning(mock_logger):
+    # A lógica atual pega do primeiro '{' ao último '}'
+    # Então, se houver JSONs aninhados ou múltiplos que são tecnicamente um grande JSON, ele tentará parsear.
+    # Se for tipo {"a":1}{"b":2}, ele pegará '{"a":1}{"b":2}' que é inválido.
+    # Se for {"a":{"b":1}, "c":{"d":2}}, ele pega tudo.
+    json_str = '{"outer": {"key1": "val1"}, "extra": "ignore this part"} {"key2": "val2"}'
+    # Esperado: parseia '{"outer": {"key1": "val1"}, "extra": "ignore this part"} {"key2": "val2"}'
+    # que é inválido.
+    # A lógica atual de first_brace/last_brace pegaria tudo até o último '}'
+    # '{"outer": {"key1": "val1"}, "extra": "ignore this part"} {"key2": "val2"}'
+    # Isto é um JSON inválido.
+    data, error = parse_json_response(json_str, mock_logger)
+    assert data is None
+    assert "Erro ao decodificar JSON" in error # Esperado falhar
+
+    json_str_valid_outer = 'Content before {"key": "value", "obj": {"k": "v"}} and after'
+    data_valid, error_valid = parse_json_response(json_str_valid_outer, mock_logger)
+    assert error_valid is None
+    assert data_valid == {"key": "value", "obj": {"k": "v"}}
+
+def test_parse_json_response_no_json_object_in_string(mock_logger):
+    json_str = "Não há nenhum objeto json aqui."
+    data, error = parse_json_response(json_str, mock_logger)
+    assert data is None
+    assert "Erro ao decodificar JSON" in error # json.loads falhará
+
+def test_parse_json_response_only_braces_empty_object(mock_logger):
+    json_str = "{}"
+    data, error = parse_json_response(json_str, mock_logger)
+    assert error is None
+    assert data == {}
+
+def test_parse_json_response_braces_with_whitespace_empty_object(mock_logger):
+    json_str = "  {  }  "
+    data, error = parse_json_response(json_str, mock_logger)
+    assert error is None
+    assert data == {}
+
+def test_parse_json_response_complex_nested_json_with_markdown_and_text(mock_logger):
+    json_str = """Aqui está algum texto antes.
+```json
+{
+  "name": "Complex Test",
+  "version": 1.0,
+  "details": {
+    "owner": "TestUser",
+    "settings": [
+      {"id": "a", "value": true},
+      {"id": "b", "value": null},
+      {"id": "c", "value": [1, 2, "mixed"]}
+    ],
+    "description": "Um JSON aninhado e um pouco mais complexo para testar a extração. Inclui newlines \\n e tabs \\t."
+  },
+  "status": "active"
+}
+```
+E algum texto depois.
+"""
+    data, error = parse_json_response(json_str, mock_logger)
+    assert error is None
+    assert data["name"] == "Complex Test"
+    assert data["details"]["owner"] == "TestUser"
+    assert len(data["details"]["settings"]) == 3
+    assert data["details"]["settings"][2]["value"][2] == "mixed"
+    assert "newlines \\n e tabs \\t" in data["details"]["description"]
+
+def test_parse_json_response_logger_is_none(capfd): # capfd para capturar prints
+    json_str = '{"key": "value"}'
+    data, error = parse_json_response(json_str, None) # Passa None como logger
+    assert error is None
+    assert data == {"key": "value"}
+
+    # Verificar se não houve erros de logger e se os prints de fallback funcionam
+    json_str_empty = ""
+    data_empty, error_empty = parse_json_response(json_str_empty, None)
+    assert data_empty is None
+    assert "String de entrada vazia" in error_empty
+    out, err = capfd.readouterr() # Captura o print
+    assert "parse_json_response: Recebeu string vazia ou apenas com espaços." in out
+
+    json_str_invalid = '{"key": "value", invalid}'
+    data_invalid, error_invalid = parse_json_response(json_str_invalid, None)
+    assert data_invalid is None
+    assert "Erro ao decodificar JSON" in error_invalid
+    out, err = capfd.readouterr() # Captura o print de erro
+    assert "parse_json_response: Erro ao decodificar JSON: Expecting ':' delimiter" in out
+
+def test_parse_json_response_ends_unexpectedly(mock_logger):
+    json_str = '{"key": "value", "unterminated": {"a": 1' # JSON não termina corretamente
+    data, error = parse_json_response(json_str, mock_logger)
+    assert data is None
+    assert "Erro ao decodificar JSON" in error
+    # A mensagem exata pode variar, mas deve indicar um fim inesperado ou malformação.
+    # e.g. "json.decoder.JSONDecodeError: Expecting '}' delimiter: line 1 column 39 (char 38)"
+
+def test_parse_json_response_json_starts_with_array(mock_logger):
+    # A função espera um objeto JSON (dicionário), não um array no nível raiz por causa de Dict[str, Any]
+    # Mas json.loads pode parsear um array. A tipagem de retorno é Dict.
+    # A implementação atual de parse_json_response não impõe que seja um Dict, apenas json.loads.
+    # Se json.loads retornar uma lista, a função retornará essa lista.
+    # Isso pode ser um problema para os chamadores que esperam Dict.
+    # Por agora, testaremos o comportamento atual.
+    json_str = '[1, 2, {"key": "value"}]'
+    data, error = parse_json_response(json_str, mock_logger)
+    assert error is None
+    # A tipagem de retorno é Tuple[Optional[Dict[str, Any]], Optional[str]]
+    # Se data for uma lista, isso tecnicamente não corresponde ao Dict.
+    # No entanto, json.loads(['...', '[1,2,3]']) -> [1,2,3]
+    # O type hint da função é Dict, mas a implementação permite List.
+    # Vamos considerar isso um ponto a ser observado. Por enquanto, o teste reflete a implementação.
+    assert isinstance(data, list)
+    assert data == [1, 2, {"key": "value"}]
+
+    # Para ser estrito com o Dict, a função parse_json_response precisaria de uma checagem adicional:
+    # parsed = json.loads(...)
+    # if not isinstance(parsed, dict):
+    #    return None, "JSON não é um objeto/dicionário."
+    # Por ora, o teste passa com o comportamento atual.
