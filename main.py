@@ -23,6 +23,7 @@ from agent.tool_executor import run_in_sandbox, run_pytest, check_file_existence
 
 # Importar o novo patch_applicator
 from agent.patch_applicator import apply_patches # ADICIONADO
+from agent.memory import Memory # ADICIONADO PARA MEMÓRIA PERSISTENTE
 
 # Configuração do Logging
 logger = logging.getLogger(__name__) # ADICIONADO
@@ -42,7 +43,15 @@ class HephaestusAgent:
         self.light_model = "deepseek/deepseek-chat-v3-0324:free"
         self.state = {}
         self.objective_stack = []  # Pilha de objetivos
-        self._reset_cycle_state() # Inicializa o estado
+
+        # Inicialização da Memória Persistente
+        memory_file_path = self.config.get("memory_file_path", "HEPHAESTUS_MEMORY.json")
+        self.memory = Memory(filepath=memory_file_path)
+        self.logger.info(f"Carregando memória de {memory_file_path}...")
+        self.memory.load()
+        self.logger.info(f"Memória carregada. {len(self.memory.completed_objectives)} objetivos concluídos, {len(self.memory.failed_objectives)} falharam.")
+
+        self._reset_cycle_state() # Inicializa o estado do ciclo
 
     def _initialize_git_repository(self) -> bool:
         """
@@ -333,9 +342,12 @@ hephaestus.log
             return False
         maestro_model = self.config.get("models", {}).get("maestro_default", self.model_list[0])
         maestro_logs = get_maestro_decision(
-            api_key=self.api_key, model_list=[maestro_model],
+            api_key=self.api_key,
+            model_list=[maestro_model],
             engineer_response=self.state["action_plan_data"],
-            config=self.config
+            config=self.config,
+            memory_summary=self.memory.get_full_history_for_prompt(),
+            logger=self.logger
         )
         maestro_attempt = next((a for a in maestro_logs if a.get("success")), None)
         if not maestro_attempt or not maestro_attempt.get("parsed_json"):
@@ -515,7 +527,14 @@ hephaestus.log
         if not self.objective_stack:
             self.logger.info("Gerando objetivo inicial...")
             initial_objective_model = self.config.get("models", {}).get("objective_generator", self.light_model)
-            initial_objective = generate_next_objective(self.api_key, initial_objective_model, "", self.logger)
+            # Passar resumo da memória para o primeiro objetivo também
+            initial_objective = generate_next_objective(
+                api_key=self.api_key,
+                model=initial_objective_model,
+                current_manifest="", # Manifesto vazio para o primeiro objetivo
+                logger=self.logger,
+                memory_summary=self.memory.get_full_history_for_prompt()
+            )
             self.objective_stack.append(initial_objective)
             self.logger.info(f"Objetivo inicial: {initial_objective}")
 
@@ -523,136 +542,164 @@ hephaestus.log
             current_objective = self.objective_stack.pop()
             self.logger.info(f"\n\n{'='*20} NOVO CICLO DE EVOLUÇÃO {'='*20}")
             self.logger.info(f"OBJETIVO ATUAL: {current_objective}\n")
-            self._reset_cycle_state()
-            self.state["current_objective"] = current_objective
-            if not self._generate_manifest():
-                self.logger.error("Falha crítica ao gerar manifesto. Encerrando ciclo.")
-                break
-            if not self._run_architect_phase():
-                self.logger.warn("Falha na fase do Arquiteto. Tentando próximo objetivo se houver.")
-                if not self.objective_stack: break
-                continue
-            if not self._run_maestro_phase():
-                self.logger.warning("Falha na fase do Maestro. Tentando próximo objetivo se houver.")
-                if not self.objective_stack: break
-                continue
-            if self.state["strategy_key"] == "CAPACITATION_REQUIRED":
-                self.logger.info("Maestro identificou a necessidade de uma nova capacidade.")
-                self.objective_stack.append(current_objective)
-                architect_analysis = self.state.get("action_plan_data", {}).get("analysis", "Nenhuma análise do arquiteto.")
-                capacitation_objective_model = self.config.get("models", {}).get("capacitation_generator", self.light_model)
-                capacitation_objective = generate_capacitation_objective(
-                    self.api_key, capacitation_objective_model, architect_analysis, self.logger
-                )
-                self.logger.info(f"Gerado novo objetivo de capacitação: {capacitation_objective}")
-                self.objective_stack.append(capacitation_objective)
-                continue
 
-            self._execute_validation_strategy()
-            success, reason, context = self.state.get("validation_result", (False, "UNKNOWN_ERROR", "Validação não encontrada"))
+            try:
+                self._reset_cycle_state()
+                self.state["current_objective"] = current_objective
+                if not self._generate_manifest():
+                    self.logger.error("Falha crítica ao gerar manifesto. Encerrando ciclo.")
+                    break # Sai do loop while
+                if not self._run_architect_phase():
+                    self.logger.warn("Falha na fase do Arquiteto. Pulando para o próximo objetivo se houver.")
+                    if not self.objective_stack: break
+                    continue # Próxima iteração do loop while
+                if not self._run_maestro_phase():
+                    self.logger.warning("Falha na fase do Maestro. Pulando para o próximo objetivo se houver.")
+                    if not self.objective_stack: break
+                    continue # Próxima iteração do loop while
 
-            if success:
-                self.logger.info(f"\nSUCESSO NO CICLO! Razão: {reason}")
-                if reason == "APPLIED_AND_VALIDATED":
-                    self.logger.info("--- INICIANDO CICLO DE VERIFICAÇÃO DE SANIDADE PÓS-APLICAÇÃO ---")
-                    current_strategy_key = self.state.get("strategy_key")
-                    strategy_config_sanity = self.config["validation_strategies"].get(current_strategy_key, {})
-                    sanity_check_tool_name = strategy_config_sanity.get("sanity_check_step", "run_pytest")
-                    sanity_check_success = True
-                    sanity_check_details = "Nenhuma verificação de sanidade executada."
-                    if sanity_check_tool_name == "run_pytest":
-                        self.logger.info(f"Executando verificação de sanidade com: {sanity_check_tool_name} no projeto real.")
-                        sanity_check_success, sanity_check_details = run_pytest(test_dir='tests/', cwd=".")
-                    elif sanity_check_tool_name == "check_file_existence":
-                        self.logger.info(f"Executando verificação de sanidade com: {sanity_check_tool_name} no projeto real.")
-                        files_to_check = list(self.state.get("applied_files_report", {}).keys())
-                        if files_to_check:
-                            sanity_check_success, sanity_check_details = check_file_existence(files_to_check)
-                        else:
-                            sanity_check_success = True
-                            sanity_check_details = "Nenhum arquivo reportado como aplicado para verificação."
-                            self.logger.info(sanity_check_details)
-                    elif sanity_check_tool_name == "skip_sanity_check":
-                        sanity_check_success = True
-                        sanity_check_details = "Verificação de sanidade pulada."
-                        self.logger.info(sanity_check_details)
-                    else:
-                        sanity_check_success = False
-                        sanity_check_details = f"Ferramenta de sanidade desconhecida: {sanity_check_tool_name}"
-                        self.logger.warn(f"AVISO: {sanity_check_details}")
+                if self.state["strategy_key"] == "CAPACITATION_REQUIRED":
+                    self.logger.info("Maestro identificou a necessidade de uma nova capacidade.")
+                    self.objective_stack.append(current_objective) # Re-adiciona o objetivo original
+                    architect_analysis = self.state.get("action_plan_data", {}).get("analysis", "Nenhuma análise do arquiteto.")
+                    capacitation_objective_model = self.config.get("models", {}).get("capacitation_generator", self.light_model)
+                    capacitation_objective = generate_capacitation_objective(
+                        api_key=self.api_key,
+                        model=capacitation_objective_model,
+                        engineer_analysis=architect_analysis,
+                        logger=self.logger,
+                        memory_summary=self.memory.get_full_history_for_prompt()
+                    )
+                    self.logger.info(f"Gerado novo objetivo de capacitação: {capacitation_objective}")
+                    self.objective_stack.append(capacitation_objective)
+                    continue # Próxima iteração do loop while para processar o obj de capacitação
 
-                    if not sanity_check_success:
-                        self.logger.error(f"FALHA NA VERIFICAÇÃO DE SANIDADE PÓS-APLICAÇÃO ({sanity_check_tool_name})!\nDetalhes: {sanity_check_details}")
-                        reason = f"REGRESSION_DETECTED_BY_{sanity_check_tool_name.upper()}"
-                        context = sanity_check_details
-                        success = False
-                    else:
-                        self.logger.info(f"VERIFICAÇÃO DE SANIDADE PÓS-APLICAÇÃO ({sanity_check_tool_name}): SUCESSO!")
-                        if sanity_check_tool_name != "skip_sanity_check":
-                            self.logger.info("Ressincronizando manifesto (após sucesso e sanidade)...")
-                            update_project_manifest(root_dir=".", target_files=[])
-                            with open("AGENTS.md", "r", encoding="utf-8") as f:
-                                self.state["manifesto_content"] = f.read()
-                            self.logger.info("Iniciando processo de auto-commit...")
-                            analysis_summary = self.state.get("action_plan_data", {}).get("analysis", "N/A")
-                            commit_model = self.config.get("models", {}).get("commit_message_generator", self.light_model)
-                            commit_message = generate_commit_message(
-                                self.api_key, commit_model, analysis_summary, self.state["current_objective"], self.logger
+                self._execute_validation_strategy()
+                success, reason, context = self.state.get("validation_result", (False, "UNKNOWN_ERROR", "Validação não encontrada"))
+
+                if success: # Este 'success' é o resultado da _execute_validation_strategy
+                    self.logger.info(f"\nSUCESSO NA VALIDAÇÃO/APLICAÇÃO! Razão: {reason}")
+                    if reason == "APPLIED_AND_VALIDATED":
+                        self.logger.info("--- INICIANDO VERIFICAÇÃO DE SANIDADE PÓS-APLICAÇÃO ---")
+                        current_strategy_key = self.state.get("strategy_key")
+                        strategy_config_sanity = self.config["validation_strategies"].get(current_strategy_key, {})
+                        sanity_check_tool_name = strategy_config_sanity.get("sanity_check_step", "run_pytest")
+                        sanity_check_success = True # Sucesso da verificação de sanidade
+                        sanity_check_details = "Nenhuma verificação de sanidade executada."
+
+                        if sanity_check_tool_name == "run_pytest":
+                            self.logger.info(f"Executando sanidade ({sanity_check_tool_name}) no projeto real.")
+                            sanity_check_success, sanity_check_details = run_pytest(test_dir='tests/', cwd=".")
+                        elif sanity_check_tool_name == "check_file_existence":
+                            self.logger.info(f"Executando sanidade ({sanity_check_tool_name}) no projeto real.")
+                            files_to_check = list(self.state.get("applied_files_report", {}).keys())
+                            if files_to_check:
+                                sanity_check_success, sanity_check_details = check_file_existence(files_to_check)
+                            else:
+                                sanity_check_success = True; sanity_check_details = "Nenhum arquivo aplicado para verificar."
+                        elif sanity_check_tool_name == "skip_sanity_check":
+                            sanity_check_success = True; sanity_check_details = "Verificação de sanidade pulada."
+                        else: # Ferramenta de sanidade desconhecida
+                            sanity_check_success = False; sanity_check_details = f"Ferramenta de sanidade desconhecida: {sanity_check_tool_name}"
+
+                        if not sanity_check_success: # Falha na sanidade
+                            self.logger.error(f"FALHA NA SANIDADE PÓS-APLICAÇÃO ({sanity_check_tool_name})! Detalhes: {sanity_check_details}")
+                            # Atualiza 'reason' e 'context' para refletir a falha de sanidade, e 'success' geral do ciclo para False
+                            reason = f"REGRESSION_DETECTED_BY_{sanity_check_tool_name.upper()}"
+                            context = sanity_check_details
+                            success = False # <<< MUITO IMPORTANTE: O ciclo geral agora é uma falha.
+                        else: # Sanidade OK
+                            self.logger.info(f"SANIDADE PÓS-APLICAÇÃO ({sanity_check_tool_name}): SUCESSO!")
+                            if sanity_check_tool_name != "skip_sanity_check": # Se não pulou a sanidade, faz o commit
+                                self.logger.info("Ressincronizando manifesto e iniciando auto-commit...")
+                                update_project_manifest(root_dir=".", target_files=[])
+                                with open("AGENTS.md", "r", encoding="utf-8") as f: self.state["manifesto_content"] = f.read()
+                                analysis_summary = self.state.get("action_plan_data", {}).get("analysis", "N/A")
+                                commit_model = self.config.get("models", {}).get("commit_message_generator", self.light_model)
+                                commit_message = generate_commit_message(self.api_key, commit_model, analysis_summary, self.state["current_objective"], self.logger)
+                                run_git_command(['git', 'add', '.'])
+                                commit_success_git, commit_output_git = run_git_command(['git', 'commit', '-m', commit_message])
+                                if not commit_success_git:
+                                    self.logger.error(f"FALHA CRÍTICA no git commit: {commit_output_git}. Alterações podem não ter sido salvas.")
+                                    # Considerar se deve parar o agente ou tentar reverter/logar mais
+                                else:
+                                    self.logger.info("--- AUTO-COMMIT REALIZADO COM SUCESSO ---")
+
+                            # Gerar próximo objetivo apenas se a sanidade passou (e commit foi feito ou pulado)
+                            self.logger.info("Gerando próximo objetivo evolutivo...")
+                            obj_model = self.config.get("models", {}).get("objective_generator", self.light_model)
+                            next_obj = generate_next_objective(self.api_key, obj_model, self.state["manifesto_content"], self.logger, self.memory.get_full_history_for_prompt())
+                            self.objective_stack.append(next_obj)
+                            self.logger.info(f"Próximo objetivo: {next_obj}")
+
+                        # Registrar na memória o resultado de APPLIED_AND_VALIDATED (considerando o resultado da sanidade)
+                        # O 'success' aqui reflete o sucesso geral do ciclo, incluindo a sanidade.
+                        if success: # Se sanidade passou e tudo mais
+                             self.memory.add_completed_objective(
+                                objective=self.state["current_objective"],
+                                strategy=self.state.get("strategy_key", "N/A"),
+                                details=f"Applied. Sanity ({sanity_check_tool_name}): OK. Details: {sanity_check_details}"
                             )
-                            self.logger.info(f"Mensagem de commit gerada: '{commit_message}'")
-                            self.logger.info("Adicionando todas as alterações ao staging (git add .)...")
-                            add_success_git, add_output_git = run_git_command(['git', 'add', '.'])
-                            if not add_success_git:
-                                self.logger.error(f"FALHA CRÍTICA: 'git add .' falhou. Output:\n{add_output_git}")
-                                return
-                            self.logger.info(f"Realizando commit com a mensagem: '{commit_message}'...")
-                            commit_success_git, commit_output_git = run_git_command(['git', 'commit', '-m', commit_message])
-                            if not commit_success_git:
-                                self.logger.error(f"FALHA CRÍTICA: 'git commit' falhou. Output:\n{commit_output_git}")
-                                return
-                            self.logger.info("--- AUTO-COMMIT REALIZADO COM SUCESSO ---")
-                        self.logger.info("Gerando próximo objetivo evolutivo...")
-                        objective_model = self.config.get("models", {}).get("objective_generator", self.light_model)
-                        next_obj = generate_next_objective(self.api_key, objective_model, self.state["manifesto_content"], self.logger)
+                             if self.state["current_objective"].startswith("[TAREFA DE CAPACITAÇÃO]"):
+                                self.memory.add_capability(
+                                    capability_description=f"Capacitation task completed and validated: {self.state['current_objective']}",
+                                    related_objective=self.state['current_objective']
+                                )
+                        # Se a sanidade falhou, o 'success' geral do ciclo já é False e será tratado abaixo.
+
+                    elif reason in ["DISCARDED", "VALIDATED_ONLY", "NO_PATCHES_APPLIED", "NO_ACTION_TAKEN"]:
+                        self.logger.info(f"Ciclo concluído com status: {reason}. Gerando próximo objetivo evolutivo...")
+                        if reason == "VALIDATED_ONLY": # Consideramos uma validação bem sucedida como um objetivo completo
+                             self.memory.add_completed_objective(
+                                objective=self.state["current_objective"],
+                                strategy=self.state.get("strategy_key", "N/A"),
+                                details=f"Validation successful as per strategy '{self.state.get('strategy_key', 'N/A')}'."
+                            )
+                        # Para outros (DISCARDED por escolha, NO_PATCHES, NO_ACTION), não logamos como falha crítica.
+                        obj_model = self.config.get("models", {}).get("objective_generator", self.light_model)
+                        next_obj = generate_next_objective(self.api_key, obj_model, self.state["manifesto_content"], self.logger, self.memory.get_full_history_for_prompt())
                         self.objective_stack.append(next_obj)
                         self.logger.info(f"Próximo objetivo: {next_obj}")
-                elif reason in ["DISCARDED", "VALIDATED_ONLY", "NO_PATCHES_APPLIED", "NO_ACTION_TAKEN"]:
-                    self.logger.info(f"Ciclo concluído com status: {reason}. Gerando próximo objetivo evolutivo...")
-                    objective_model = self.config.get("models", {}).get("objective_generator", self.light_model)
-                    next_obj = generate_next_objective(self.api_key, objective_model, self.state["manifesto_content"], self.logger)
-                    self.objective_stack.append(next_obj)
-                    self.logger.info(f"Próximo objetivo: {next_obj}")
 
-            if not success:
-                correctable_failure_reasons = {
-                    "PATCH_APPLICATION_FAILED_IN_SANDBOX", "SYNTAX_VALIDATION_FAILED_IN_SANDBOX",
-                    "JSON_SYNTAX_VALIDATION_FAILED_IN_SANDBOX", "PYTEST_FAILURE_IN_SANDBOX",
-                    "PROMOTION_FAILED", "PATCH_DISCARDED"
-                }
-                if 'sanity_check_tool_name' in locals() and sanity_check_tool_name and sanity_check_tool_name != "skip_sanity_check":
-                    correctable_failure_reasons.add(f"REGRESSION_DETECTED_BY_{sanity_check_tool_name.upper()}")
-                if reason in correctable_failure_reasons:
-                    self.logger.warn(f"\nFALHA CORRIGÍVEL NO CICLO! Razão: {reason}\nContexto: {context}")
-                    self.objective_stack.append(current_objective)
-                    original_patches = self.state.get("action_plan_data", {}).get("patches_to_apply", "N/A")
-                    correction_details = f"FALHA ENCONTRADA: {reason}\nDETALHES: {context}"
-                    if reason == "PATCH_DISCARDED":
-                         correction_details = f"RAZÃO DO DESCARTE (FALHA NO SANDBOX): {context}"
-                    correction_obj_text = f"""
-[TAREFA DE CORREÇÃO AUTOMÁTICA]
-OBJETIVO ORIGINAL: {current_objective}
-{correction_details}
-PATCHES ENVOLVIDOS: {json.dumps(original_patches, indent=2)}
-Sua missão é analisar o erro e os patches, e então gerar um NOVO conjunto de patches para corrigir o problema e alcançar o objetivo original.
+                # Este 'if not success' agora lida com falhas da _execute_validation_strategy OU falhas da sanidade
+                if not success:
+                    self.logger.warn(f"\nFALHA NO CICLO! Razão Final: {reason}\nContexto Final: {context}")
+                    self.memory.add_failed_objective(objective=self.state["current_objective"], reason=reason, details=context)
+
+                    correctable_failure_reasons = {
+                        "PATCH_APPLICATION_FAILED_IN_SANDBOX", "SYNTAX_VALIDATION_FAILED_IN_SANDBOX",
+                        "JSON_SYNTAX_VALIDATION_FAILED_IN_SANDBOX", "PYTEST_FAILURE_IN_SANDBOX",
+                        "PROMOTION_FAILED", "PATCH_DISCARDED" # PATCH_DISCARDED aqui é por falha no sandbox
+                    }
+                    # Adiciona falha de sanidade como corrigível, se ocorreu
+                    if 'sanity_check_tool_name' in locals() and sanity_check_tool_name != "skip_sanity_check" and reason.startswith("REGRESSION_DETECTED_BY_"):
+                        correctable_failure_reasons.add(reason)
+
+                    if reason in correctable_failure_reasons:
+                        self.logger.warn(f"Falha corrigível ({reason}). Gerando objetivo de correção.")
+                        self.objective_stack.append(current_objective) # Re-adiciona o objetivo original que falhou
+                        original_patches_str = json.dumps(self.state.get("action_plan_data", {}).get("patches_to_apply", "N/A"), indent=2)
+                        correction_details_str = f"FALHA ENCONTRADA: {reason}\nDETALHES DA FALHA: {context}"
+
+                        correction_obj_text = f"""[TAREFA DE CORREÇÃO AUTOMÁTICA]
+OBJETIVO ORIGINAL QUE FALHOU: {current_objective}
+{correction_details_str}
+PATCHES ORIGINAIS ENVOLVIDOS: {original_patches_str}
+Sua missão é analisar a falha e gerar NOVOS patches para CORRIGIR o problema e alcançar o OBJETIVO ORIGINAL.
+Se o problema foi nos patches, corrija-os. Se foi na validação ou sanidade, ajuste os patches para passar.
 """
-                    self.objective_stack.append(correction_obj_text)
-                    self.logger.info("Gerado novo objetivo de correção e adicionado à pilha.")
-                else:
-                    self.logger.error(f"\nFALHA NÃO RECUPERÁVEL OU DESCONHECIDA. Razão: {reason}. Contexto: {context}. Encerrando ciclo de objetivos.")
-                    break
+                        self.objective_stack.append(correction_obj_text)
+                        self.logger.info("Gerado novo objetivo de correção e adicionado à pilha.")
+                    else:
+                        self.logger.error(f"Falha não listada como corrigível ou desconhecida ({reason}). Encerrando processamento de objetivos.")
+                        break # Sai do loop while, pois a falha não é considerada automaticamente corrigível
 
-            self.logger.info(f"{'='*20} FIM DO CICLO DE EVOLUÇÃO {'='*20}")
-            time.sleep(self.config.get("cycle_delay_seconds", 1))
+            finally:
+                # Salvar memória ao final de cada ciclo, independentemente do resultado do ciclo.
+                self.memory.save()
+                self.logger.info(f"Memória salva em {self.memory.filepath} ({len(self.memory.completed_objectives)} completed, {len(self.memory.failed_objectives)} failed)")
+                self.logger.info(f"{'='*20} FIM DO CICLO DE EVOLUÇÃO {'='*20}")
+                time.sleep(self.config.get("cycle_delay_seconds", 1))
 
 if __name__ == "__main__":
     log_formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')

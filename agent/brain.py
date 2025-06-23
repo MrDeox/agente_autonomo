@@ -190,7 +190,8 @@ def generate_next_objective(
     model: str,
     current_manifest: str,
     logger: Any, # logging.Logger
-    base_url: str = "https://openrouter.ai/api/v1"
+    base_url: str = "https://openrouter.ai/api/v1",
+    memory_summary: Optional[str] = None
 ) -> str:
     """
     Gera o próximo objetivo evolutivo usando um modelo leve.
@@ -199,6 +200,9 @@ def generate_next_objective(
         api_key: Chave API do OpenRouter
         model: Modelo a ser usado (ex: "anthropic/claude-3.5-haiku")
         current_manifest: Conteúdo atual do manifesto do projeto
+        logger: Instância do logger.
+        base_url: URL base da API LLM.
+        memory_summary: Resumo do histórico de memória do agente.
         
     Returns:
         String com o próximo objetivo evolutivo
@@ -208,13 +212,21 @@ def generate_next_objective(
         "Authorization": f"Bearer {api_key}",
         "Content-Type": "application/json"
     }
-    
+
+    memory_context_str = ""
+    if memory_summary and memory_summary.strip() and memory_summary != "No relevant history available.":
+        memory_context_str = f"""
+[HISTÓRICO RECENTE DO PROJETO E DO AGENTE (Hephaestus)]
+{memory_summary}
+Considere este histórico para evitar repetir falhas, construir sobre sucessos e identificar lacunas.
+"""
+
     if not current_manifest.strip():
         # Special case for first run when no manifest exists
-        prompt = """
+        prompt = f"""
 [Contexto]
 Você é o 'Planejador Estratégico' do agente de IA autônomo Hephaestus. Este é o primeiro ciclo de execução e o manifesto do projeto ainda não existe. Sua tarefa é propor um objetivo inicial para criar a documentação básica do projeto.
-
+{memory_context_str}
 [Exemplos de Primeiros Objetivos]
 - "Crie o arquivo AGENTS.md com a estrutura básica do projeto."
 - "Documente as interfaces principais no manifesto do projeto."
@@ -226,8 +238,8 @@ Gere APENAS uma única string de texto contendo o objetivo inicial. Seja conciso
     else:
         prompt = f"""
 [Contexto]
-Você é o 'Planejador Estratégico' do agente de IA autônomo Hephaestus. Sua única função é analisar o estado atual do projeto (descrito no manifesto abaixo) e propor o próximo objetivo lógico e incremental para a evolução do agente. O objetivo deve ser uma tarefa pequena, segura e que melhore a qualidade, performance ou capacidade do sistema.
-
+Você é o 'Planejador Estratégico' do agente de IA autônomo Hephaestus. Sua única função é analisar o estado atual do projeto (descrito no manifesto abaixo) e o histórico recente, e então propor o próximo objetivo lógico e incremental para a evolução do agente. O objetivo deve ser uma tarefa pequena, segura e que melhore a qualidade, performance ou capacidade do sistema.
+{memory_context_str}
 [Exemplos de Bons Objetivos]
 - "Remova os imports não usados no arquivo X."
 - "A docstring da função Y no arquivo Z está incompleta. Melhore-a."
@@ -239,7 +251,7 @@ Você é o 'Planejador Estratégico' do agente de IA autônomo Hephaestus. Sua �
 {current_manifest}
 
 [Sua Tarefa]
-Gere APENAS uma única string de texto contendo o próximo objetivo. Seja conciso e direto.
+Gere APENAS uma única string de texto contendo o próximo objetivo. Seja conciso e direto. Considere o histórico para não repetir objetivos que falharam recentemente da mesma forma ou para continuar trabalhos bem-sucedidos.
 """
     
     payload = {
@@ -262,7 +274,9 @@ def generate_capacitation_objective(
     api_key: str,
     model: str,
     engineer_analysis: str,
-    base_url: str = "https://openrouter.ai/api/v1"
+    base_url: str = "https://openrouter.ai/api/v1",
+    memory_summary: Optional[str] = None,
+    logger: Optional[Any] = None # Adicionado logger para consistência e debug
 ) -> str:
     """Gera um objetivo para criar novas capacidades necessárias.
     
@@ -270,6 +284,9 @@ def generate_capacitation_objective(
         api_key: Chave API do OpenRouter
         model: Modelo a ser usado (ex: "anthropic/claude-3.5-haiku")
         engineer_analysis: Análise do Engenheiro indicando a necessidade
+        base_url: URL base da API LLM.
+        memory_summary: Resumo do histórico de memória do agente.
+        logger: Instância do logger.
         
     Returns:
         String com o objetivo de capacitação
@@ -279,23 +296,39 @@ def generate_capacitation_objective(
         "Authorization": f"Bearer {api_key}",
         "Content-Type": "application/json"
     }
-    
+
+    memory_context_str = ""
+    if memory_summary and memory_summary.strip() and memory_summary != "No relevant history available.":
+        memory_context_str = f"""
+[HISTÓRICO RECENTE DO AGENTE (Hephaestus)]
+{memory_summary}
+Verifique se alguma capacidade similar já foi tentada ou implementada recentemente.
+"""
+
     prompt = f"""
 [Contexto]
-Você é o Planejador de Capacitação do agente Hephaestus. Um engenheiro propôs uma solução que requer novas ferramentas que não existem.
-
+Você é o Planejador de Capacitação do agente Hephaestus. Um engenheiro propôs uma solução que requer novas ferramentas/capacidades que não existem ou não foram suficientes anteriormente.
+{memory_context_str}
 [Análise do Engenheiro que Requer Nova Capacidade]
 {engineer_analysis}
 
 [Sua Tarefa]
-Traduza a necessidade descrita acima em um objetivo de engenharia claro, conciso e executável para criar a capacidade que falta. O objetivo deve ser uma instrução para o próprio agente se modificar.
+Traduza a necessidade descrita na análise em um objetivo de engenharia claro, conciso e executável para criar ou aprimorar a capacidade que falta. O objetivo deve ser uma instrução para o próprio agente Hephaestus se modificar ou adicionar novas ferramentas/funções.
+Considere o histórico para não repetir sugestões de capacitação idênticas se elas falharam ou se já foram bem-sucedidas e a análise indica uma nova necessidade.
 
-[Exemplo]
-Se a análise diz "precisamos de uma ferramenta para fazer requests web", seu output deve ser "Adicione uma nova função `http_get` ao `tool_executor.py` que use a biblioteca `requests` para fazer requisições web e retorne o conteúdo."
+[Exemplo de Objetivo de Capacitação]
+Se a análise diz "precisamos de uma ferramenta para fazer requests web GET", seu output poderia ser: "Adicione uma nova função `http_get(url: str) -> str` ao `agent/tool_executor.py` que use a biblioteca `requests` para fazer requisições GET e retorne o conteúdo da resposta como string."
+Se a análise diz "a função de parsing de JSON falhou com arquivos grandes", seu output poderia ser: "Melhore a função `parse_json_file` em `agent/utils.py` para lidar com streaming de dados ou aumentar a eficiência para arquivos JSON grandes."
 
-Gere APENAS a string de texto do novo objetivo.
+
+[FORMATO OBRIGATÓRIO]
+Gere APENAS a string de texto do novo objetivo de capacitação.
+O objetivo DEVE começar com "[TAREFA DE CAPACITAÇÃO]". Por exemplo: "[TAREFA DE CAPACITAÇÃO] Adicionar nova ferramenta X."
 """
     
+    if logger:
+        logger.debug(f"Prompt para gerar objetivo de capacitação:\n{prompt}")
+
     payload = {
         "model": model,
         "messages": [{"role": "user", "content": prompt}],
@@ -318,6 +351,8 @@ def get_maestro_decision(
     engineer_response: Dict[str, Any],
     config: Dict[str, Any],
     base_url: str = "https://openrouter.ai/api/v1",
+    memory_summary: Optional[str] = None,
+    logger: Optional[Any] = None # Adicionado logger para consistência e debug
 ) -> List[Dict[str, Any]]:
     """Consulta a LLM para decidir qual estratégia de validação adotar."""
 
@@ -325,8 +360,20 @@ def get_maestro_decision(
     available_keys = ", ".join(config.get("validation_strategies", {}).keys())
     engineer_summary = json.dumps(engineer_response, ensure_ascii=False, indent=2)
 
+    memory_context_str = ""
+    if memory_summary and memory_summary.strip() and memory_summary != "No relevant history available.":
+        memory_context_str = f"""
+[HISTÓRICO RECENTE (OBJETIVOS E ESTRATÉGIAS USADAS)]
+{memory_summary}
+Considere este histórico ao tomar sua decisão. Evite repetir estratégias que falharam recentemente para objetivos semelhantes, a menos que a causa da falha pareça ter sido resolvida ou a proposta atual seja significativamente diferente.
+"""
+
     for model in model_list:
-        print(f"Tentando com o modelo: {model} para decisão do Maestro...")
+        if logger:
+            logger.info(f"Tentando com o modelo: {model} para decisão do Maestro...")
+        else:
+            print(f"Tentando com o modelo: {model} para decisão do Maestro...")
+
         url = f"{base_url}/chat/completions"
         headers = {
             "Authorization": f"Bearer {api_key}",
@@ -335,18 +382,29 @@ def get_maestro_decision(
 
         prompt = f"""
 [IDENTIDADE]
-Você é o Maestro do agente Hephaestus. Analise a proposta do Engenheiro abaixo e decida a melhor ação:
-1. Se a solução requer novas capacidades (ferramentas, estratégias ou bibliotecas), responda com CAPACITATION_REQUIRED
-2. Caso contrário, escolha a estratégia de validação mais adequada
+Você é o Maestro do agente Hephaestus. Sua tarefa é analisar a proposta do Engenheiro (plano de patches) e o histórico recente do agente para decidir a melhor ação a seguir.
 
-Estratégias disponíveis: {available_keys}, CAPACITATION_REQUIRED
+[CONTEXTO E HISTÓRICO]
+{memory_context_str}
 
-Proposta do Engenheiro:
+[PROPOSTA DO ENGENHEIRO (PLANO DE PATCHES)]
 {engineer_summary}
 
-Responda apenas com um JSON no formato:
-{{"strategy_key": "<UMA_DAS_CHAVES_ACIMA_OU_CAPACITATION_REQUIRED>"}}
+[SUA DECISÃO]
+Com base na proposta do Engenheiro e no histórico:
+1. Se a solução parece razoável e não requer novas capacidades fundamentais que o agente Hephaestus não possui, escolha a estratégia de validação mais adequada dentre as disponíveis.
+2. Se a solução proposta pelo Engenheiro claramente requer novas capacidades (novas ferramentas, acesso a novas bibliotecas, novas estratégias de validação complexas que não existem) que o agente Hephaestus precisa desenvolver internamente, responda com `CAPACITATION_REQUIRED`.
+
+Estratégias de Validação Disponíveis: {available_keys}
+Opção Adicional: CAPACITATION_REQUIRED
+
+[FORMATO DE SAÍDA OBRIGATÓRIO]
+Responda APENAS com um objeto JSON contendo a chave "strategy_key" e o valor sendo UMA das estratégias de validação disponíveis OU "CAPACITATION_REQUIRED".
+Exemplo: {{"strategy_key": "sandbox_pytest_validation"}}
+Exemplo: {{"strategy_key": "CAPACITATION_REQUIRED"}}
 """
+        if logger:
+            logger.debug(f"Prompt para decisão do Maestro:\n{prompt}")
 
         payload = {
             "model": model,
