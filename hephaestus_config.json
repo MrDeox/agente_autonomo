@@ -7,27 +7,27 @@
   },
   "validation_strategies": {
     "SYNTAX_ONLY": {
-      "steps": ["validate_syntax", "apply_changes"],
+      "steps": ["validate_syntax", "apply_patches_to_disk"],
       "sanity_check_step": "run_pytest"
     },
     "BENCHMARK_ONLY": {
-      "steps": ["run_benchmark_validation", "apply_changes"],
+      "steps": ["run_benchmark_validation", "apply_patches_to_disk"],
       "sanity_check_step": "run_pytest"
     },
     "SYNTAX_AND_PYTEST": {
-      "steps": ["validate_syntax", "run_pytest_validation", "apply_changes"],
+      "steps": ["validate_syntax", "run_pytest_validation", "apply_patches_to_disk"],
       "sanity_check_step": "run_pytest"
     },
     "FULL_VALIDATION": {
-      "steps": ["validate_syntax", "run_pytest_validation", "run_benchmark_validation", "apply_changes"],
+      "steps": ["validate_syntax", "run_pytest_validation", "run_benchmark_validation", "apply_patches_to_disk"],
       "sanity_check_step": "run_pytest"
     },
     "DOC_UPDATE_STRATEGY": {
-      "steps": ["apply_changes", "check_file_existence"],
+      "steps": ["validate_syntax", "apply_patches_to_disk", "check_file_existence"],
       "sanity_check_step": "check_file_existence"
     },
     "CONFIG_UPDATE_STRATEGY": {
-      "steps": ["validate_json_syntax", "apply_changes"],
+      "steps": ["validate_json_syntax", "validate_syntax", "apply_patches_to_disk"],
       "sanity_check_step": "check_file_existence"
     },
     "DISCARD": {

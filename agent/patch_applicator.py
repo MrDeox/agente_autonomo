@@ -124,7 +124,7 @@ def apply_patches(instructions: list[dict], logger: logging.Logger, base_path: s
                                 logger.debug(f"Bloco(s) regex '{block_to_replace_pattern}' substituído(s) em '{full_path}' ({num_subs} ocorrências).")
                                 replaced = True
                             else:
-                        logger.warning(f"Padrão regex '{block_to_replace_pattern}' não encontrado em '{full_path}' para REPLACE.")
+                                logger.warning(f"Padrão regex '{block_to_replace_pattern}' não encontrado em '{full_path}' para REPLACE.")
                         except re.error as e:
                             logger.error(f"Erro de regex em 'block_to_replace': '{block_to_replace_pattern}' para '{full_path}'. Erro: {e}. Tentando como string literal.")
                             # Fallback para string literal
@@ -134,7 +134,7 @@ def apply_patches(instructions: list[dict], logger: logging.Logger, base_path: s
                                 logger.debug(f"Bloco '{block_to_replace_pattern}' (literal fallback) substituído em '{full_path}'.")
                                 replaced = True
                             else:
-                                logger.warning(f"Bloco '{block_to_replace_pattern}' (literal fallback) não encontrado em '{full_path}' para REPLACE.") # CORRIGIDO
+                                logger.warning(f"Bloco '{block_to_replace_pattern}' (literal fallback) não encontrado em '{full_path}' para REPLACE.")
                     else:
                         if block_to_replace_pattern in file_content_str:
                             modified_content = file_content_str.replace(block_to_replace_pattern, "\n".join(new_content_lines), 1)

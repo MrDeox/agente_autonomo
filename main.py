@@ -45,20 +45,22 @@ class HephaestusAgent:
 
 
     def _reset_cycle_state(self):
-        """Reseta o estado transitório do ciclo, mantendo o objetivo atual."""
-        # Mantém o current_objective entre os ciclos, a não ser que seja um sucesso
+        """Reseta o estado transitório do ciclo, mantendo apenas o objetivo atual."""
+        # Preserva apenas o current_objective entre os ciclos
         current_objective = self.state.get("current_objective")
         self.state = {
             "current_objective": current_objective,
             "manifesto_content": "",
-            "action_plan_data": None, # Conterá o JSON do Arquiteto: {"analysis": "...", "action_plan": []}
-            "in_memory_files": {},   # Dict[str, List[str]] para armazenar conteúdo de arquivos em memória
-            "model_architect": None, # Modelo usado pelo Arquiteto
-            "model_code_engineer": None, # Modelo usado pelo Engenheiro de Código
+            "action_plan_data": None,
+            "in_memory_files": {},
+            "model_architect": None,
+            "model_code_engineer": None,
             "strategy_key": None,
             "validation_result": (False, "PENDING", "Ciclo não iniciado"),
-            "applied_files_report": {} # Relatório de quais arquivos foram realmente modificados/criados
+            "applied_files_report": {}
         }
+        # Reseta variáveis de ciclo que não devem persistir
+        self.objective_stack = [obj for obj in self.objective_stack if obj != current_objective]
 
     @staticmethod
     def load_config() -> dict:
@@ -277,7 +279,6 @@ class HephaestusAgent:
 
             elif step_name == "run_pytest_validation":
                 self.logger.info("Executando Pytest...")
-                # run_pytest deveria aceitar um logger
                 success, details = run_pytest(test_dir='tests/')
                 if not success:
                     self.logger.warn(f"Falha no Pytest: {details}")
@@ -379,10 +380,9 @@ class HephaestusAgent:
                         self.logger.info(f"Executando verificação de sanidade com: {sanity_check_tool_name}")
                         files_to_check = list(self.state.get("applied_files_report", {}).keys())
                         if files_to_check:
-                             # check_file_existence deveria aceitar logger
-                            sanity_check_success, sanity_check_details = check_file_existence(files_to_check, self.logger)
+                            sanity_check_success, sanity_check_details = check_file_existence(files_to_check)
                         else:
-                            sanity_check_success = True # Sucesso se não há arquivos para checar
+                            sanity_check_success = True
                             sanity_check_details = "Nenhum arquivo foi reportado como aplicado para verificação de existência."
                             self.logger.info(sanity_check_details)
                     elif sanity_check_tool_name == "skip_sanity_check":
