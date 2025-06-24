@@ -16,6 +16,7 @@ def test_memory_initialization(temp_memory_file):
     assert memory.completed_objectives == []
     assert memory.failed_objectives == []
     assert memory.acquired_capabilities == []
+    assert memory.recent_objectives_log == [] # Verificar novo atributo
 
 def test_save_and_load_empty_memory(temp_memory_file):
     """Test saving and loading an empty memory."""
@@ -28,6 +29,7 @@ def test_save_and_load_empty_memory(temp_memory_file):
     assert memory2.completed_objectives == []
     assert memory2.failed_objectives == []
     assert memory2.acquired_capabilities == []
+    assert memory2.recent_objectives_log == [] # Verificar novo atributo
 
 def test_add_completed_objective(temp_memory_file):
     """Test adding and saving/loading a completed objective."""
@@ -99,6 +101,7 @@ def test_load_non_existent_file(tmp_path):
     assert memory.completed_objectives == []
     assert memory.failed_objectives == []
     assert memory.acquired_capabilities == []
+    assert memory.recent_objectives_log == []
 
 def test_load_corrupted_json_file(temp_memory_file):
     """Test loading from a corrupted JSON file, should start fresh and print warning."""
@@ -113,6 +116,7 @@ def test_load_corrupted_json_file(temp_memory_file):
     assert memory.completed_objectives == []
     assert memory.failed_objectives == []
     assert memory.acquired_capabilities == []
+    assert memory.recent_objectives_log == []
 
 def test_file_persistence_across_instances(temp_memory_file):
     """Test that data saved by one instance is loaded by another."""
@@ -244,6 +248,61 @@ def test_get_history_summary_max_items(temp_memory_file):
     assert "Cap 1" not in full_prompt_summary_limited # Excluded by max_capabilities=3 from 5 total.
     assert "FailObj 3" not in full_prompt_summary_limited # Excluded by max_failed=1
     assert "CompObj 2" not in full_prompt_summary_limited # Excluded by max_completed=2
+
+
+def test_recent_objectives_log_tracking_and_trimming(temp_memory_file):
+    """Test that recent_objectives_log correctly tracks objectives and stays trimmed."""
+    memory = Memory(filepath=str(temp_memory_file))
+
+    # Add 7 objectives (2 completed, 5 failed)
+    memory.add_completed_objective("Obj Comp 1", "s", "d")
+    memory.add_failed_objective("Obj Fail 1", "r", "d")
+    memory.add_completed_objective("Obj Comp 2", "s", "d")
+    memory.add_failed_objective("Obj Fail 2", "r", "d")
+    memory.add_failed_objective("Obj Fail 3", "r", "d")
+    memory.add_failed_objective("Obj Fail 4", "r", "d")
+    memory.add_failed_objective("Obj Fail 5", "r", "d") # This is the 7th total, 5th fail
+
+    assert len(memory.recent_objectives_log) == 5 # Should be trimmed to 5
+
+    # Check content of the log (most recent 5)
+    # Expected: Comp2 (success), Fail2 (failure), Fail3 (failure), Fail4 (failure), Fail5 (failure)
+    assert memory.recent_objectives_log[0]["objective"] == "Obj Comp 2"
+    assert memory.recent_objectives_log[0]["status"] == "success"
+
+    assert memory.recent_objectives_log[1]["objective"] == "Obj Fail 2"
+    assert memory.recent_objectives_log[1]["status"] == "failure"
+
+    assert memory.recent_objectives_log[2]["objective"] == "Obj Fail 3"
+    assert memory.recent_objectives_log[2]["status"] == "failure"
+
+    assert memory.recent_objectives_log[3]["objective"] == "Obj Fail 4"
+    assert memory.recent_objectives_log[3]["status"] == "failure"
+
+    assert memory.recent_objectives_log[4]["objective"] == "Obj Fail 5"
+    assert memory.recent_objectives_log[4]["status"] == "failure"
+
+    # Add one more, check trimming again
+    memory.add_completed_objective("Obj Comp 3", "s", "d") # This is the 8th
+    assert len(memory.recent_objectives_log) == 5
+
+    # Expected: Fail2, Fail3, Fail4, Fail5, Comp3
+    assert memory.recent_objectives_log[0]["objective"] == "Obj Fail 2"
+    assert memory.recent_objectives_log[1]["objective"] == "Obj Fail 3"
+    assert memory.recent_objectives_log[2]["objective"] == "Obj Fail 4"
+    assert memory.recent_objectives_log[3]["objective"] == "Obj Fail 5"
+    assert memory.recent_objectives_log[4]["objective"] == "Obj Comp 3"
+    assert memory.recent_objectives_log[4]["status"] == "success"
+
+    # Test save and load for recent_objectives_log
+    memory.save()
+    new_memory = Memory(filepath=str(temp_memory_file))
+    new_memory.load()
+
+    assert len(new_memory.recent_objectives_log) == 5
+    assert new_memory.recent_objectives_log[4]["objective"] == "Obj Comp 3"
+    assert new_memory.recent_objectives_log[0]["objective"] == "Obj Fail 2"
+
 
 # To run these tests:
 # Ensure pytest is installed: pip install pytest

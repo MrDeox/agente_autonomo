@@ -19,6 +19,7 @@ class Memory:
         self.completed_objectives: List[Dict[str, Any]] = []
         self.failed_objectives: List[Dict[str, Any]] = []
         self.acquired_capabilities: List[Dict[str, Any]] = []
+        self.recent_objectives_log: List[Dict[str, Any]] = [] # Novo atributo
         # knowledge_summary can be added later if needed.
 
     def _get_timestamp(self) -> str:
@@ -37,6 +38,7 @@ class Memory:
                     self.completed_objectives = data.get("completed_objectives", [])
                     self.failed_objectives = data.get("failed_objectives", [])
                     self.acquired_capabilities = data.get("acquired_capabilities", [])
+                    self.recent_objectives_log = data.get("recent_objectives_log", []) # Carregar novo atributo
             else:
                 # File not found, start with empty memory (already initialized)
                 pass
@@ -50,12 +52,14 @@ class Memory:
             self.completed_objectives = []
             self.failed_objectives = []
             self.acquired_capabilities = []
+            self.recent_objectives_log = []
         except Exception as e:
             # Other potential errors during loading
             print(f"Error loading memory from {self.filepath}: {e}. Starting with empty memory.")
             self.completed_objectives = []
             self.failed_objectives = []
             self.acquired_capabilities = []
+            self.recent_objectives_log = []
 
 
     def save(self) -> None:
@@ -65,7 +69,8 @@ class Memory:
         data = {
             "completed_objectives": self.completed_objectives,
             "failed_objectives": self.failed_objectives,
-            "acquired_capabilities": self.acquired_capabilities
+            "acquired_capabilities": self.acquired_capabilities,
+            "recent_objectives_log": self.recent_objectives_log # Salvar novo atributo
         }
         try:
             with open(self.filepath, 'w', encoding='utf-8') as f:
@@ -91,6 +96,19 @@ class Memory:
             "date": self._get_timestamp()
         }
         self.completed_objectives.append(record)
+        self._add_to_recent_objectives_log(objective, "success")
+
+    def _add_to_recent_objectives_log(self, objective: str, status: str) -> None:
+        """Helper method to add to the recent objectives log and keep it trimmed."""
+        log_entry = {
+            "objective": objective,
+            "status": status,
+            "date": self._get_timestamp()
+        }
+        self.recent_objectives_log.append(log_entry)
+        # Keep only the last 5 entries
+        if len(self.recent_objectives_log) > 5:
+            self.recent_objectives_log = self.recent_objectives_log[-5:]
 
     def add_failed_objective(self, objective: str, reason: str, details: str) -> None:
         """
@@ -108,6 +126,7 @@ class Memory:
             "date": self._get_timestamp()
         }
         self.failed_objectives.append(record)
+        self._add_to_recent_objectives_log(objective, "failure")
 
     def add_capability(self, capability_description: str, related_objective: Optional[str] = None) -> None:
         """
