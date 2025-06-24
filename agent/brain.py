@@ -80,22 +80,22 @@ def generate_next_objective(
     """
     Gera o próximo objetivo evolutivo usando um modelo leve.
     """
-    # Esta função agora usa sua própria cópia de _call_llm_api ou uma importada.
-    # A base_url é passada diretamente para _call_llm_api e não deve ser modificada aqui.
+    # Garantir que o memory_summary seja sanitizado antes de usar
+    sanitized_memory = memory_summary.strip() if memory_summary and memory_summary.strip() else None
 
     memory_context_section = ""
-    if memory_summary and memory_summary.strip() and memory_summary != "No relevant history available.":
+    if sanitized_memory and sanitized_memory != "No relevant history available.":
         memory_context_section = f"""
 [HISTÓRICO RECENTE DO PROJETO E DO AGENTE (Hephaestus)]
-{memory_summary}
+{sanitized_memory}
 Considere este histórico para evitar repetir falhas, construir sobre sucessos e identificar lacunas.
 """
 
     if not current_manifest.strip():
-        prompt_template = f"""
+        prompt_template = """
 [Contexto]
 Você é o 'Planejador Estratégico' do agente de IA autônomo Hephaestus. Este é o primeiro ciclo de execução e o manifesto do projeto ainda não existe. Sua tarefa é propor um objetivo inicial para criar a documentação básica do projeto.
-{{memory_section}}
+{memory_section}
 [Exemplos de Primeiros Objetivos]
 - "Crie o arquivo AGENTS.md com a estrutura básica do projeto."
 - "Documente as interfaces principais no manifesto do projeto."
@@ -104,12 +104,12 @@ Você é o 'Planejador Estratégico' do agente de IA autônomo Hephaestus. Este 
 [Sua Tarefa]
 Gere APENAS uma única string de texto contendo o objetivo inicial. Seja conciso e direto.
 """
-        prompt = prompt_template.replace("{memory_section}", memory_context_section)
+        prompt = prompt_template.format(memory_section=memory_context_section)
     else:
-        prompt_template = f"""
+        prompt_template = """
 [Contexto]
 Você é o 'Planejador Estratégico' do agente de IA autônomo Hephaestus. Sua única função é analisar o estado atual do projeto (descrito no manifesto abaixo) e o histórico recente, e então propor o próximo objetivo lógico e incremental para a evolução do agente. O objetivo deve ser uma tarefa pequena, segura e que melhore a qualidade, performance ou capacidade do sistema.
-{{memory_section}}
+{memory_section}
 [Exemplos de Bons Objetivos]
 - "Remova os imports não usados no arquivo X."
 - "A docstring da função Y no arquivo Z está incompleta. Melhore-a."
@@ -123,10 +123,20 @@ Você é o 'Planejador Estratégico' do agente de IA autônomo Hephaestus. Sua �
 [Sua Tarefa]
 Gere APENAS uma única string de texto contendo o próximo objetivo. Seja conciso e direto. Considere o histórico para não repetir objetivos que falharam recentemente da mesma forma ou para continuar trabalhos bem-sucedidos.
 """
-        prompt = prompt_template.replace("{memory_section}", memory_context_section)
+        prompt = prompt_template.format(
+            memory_section=memory_context_section,
+            current_manifest=current_manifest
+        )
     
-    # A chamada para _call_llm_api usa a base_url original e o prompt montado.
-    content, error = _call_llm_api(api_key, model, prompt, 0.3, base_url, logger)
+    # Chamada segura para a API - base_url permanece intacta
+    content, error = _call_llm_api(
+        api_key=api_key,
+        model=model,
+        prompt=prompt,
+        temperature=0.3,
+        base_url=base_url,  # URL original sem modificações
+        logger=logger
+    )
 
     if error:
         log_message = f"Erro ao gerar próximo objetivo: {error}"
