@@ -16,33 +16,33 @@ logger.setLevel(logging.DEBUG)
 def test_validate_python_code_valid(tmp_path: Path):
     valid_py_file = tmp_path / "valid.py"
     valid_py_file.write_text("def hello():\n  print('world')\n")
-    is_valid, error_msg = validate_python_code(valid_py_file, logger)
-    assert is_valid is True
-    assert error_msg is None
+    result = validate_python_code(valid_py_file, logger)
+    assert result[0] is True  # is_valid
+    assert result[1] is None  # error_msg
 
 def test_validate_python_code_invalid_syntax(tmp_path: Path):
     invalid_py_file = tmp_path / "invalid.py"
     invalid_py_file.write_text("def hello()\n  print('world')\n") # Erro de sintaxe: faltando ':'
-    is_valid, error_msg = validate_python_code(invalid_py_file, logger)
-    assert is_valid is False
-    assert error_msg is not None
-    assert isinstance(error_msg, str)
+    result = validate_python_code(invalid_py_file, logger)
+    assert result[0] is False  # is_valid
+    assert result[1] is not None  # error_msg
+    assert isinstance(result[1], str)
     # A mensagem exata pode variar com a versão do Python, então verificamos se há uma mensagem.
     # Exemplo: "expected ':'" ou similar.
 
 def test_validate_python_code_file_not_found(tmp_path: Path):
     non_existent_file = tmp_path / "non_existent.py"
-    is_valid, error_msg = validate_python_code(non_existent_file, logger)
-    assert is_valid is False
-    assert error_msg is not None
-    assert "Arquivo não encontrado" in error_msg
+    result = validate_python_code(non_existent_file, logger)
+    assert result[0] is False  # is_valid
+    assert result[1] is not None  # error_msg
+    assert "Arquivo não encontrado" in result[1]
 
 def test_validate_python_code_empty_file(tmp_path: Path):
     empty_py_file = tmp_path / "empty.py"
     empty_py_file.write_text("") # Arquivo vazio é Python válido
-    is_valid, error_msg = validate_python_code(empty_py_file, logger)
-    assert is_valid is True
-    assert error_msg is None
+    result = validate_python_code(empty_py_file, logger)
+    assert result[0] is True  # is_valid
+    assert result[1] is None  # error_msg
 
 # Testes para validate_json_syntax
 def test_validate_json_syntax_valid(tmp_path: Path):

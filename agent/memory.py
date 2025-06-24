@@ -2,6 +2,7 @@ import json
 import datetime
 import os
 from typing import List, Dict, Any, Optional
+from datetime import timezone # Adicionado
 
 class Memory:
     """
@@ -27,7 +28,7 @@ class Memory:
 
     def _get_timestamp(self) -> str:
         """Returns a standardized ISO format timestamp."""
-        return datetime.datetime.utcnow().isoformat()
+        return datetime.datetime.now(timezone.utc).isoformat()
 
     def load(self) -> None:
         """

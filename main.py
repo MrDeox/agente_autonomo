@@ -468,7 +468,7 @@ hephaestus.log
                 continue # Se o arquivo não existe, não há o que validar sintaticamente aqui.
 
             if file_path_relative.endswith(".py"):
-                is_valid, msg = validate_python_code(full_file_path_in_target, self.logger)
+                is_valid, msg, _ = validate_python_code(full_file_path_in_target, self.logger)
                 if not is_valid:
                     self.logger.warn(f"Erro de sintaxe Python em {full_file_path_in_target}: {msg}")
                     all_syntax_valid = False

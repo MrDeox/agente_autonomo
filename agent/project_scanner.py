@@ -99,7 +99,7 @@ def update_project_manifest(
 
             # Nova lógica de filtragem de diretórios
             # Primeiro, os diretórios básicos de skip_dirs e ocultos
-            dirs[:] = [d for d in dirs if not d.startswith('.') and d not in skip_dirs]
+            dirs[:] = [d for d in dirs if not d.startswith('.') and d not in default_skip_dirs]
             # Depois, os padrões de diretórios excluídos
             # Para excluded_dir_patterns, precisamos checar o nome do diretório E o caminho relativo
             # Isso é feito para permitir padrões como "tests" (qualquer pasta chamada tests)
@@ -108,8 +108,7 @@ def update_project_manifest(
             # Vamos simplificar por agora para filtrar apenas pelo nome base do diretório.
             # Padrões mais complexos (como caminhos relativos) exigiriam uma lógica mais elaborada aqui
             # ou um pré-processamento de todos os caminhos.
-            # Por enquanto, `active_excluded_dir_patterns` conterá nomes de diretórios a serem excluídos.
-            dirs[:] = [d for d in dirs if d not in active_excluded_dir_patterns and not any(fnmatch.fnmatch(d, pattern) for pattern in active_excluded_dir_patterns)]
+            dirs[:] = [d for d in dirs if d not in current_excluded_dirs and not any(fnmatch.fnmatch(d, pattern) for pattern in current_excluded_dirs)]
 
 
             # Escrever o nome do diretório atual (root)
@@ -135,9 +134,9 @@ def update_project_manifest(
 
             current_dir_name = os.path.basename(root)
             if current_path_obj != root_path: # Não excluir o diretório raiz do manifesto
-                if current_dir_name in active_excluded_dir_patterns or \
-                   any(fnmatch.fnmatch(current_dir_name, pattern) for pattern in active_excluded_dir_patterns) or \
-                   current_dir_name in skip_dirs: # Adicionado skip_dirs aqui também
+                if current_dir_name in current_excluded_dirs or \
+                   any(fnmatch.fnmatch(current_dir_name, pattern) for pattern in current_excluded_dirs) or \
+                   current_dir_name in default_skip_dirs: # Adicionado default_skip_dirs aqui também
                     continue # Pula para o próximo diretório no os.walk
 
             # Calcular indentação e escrever o nome do diretório atual
