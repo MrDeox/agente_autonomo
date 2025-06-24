@@ -836,6 +836,9 @@ hephaestus.log
                         original_patches_str = json.dumps(self.state.get_patches_to_apply(), indent=2) # Usar helper
                         correction_details_str = f"FALHA ENCONTRADA: {reason}\nDETALHES DA FALHA: {context}"
 
+                        # Verificar se é uma falha de teste pytest
+                        is_test_failure = "PYTEST_FAILURE" in reason or "REGRESSION_DETECTED_BY_RUN_PYTEST" in reason
+                        
                         correction_obj_text = f"""[TAREFA DE CORREÇÃO AUTOMÁTICA]
 OBJETIVO ORIGINAL QUE FALHOU: {current_objective}
 {correction_details_str}
@@ -843,8 +846,12 @@ PATCHES ORIGINAIS ENVOLVIDOS: {original_patches_str}
 Sua missão é analisar a falha e gerar NOVOS patches para CORRIGIR o problema e alcançar o OBJETIVO ORIGINAL.
 Se o problema foi nos patches, corrija-os. Se foi na validação ou sanidade, ajuste os patches para passar.
 """
+                        if is_test_failure:
+                            # Adicionar flag especial para correção de testes
+                            correction_obj_text += "\n[CONTEXT_FLAG] TEST_FIX_IN_PROGRESS"
+                        
                         self.objective_stack.append(correction_obj_text)
-                        self.logger.info("Gerado novo objetivo de correção e adicionado à pilha.")
+                        self.logger.info(f"Gerado novo objetivo de correção e adicionado à pilha. {'(TEST_FIX_IN_PROGRESS)' if is_test_failure else ''}")
                     else:
                         self.logger.error(f"Falha não listada como corrigível ou desconhecida ({reason}). Encerrando processamento de objetivos.")
                         break

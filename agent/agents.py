@@ -237,6 +237,20 @@ class MaestroAgent:
         available_keys = ", ".join(self.config.get("validation_strategies", {}).keys())
         engineer_summary = json.dumps(action_plan_data, ensure_ascii=False, indent=2)
 
+        # Verificar se é uma correção de teste (context_flag="TEST_FIX_IN_PROGRESS")
+        if memory_summary and "[CONTEXT_FLAG] TEST_FIX_IN_PROGRESS" in memory_summary:
+            test_fix_strategy = self.config.get("validation_strategies", {}).get("test_fix_strategy")
+            if test_fix_strategy:
+                self.logger.info("MaestroAgent: Detectado TEST_FIX_IN_PROGRESS - usando estratégia especial para correção de testes")
+                return [{
+                    "model": "test_fix_strategy",
+                    "raw_response": "Automatic test fix strategy selected",
+                    "parsed_json": {"strategy_key": "test_fix_strategy"},
+                    "success": True
+                }]
+            else:
+                self.logger.warning("MaestroAgent: TEST_FIX_IN_PROGRESS detectado mas 'test_fix_strategy' não está configurada")
+
         memory_context_str = ""
         if memory_summary and memory_summary.strip() and memory_summary != "No relevant history available.":
             memory_context_str = f"""

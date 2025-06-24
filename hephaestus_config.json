@@ -33,6 +33,10 @@
     "DISCARD": {
       "steps": [],
       "sanity_check_step": "skip_sanity_check"
+    },
+    "TEST_FIX_STRATEGY": {
+      "steps": ["validate_syntax", "apply_patches_to_disk"],
+      "sanity_check_step": "run_pytest"
     }
   }
 }
