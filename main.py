@@ -4,6 +4,7 @@ import shutil
 import tempfile
 import time
 import logging # ADICIONADO
+import argparse # ADICIONADO PARA ARGUMENTOS DE LINHA DE COMANDO
 from pathlib import Path
 from dotenv import load_dotenv
 from typing import Optional, Dict, Any, List, Tuple # ADICIONADO PARA TYPE HINTS
@@ -35,18 +36,23 @@ logger = logging.getLogger(__name__) # ADICIONADO
 class HephaestusAgent:
     """Classe principal que encapsula a lógica do agente autônomo."""
 
-    def __init__(self, logger_instance, objective_stack_depth_for_testing: Optional[int] = None): # MODIFICADO
+    def __init__(self,
+                 logger_instance,
+                 continuous_mode: bool = False, # ADICIONADO
+                 objective_stack_depth_for_testing: Optional[int] = None): # MODIFICADO
         """
         Inicializa o agente com configuração.
 
         Args:
             logger_instance: Instância do logger a ser usada.
+            continuous_mode: Se True, o agente opera em modo contínuo. # ADICIONADO
             objective_stack_depth_for_testing: Limite opcional para o número de ciclos de execução,
                                                   usado principalmente para testes. Se None, o agente
-                                                  executa continuamente.
+                                                  executa continuamente (se continuous_mode não estiver ativo e a pilha estiver vazia).
         """
         self.logger = logger_instance # ADICIONADO
         self.config = self.load_config()
+        self.continuous_mode = continuous_mode # ADICIONADO
         self.objective_stack_depth_for_testing = objective_stack_depth_for_testing
         self.api_key = os.getenv("OPENROUTER_API_KEY")
         self.model_list = [
@@ -692,17 +698,44 @@ hephaestus.log
         # para limitar o número de ciclos e evitar loops infinitos.
         # Em produção, deixe como None para execução contínua.
 
-        while self.objective_stack:
+        self.logger.info(f"Iniciando HephaestusAgent. Modo Contínuo: {'ATIVADO' if self.continuous_mode else 'DESATIVADO'}.")
+        if self.objective_stack_depth_for_testing is not None:
+            self.logger.info(f"Limite máximo de ciclos de execução definido para: {self.objective_stack_depth_for_testing}.") # Ponto final adicionado
+
+
+        # Loop principal de execução
+        while True: # Modificado para suportar modo contínuo
+            if not self.objective_stack:
+                if self.continuous_mode:
+                    self.logger.info(f"\n{'='*20} MODO CONTÍNUO {'='*20}\nPilha de objetivos vazia. Gerando novo objetivo...")
+                    continuous_objective_model = self.config.get("models", {}).get("objective_generator", self.light_model)
+                    new_objective = generate_next_objective(
+                        api_key=self.api_key,
+                        model=continuous_objective_model,
+                        current_manifest=self.state.manifesto_content if hasattr(self.state, 'manifesto_content') else "", # Usar manifesto mais recente se disponível
+                        logger=self.logger,
+                        memory_summary=self.memory.get_full_history_for_prompt()
+                    )
+                    self.objective_stack.append(new_objective)
+                    self.logger.info(f"Novo objetivo gerado para modo contínuo: {new_objective}")
+
+                    continuous_delay = self.config.get("continuous_mode_delay_seconds", 5)
+                    self.logger.info(f"Aguardando {continuous_delay} segundos antes do próximo ciclo contínuo...")
+                    time.sleep(continuous_delay)
+                else:
+                    self.logger.info("Pilha de objetivos vazia e modo contínuo desativado. Encerrando agente.")
+                    break # Sai do loop principal se não houver objetivos e o modo contínuo estiver desativado
+
             if self.objective_stack_depth_for_testing is not None and \
                cycle_count >= self.objective_stack_depth_for_testing:
                 self.logger.info(
-                    f"Limite de ciclos de teste ({self.objective_stack_depth_for_testing}) atingido. Encerrando loop."
+                    f"Limite de ciclos de execução ({self.objective_stack_depth_for_testing}) atingido. Encerrando."
                 )
-                break
+                break # Sai do loop principal se o limite de ciclos for atingido
 
             cycle_count += 1
             current_objective = self.objective_stack.pop()
-            self.logger.info(f"\n\n{'='*20} NOVO CICLO DE EVOLUÇÃO (Ciclo #{cycle_count}) {'='*20}")
+            self.logger.info(f"\n\n{'='*20} INÍCIO DO CICLO DE EVOLUÇÃO (Ciclo #{cycle_count}) {'='*20}")
             self.logger.info(f"OBJETIVO ATUAL: {current_objective}\n")
 
             try:
@@ -887,5 +920,24 @@ if __name__ == "__main__":
     load_dotenv()
     # Exemplo de como definir o limite de ciclos ao instanciar, se necessário:
     # agent = HephaestusAgent(logger_instance=agent_logger, objective_stack_depth_for_testing=3)
-    agent = HephaestusAgent(logger_instance=agent_logger)
+
+    parser = argparse.ArgumentParser(description="Hephaestus Agent: Autonomous AI for code evolution.")
+    parser.add_argument(
+        "-c", "--continuous-mode",
+        action="store_true",
+        help="Enable continuous mode, where the agent generates new objectives indefinitely."
+    )
+    parser.add_argument(
+        "--max-cycles",
+        type=int,
+        default=None,
+        help="Maximum number of evolution cycles to run (for testing or controlled runs)."
+    )
+    args = parser.parse_args()
+
+    agent = HephaestusAgent(
+        logger_instance=agent_logger,
+        continuous_mode=args.continuous_mode,
+        objective_stack_depth_for_testing=args.max_cycles
+    )
     agent.run()
