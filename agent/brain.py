@@ -80,6 +80,12 @@ def generate_next_objective(
     """
     Gera o próximo objetivo evolutivo usando um modelo leve.
     """
+    # Garantir que current_manifest seja uma string para evitar AttributeError
+    if current_manifest is None:
+        if logger:
+            logger.warn("current_manifest was None, defaulting to empty string.")
+        current_manifest = ""
+
     # Garantir que o memory_summary seja sanitizado antes de usar
     sanitized_memory = memory_summary.strip() if memory_summary and memory_summary.strip() else None
 

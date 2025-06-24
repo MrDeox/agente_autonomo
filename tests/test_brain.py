@@ -77,13 +77,15 @@ def test_generate_next_objective_success(mock_call_llm_api, mock_logger):
     assert objective == "Próximo objetivo simulado."
     mock_call_llm_api.assert_called_once()
     # Verificar args da chamada para _call_llm_api
+    # A chamada em generate_next_objective usa keyword arguments
     args, kwargs = mock_call_llm_api.call_args
-    assert args[0] == "key"              # api_key
-    assert args[1] == "model_light"      # model
-    assert "manifesto_atual" in args[2]  # prompt
-    assert args[3] == 0.3                # temperature
-    assert args[4] == "http://fake.url"  # base_url
-    assert args[5] == mock_logger        # logger
+    assert not args # Assegurar que não foram passados argumentos posicionais
+    assert kwargs['api_key'] == "key"
+    assert kwargs['model'] == "model_light"
+    assert "manifesto_atual" in kwargs['prompt']
+    assert kwargs['temperature'] == 0.3
+    assert kwargs['base_url'] == "http://fake.url"
+    assert kwargs['logger'] == mock_logger
 
 @patch('agent.brain._call_llm_api')
 def test_generate_next_objective_api_error(mock_call_llm_api, mock_logger):
@@ -111,7 +113,8 @@ def test_generate_next_objective_empty_manifest(mock_call_llm_api, mock_logger):
 
     # Verificar se o prompt correto foi usado para manifesto vazio
     args, kwargs = mock_call_llm_api.call_args
-    prompt_arg = args[2] # prompt é o terceiro argumento posicional
+    assert not args # Assegurar que não foram passados argumentos posicionais
+    prompt_arg = kwargs['prompt'] # prompt é acessado via kwargs
     assert "Este é o primeiro ciclo de execução" in prompt_arg
     assert "HISTÓRICO RECENTE" not in prompt_arg # Sem memória se não passada
 
@@ -122,7 +125,8 @@ def test_generate_next_objective_with_memory(mock_call_llm_api, mock_logger):
     objective = generate_next_objective("key", "model", "manifesto", mock_logger, memory_summary=memory_summary)
     assert objective == "Objetivo com memória."
     args, kwargs = mock_call_llm_api.call_args
-    prompt_arg = args[2]
+    assert not args # Assegurar que não foram passados argumentos posicionais
+    prompt_arg = kwargs['prompt'] # prompt é acessado via kwargs
     assert "HISTÓRICO RECENTE DO PROJETO E DO AGENTE" in prompt_arg
     assert memory_summary in prompt_arg
 
