@@ -16,6 +16,7 @@ agente_autonomo/
         brain.py
         __init__.py
         code_validator.py
+        deep_validator.py
         agents.py
         patch_applicator.py
         memory.py
@@ -28,6 +29,7 @@ agente_autonomo/
         __init__.py
         test_hephaestus.py
         test_code_validator.py
+        test_deep_validator.py
         conftest.py
         test_brain.py
         test_memory.py
@@ -52,10 +54,20 @@ agente_autonomo/
 ### Arquivo: `agent/__init__.py`
 
 ### Arquivo: `agent/code_validator.py`
-- **Função:** `validate_python_code(file_path: str | Path, logger: logging.Logger)`
-  - *Valida se o código Python em um arquivo é sintaticamente correto usando py_compile.*
+- **Função:** `perform_deep_validation(file_path: Path, logger: logging.Logger) -> dict | None`
+  - *Realiza uma análise profunda da qualidade do código Python usando o módulo `deep_validator`.*
+- **Função:** `validate_python_code(file_path: str | Path, logger: logging.Logger, perform_deep_analysis: bool = True) -> tuple[bool, str | None, dict | None]`
+  - *Valida a sintaxe do código Python e opcionalmente realiza uma análise profunda de qualidade.*
 - **Função:** `validate_json_syntax(file_path: str | Path, logger: logging.Logger)`
   - *Valida se um arquivo contém JSON válido.*
+
+### Arquivo: `agent/deep_validator.py`
+- **Função:** `analyze_complexity(code_string: str) -> dict`
+  - *Analisa a complexidade ciclomática e outras métricas do código Python fornecido.*
+- **Função:** `detect_code_duplication(code_string: str, min_lines: int = 4, strip_comments_and_blanks: bool = True) -> list[dict]`
+  - *Detecta blocos de código duplicados no código Python fornecido.*
+- **Função:** `calculate_quality_score(complexity_report: dict, duplication_report: list) -> float`
+  - *Calcula um score de qualidade do código com base nos relatórios de complexidade e duplicação.*
 
 ### Arquivo: `agent/agents.py`
 - **Função:** `parse_json_response(raw_str: str, logger: Any)`
@@ -141,6 +153,52 @@ agente_autonomo/
 - **Função:** `test_validate_json_syntax_empty_file(tmp_path: Path)`
 - **Função:** `test_validate_json_syntax_not_json_content(tmp_path: Path)`
 - **Função:** `test_validate_json_syntax_valid_but_complex(tmp_path: Path)`
+
+### Arquivo: `tests/test_deep_validator.py`
+- **Função:** `simple_code()`
+  - *Fixture com código Python simples.*
+- **Função:** `complex_code()`
+  - *Fixture com código Python de alta complexidade ciclomática.*
+- **Função:** `duplicated_code()`
+  - *Fixture com blocos de código duplicados.*
+- **Função:** `code_with_no_comments()`
+  - *Fixture com código Python sem comentários.*
+- **Função:** `very_large_code()`
+  - *Fixture que gera uma string de código Python muito longa (simulando um arquivo grande).*
+- **Função:** `test_analyze_complexity_simple(simple_code)`
+  - *Testa a análise de complexidade em código simples.*
+- **Função:** `test_analyze_complexity_complex(complex_code)`
+  - *Testa a análise de complexidade em código complexo.*
+- **Função:** `test_analyze_complexity_empty_string()`
+  - *Testa a análise de complexidade com string vazia.*
+- **Função:** `test_analyze_complexity_syntax_error()`
+  - *Testa a análise de complexidade com erro de sintaxe.*
+- **Função:** `test_detect_duplication_present(duplicated_code)`
+  - *Testa a detecção de duplicação quando há código duplicado.*
+- **Função:** `test_detect_duplication_none(simple_code)`
+  - *Testa a detecção de duplicação quando não há código duplicado.*
+- **Função:** `test_detect_duplication_min_lines_too_high(duplicated_code)`
+  - *Testa a detecção de duplicação com `min_lines` alto demais.*
+- **Função:** `test_detect_duplication_empty_string()`
+  - *Testa a detecção de duplicação com string vazia.*
+- **Função:** `test_detect_duplication_strip_comments(duplicated_code)`
+  - *Testa se a detecção de duplicação ignora comentários.*
+- **Função:** `test_calculate_quality_score_perfect()`
+  - *Testa o cálculo do score de qualidade para código "perfeito".*
+- **Função:** `test_calculate_quality_score_high_complexity(complex_code)`
+  - *Testa o cálculo do score de qualidade para código com alta complexidade.*
+- **Função:** `test_calculate_quality_score_with_duplication(duplicated_code)`
+  - *Testa o cálculo do score de qualidade para código com duplicação.*
+- **Função:** `test_calculate_quality_score_very_large_code()`
+  - *Testa o cálculo do score de qualidade para código simulado muito grande.*
+- **Função:** `test_calculate_quality_score_no_comments(code_with_no_comments)`
+  - *Testa o cálculo do score de qualidade para código sem comentários.*
+- **Função:** `test_calculate_quality_score_all_penalties()`
+  - *Testa o cálculo do score de qualidade com todas as penalidades aplicadas.*
+- **Função:** `test_score_never_below_zero()`
+  - *Testa se o score de qualidade nunca fica abaixo de zero.*
+- **Função:** `test_handle_error_in_complexity_report()`
+  - *Testa como o score de qualidade lida com um relatório de complexidade com erro.*
 
 ### Arquivo: `tests/conftest.py`
 
