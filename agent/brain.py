@@ -22,20 +22,16 @@ from typing import Optional, Dict, Any, List, Tuple
 # Vamos verificar se generate_next_objective, generate_capacitation_objective
 # e generate_commit_message usam _call_llm_api.
 # Sim, elas usam. Então _call_llm_api (e por extensão, requests) precisa ficar ou ser importado.
-# Para esta refatoração, vamos assumir que _call_llm_api é um utilitário que pode
-# ser usado por múltiplos "cérebros" ou agentes, então pode ser melhor
-# movê-lo para um local mais genérico ou duplicá-lo temporariamente.
-# O pedido era mover para agent/agents.py, então vamos remover daqui.
-# Isso significa que as funções restantes precisarão de uma forma de chamar a LLM.
 
-# REAVALIAÇÃO: _call_llm_api é fundamental para as funções restantes.
-# Por enquanto, vamos duplicá-la aqui e em agent/agents.py.
-# Uma refatoração futura poderia criar um `llm_client.py` ou similar.
+# _call_llm_api foi movida para agents.py, mas ainda é usada aqui.
+# Para evitar dependência circular ou refatoração maior no momento,
+# esta função será mantida aqui como uma cópia temporária.
+# TODO: Refatorar _call_llm_api para um local compartilhado (ex: utils.llm_client).
+
+from agent.project_scanner import analyze_code_metrics # Nova importação
 
 def _call_llm_api(api_key: str, model: str, prompt: str, temperature: float, base_url: str, logger: Any) -> Tuple[Optional[str], Optional[str]]:
-    """Função auxiliar para fazer chamadas à API LLM.
-       Esta é uma cópia temporária. A original foi movida para agent/agents.py.
-    """
+    """Função auxiliar para fazer chamadas à API LLM."""
     url = f"{base_url}/chat/completions"
     headers = {
         "Authorization": f"Bearer {api_key}",
@@ -74,21 +70,78 @@ def generate_next_objective(
     model: str,
     current_manifest: str,
     logger: Any, # logging.Logger
+    project_root_dir: str, # Novo parâmetro para o caminho raiz do projeto
     base_url: str = "https://openrouter.ai/api/v1",
     memory_summary: Optional[str] = None
 ) -> str:
     """
-    Gera o próximo objetivo evolutivo usando um modelo leve.
+    Gera o próximo objetivo evolutivo usando um modelo leve e análise de código.
     """
-    # Garantir que current_manifest seja uma string para evitar AttributeError
-    if current_manifest is None:
-        if logger:
-            logger.warn("current_manifest was None, defaulting to empty string.")
-        current_manifest = ""
+    if logger: logger.info("Gerando próximo objetivo...")
 
-    # Garantir que o memory_summary seja sanitizado antes de usar
+    # 1. Analisar métricas do código
+    code_analysis_summary_str = ""
+    try:
+        if logger: logger.info(f"Analisando métricas do código em: {project_root_dir}")
+        # Usar "." como root_dir para analyze_code_metrics se project_root_dir for o diretório atual do Hephaestus
+        # Idealmente, project_root_dir deve ser o caminho absoluto para a raiz do projeto que Hephaestus está analisando.
+        # Para este exemplo, vamos assumir que o script principal (main.py) está na raiz do projeto Hephaestus,
+        # e se ele estiver analisando a si mesmo, "." é apropriado.
+        # Se Hephaestus analisar OUTRO projeto, project_root_dir deve apontar para esse projeto.
+        # Vamos assumir que o `main.py` passa o `config.project_path` ou `os.getcwd()`
+
+        # Definindo limiares (podem vir de configuração no futuro)
+        FILE_LOC_THRESHOLD = 300
+        FUNC_LOC_THRESHOLD = 50
+        FUNC_CC_THRESHOLD = 10
+
+        # Excluded patterns - pode vir da configuração do projeto também
+        # Por agora, usamos os padrões default de analyze_code_metrics
+        analysis_results = analyze_code_metrics(
+            root_dir=project_root_dir,
+            file_loc_threshold=FILE_LOC_THRESHOLD,
+            func_loc_threshold=FUNC_LOC_THRESHOLD,
+            func_cc_threshold=FUNC_CC_THRESHOLD
+        )
+
+        summary_data = analysis_results.get("summary", {})
+        sections = []
+
+        if summary_data.get("large_files"):
+            sections.append("Arquivos Grandes (potenciais candidatos a modularização):")
+            for path, loc in summary_data["large_files"]:
+                sections.append(f"  - {path} (LOC: {loc})")
+
+        if summary_data.get("large_functions"):
+            sections.append("\nFunções Grandes (potenciais candidatas a refatoração/divisão):")
+            for path, name, loc in summary_data["large_functions"]:
+                sections.append(f"  - {path} -> {name}() (LOC: {loc})")
+
+        if summary_data.get("complex_functions"):
+            sections.append("\nFunções Complexas (alta CC, potenciais candidatas a refatoração/simplificação):")
+            for path, name, cc in summary_data["complex_functions"]:
+                sections.append(f"  - {path} -> {name}() (CC: {cc})")
+
+        if summary_data.get("missing_tests"):
+            sections.append("\nMódulos sem Arquivos de Teste Correspondentes (considerar criar testes):")
+            for path in summary_data["missing_tests"]:
+                sections.append(f"  - {path}")
+
+        if not sections:
+            code_analysis_summary_str = "Nenhuma métrica de código notável (arquivos grandes, funções complexas/grandes, ou testes ausentes) foi identificada com os limiares atuais."
+        else:
+            code_analysis_summary_str = "\n".join(sections)
+
+        if logger: logger.debug(f"Resumo da análise de código:\n{code_analysis_summary_str}")
+
+    except Exception as e:
+        if logger: logger.error(f"Erro ao analisar métricas do código: {e}", exc_info=True)
+        code_analysis_summary_str = "Erro ao processar a análise de código."
+
+
+    # 2. Preparar contexto do manifesto e memória
+    current_manifest = current_manifest or "" # Garantir que não seja None
     sanitized_memory = memory_summary.strip() if memory_summary and memory_summary.strip() else None
-
     memory_context_section = ""
     if sanitized_memory and sanitized_memory != "No relevant history available.":
         memory_context_section = f"""
@@ -96,45 +149,79 @@ def generate_next_objective(
 {sanitized_memory}
 Considere este histórico para evitar repetir falhas, construir sobre sucessos e identificar lacunas.
 """
-
-    if not current_manifest.strip():
+    # 3. Construir o prompt
+    if not current_manifest.strip() and not code_analysis_summary_str.strip(): # Primeiro ciclo, sem análise
         prompt_template = """
 [Contexto]
-Você é o 'Planejador Estratégico' do agente de IA autônomo Hephaestus. Este é o primeiro ciclo de execução e o manifesto do projeto ainda não existe. Sua tarefa é propor um objetivo inicial para criar a documentação básica do projeto.
+Você é o 'Planejador Estratégico' do agente de IA autônomo Hephaestus. Este é o primeiro ciclo de execução, o manifesto do projeto ainda não existe e a análise de código não retornou dados significativos. Sua tarefa é propor um objetivo inicial para criar a documentação básica do projeto ou realizar uma análise inicial.
 {memory_section}
 [Exemplos de Primeiros Objetivos]
 - "Crie o arquivo AGENTS.md com a estrutura básica do projeto."
 - "Documente as interfaces principais no manifesto do projeto."
 - "Descreva a arquitetura básica do agente no manifesto."
+- "Execute uma varredura inicial para identificar os principais componentes do projeto."
 
 [Sua Tarefa]
 Gere APENAS uma única string de texto contendo o objetivo inicial. Seja conciso e direto.
 """
         prompt = prompt_template.format(memory_section=memory_context_section)
     else:
+        # O prompt será construído no próximo passo do plano.
         prompt_template = """
-[Contexto]
-Você é o 'Planejador Estratégico' do agente de IA autônomo Hephaestus. Sua única função é analisar o estado atual do projeto (descrito no manifesto abaixo) e o histórico recente, e então propor o próximo objetivo lógico e incremental para a evolução do agente. O objetivo deve ser uma tarefa pequena, segura e que melhore a qualidade, performance ou capacidade do sistema.
-{memory_section}
-[Exemplos de Bons Objetivos]
-- "Remova os imports não usados no arquivo X."
-- "A docstring da função Y no arquivo Z está incompleta. Melhore-a."
-- "A complexidade da função A no módulo B é alta. Refatore-a em funções menores."
-- "O arquivo de configuração não possui descrições para a estratégia Y. Adicione-as."
-- "Crie testes em pytest para a função Z, que atualmente não tem cobertura de testes."
+[Contexto Principal]
+Você é o 'Planejador Estratégico Avançado' do agente de IA autônomo Hephaestus. Sua principal responsabilidade é identificar e propor o próximo objetivo de desenvolvimento mais impactante para a evolução do agente ou do projeto em análise.
 
-[Manifesto Atual do Projeto]
+[Processo de Decisão para o Próximo Objetivo]
+1.  **Analise as Métricas de Código:** Revise a seção `[MÉTRICAS E ANÁLISE DO CÓDIGO]` abaixo. Ela contém dados sobre o tamanho dos arquivos (LOC), tamanho de funções (LOC), complexidade ciclomática (CC) de funções, e módulos que podem estar sem testes.
+2.  **Considere o Manifesto do Projeto:** Se o `[MANIFESTO ATUAL DO PROJETO]` for fornecido, use-o para entender os objetivos gerais, a arquitetura e as áreas já documentadas ou que precisam de atenção.
+3.  **Revise o Histórico Recente:** A seção `[HISTÓRICO RECENTE DO PROJETO E DO AGENTE]` oferece contexto sobre tarefas recentes, sucessos e falhas. Evite repetir objetivos que falharam recentemente da mesma forma, a menos que a causa da falha tenha sido resolvida. Use o histórico para construir sobre sucessos.
+4.  **Priorize Melhorias Estruturais e de Qualidade:** Com base nas métricas, identifique oportunidades para:
+    *   Refatorar módulos muito grandes ou funções muito longas/complexas.
+    *   Criar testes para módulos ou funções críticas/complexas que não os possuem.
+    *   Melhorar a documentação (docstrings, manifesto) onde for crucial.
+    *   Propor a criação de novas capacidades (novos agentes, ferramentas) se a análise indicar uma necessidade estratégica.
+5.  **Seja Específico e Acionável:** O objetivo deve ser claro, conciso e indicar uma ação concreta.
+
+{memory_section}
+
+[MÉTRICAS E ANÁLISE DO CÓDIGO]
+{code_analysis_summary}
+
+[MANIFESTO ATUAL DO PROJETO (se existente)]
 {current_manifest}
 
+[Exemplos de Objetivos Inteligentes e Autoconscientes]
+*   **Refatoração Baseada em Métricas:**
+    *   "Refatorar o módulo `agent/brain.py` (LOC: 350) que é extenso, considerando dividir responsabilidades em módulos menores (ex: `agent/prompt_builder.py` ou `agent/analysis_processor.py`)."
+    *   "A função `generate_next_objective` em `agent/brain.py` (LOC: 85, CC: 12) é longa e complexa. Proponha um plano para refatorá-la em funções menores e mais focadas."
+    *   "Analisar as funções mais complexas (CC > 10) listadas nas métricas e selecionar uma para refatoração."
+*   **Criação de Testes:**
+    *   "O módulo `agent/project_scanner.py` (LOC: 280) não possui um arquivo de teste `tests/agent/test_project_scanner.py`. Crie testes unitários para a função `analyze_code_metrics`."
+    *   "A função `_call_llm_api` em `agent/brain.py` é crítica. Garantir que existam testes de unidade robustos para ela, cobrindo casos de sucesso e falha."
+*   **Melhoria da Documentação Estratégica:**
+    *   "O manifesto (`AGENTS.md`) não descreve a nova funcionalidade de análise de métricas em `project_scanner.py`. Atualize-o."
+    *   "Melhorar as docstrings das funções públicas no módulo `agent/memory.py` para detalhar os parâmetros e o comportamento esperado."
+*   **Desenvolvimento de Novas Capacidades (Agentes/Ferramentas):**
+    *   "Criar um novo agente (ex: `CodeQualityAgent` em `agent/agents.py`) dedicado a monitorar continuamente as métricas de qualidade do código e reportar regressões."
+    *   "Desenvolver uma nova ferramenta em `agent/tool_executor.py` para validar automaticamente a sintaxe de arquivos JSON antes de serem processados."
+    *   "Propor um sistema para Hephaestus avaliar a performance de suas próprias operações e identificar gargalos."
+*   **Objetivos Genéricos (quando métricas/manifesto são insuficientes):**
+    *   "Analisar o módulo `agent/state.py` para identificar possíveis melhorias de clareza ou eficiência."
+    *   "Revisar os logs recentes em busca de erros frequentes e propor um objetivo para corrigi-los."
+
 [Sua Tarefa]
-Gere APENAS uma única string de texto contendo o próximo objetivo. Seja conciso e direto. Considere o histórico para não repetir objetivos que falharam recentemente da mesma forma ou para continuar trabalhos bem-sucedidos.
+Com base em TODA a informação fornecida (métricas, manifesto, histórico), gere APENAS uma única string de texto contendo o PRÓXIMO OBJETIVO ESTRATÉGICO. O objetivo deve ser o mais impactante e lógico para a evolução do projeto neste momento.
+Seja conciso, mas específico o suficiente para ser acionável.
 """
         prompt = prompt_template.format(
             memory_section=memory_context_section,
-            current_manifest=current_manifest
+            code_analysis_summary=code_analysis_summary_str,
+            current_manifest=current_manifest if current_manifest.strip() else "N/A (Manifesto não existente ou vazio)"
         )
-    
-    # Chamada segura para a API - base_url permanece intacta
+
+    if logger: logger.debug(f"Prompt para generate_next_objective:\n{prompt}")
+
+    # 4. Chamada à API LLM
     content, error = _call_llm_api(
         api_key=api_key,
         model=model,

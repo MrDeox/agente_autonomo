@@ -69,13 +69,17 @@ def update_project_manifest(
     excluded_dir_patterns: Optional[List[str]] = None
 ) -> None:
     root_path = pathlib.Path(root_dir).resolve()
-    skip_dirs = {'venv', '__pycache__', '.git', 'node_modules'}
-    # Adicionar padrões padrão se nenhum for fornecido, e garantir que sejam sets para performance
-    default_excluded_dir_patterns = {"tests", "test"}
-    if excluded_dir_patterns is None:
-        active_excluded_dir_patterns = default_excluded_dir_patterns
+    # Padrões de diretório a serem ignorados globalmente na varredura.
+    # Inclui diretórios comuns de dependências, controle de versão e caches.
+    # Também inclui "tests" e "test" para evitar a análise de código de teste como código de produção.
+    default_skip_dirs = {'venv', '__pycache__', '.git', 'node_modules', 'tests', 'test', '.pytest_cache', 'dist', 'build', 'docs', 'examples', 'scripts'}
+
+    # Combina os padrões de exclusão fornecidos pelo usuário com os padrões padrão.
+    # Os padrões do usuário têm precedência se houver sobreposição (embora aqui seja uma união).
+    if excluded_dir_patterns:
+        current_excluded_dirs = default_skip_dirs.union(set(excluded_dir_patterns))
     else:
-        active_excluded_dir_patterns = set(excluded_dir_patterns) | default_excluded_dir_patterns
+        current_excluded_dirs = default_skip_dirs
 
     target_files_set = set(target_files)
     
@@ -247,3 +251,213 @@ def update_project_manifest(
                 manifest.write("# ARQUIVO NÃO ENCONTRADO OU NÃO PROCESSADO\n") # Mensagem mais genérica
             
             manifest.write("```\n")
+
+
+def analyze_code_metrics(
+    root_dir: str,
+    excluded_dir_patterns: Optional[List[str]] = None,
+    file_loc_threshold: int = 300,
+    func_loc_threshold: int = 50,
+    func_cc_threshold: int = 10
+) -> Dict[str, Any]:
+    """
+    Analisa arquivos Python em um diretório para métricas de código como LOC e Complexidade Ciclomática.
+
+    Args:
+        root_dir: O diretório raiz para iniciar a varredura.
+        excluded_dir_patterns: Uma lista de padrões de nomes de diretório a serem excluídos.
+        file_loc_threshold: Limiar de LOC para considerar um arquivo grande.
+        func_loc_threshold: Limiar de LOC para considerar uma função grande.
+        func_cc_threshold: Limiar de CC para considerar uma função complexa.
+
+    Returns:
+        Um dicionário contendo:
+        - 'metrics': Um dicionário onde chaves são caminhos de arquivo relativos e
+                     valores são dicionários com 'file_loc' (LOC total do arquivo)
+                     e 'functions' (uma lista de dicionários com métricas de função:
+                     'name', 'args', 'loc', 'cc', 'is_large', 'is_complex').
+        - 'summary': Um dicionário com listas de arquivos/funções que excedem os limiares:
+                     'large_files': Lista de (caminho, loc).
+                     'large_functions': Lista de (caminho, nome_func, loc).
+                     'complex_functions': Lista de (caminho, nome_func, cc).
+                     'missing_tests': Lista de caminhos de arquivo de módulo sem teste correspondente.
+    """
+    from radon.visitors import ComplexityVisitor
+    from radon.metrics import h_visit_ast
+    from radon.raw import analyze as analyze_raw
+
+    root_path = pathlib.Path(root_dir).resolve()
+    # Padrões de diretório a serem ignorados.
+    default_skip_dirs = {'venv', '__pycache__', '.git', 'node_modules', 'tests', 'test', '.pytest_cache', 'dist', 'build', 'docs', 'examples', 'scripts'}
+    if excluded_dir_patterns:
+        current_excluded_dirs = default_skip_dirs.union(set(excluded_dir_patterns))
+    else:
+        current_excluded_dirs = default_skip_dirs
+
+    all_metrics: Dict[str, Dict[str, Any]] = {}
+    large_files_summary: List[Tuple[str, int]] = []
+    large_functions_summary: List[Tuple[str, str, int]] = []
+    complex_functions_summary: List[Tuple[str, str, int]] = []
+    missing_tests_summary: List[str] = []
+
+    project_files = []
+    test_files = set()
+
+    for root, dirs, files in os.walk(root_path, topdown=True):
+        # Filtra diretórios
+        dirs[:] = [d for d in dirs if not d.startswith('.') and d not in current_excluded_dirs and not any(fnmatch.fnmatch(d, pattern) for pattern in current_excluded_dirs if '*' in pattern)]
+
+        current_path_obj = pathlib.Path(root)
+        # Pular o diretório raiz se ele próprio estiver na lista de exclusão (improvável para root_dir, mas seguro)
+        if current_path_obj != root_path and (current_path_obj.name in current_excluded_dirs or any(fnmatch.fnmatch(current_path_obj.name, pattern) for pattern in current_excluded_dirs if '*' in pattern)):
+            continue
+
+        for file_name in files:
+            if file_name.endswith('.py'):
+                file_path_obj = current_path_obj / file_name
+                relative_path_str = str(file_path_obj.relative_to(root_path))
+                project_files.append(relative_path_str)
+                if file_name.startswith('test_') or file_name.endswith('_test.py'):
+                    test_files.add(relative_path_str)
+
+
+    for relative_path_str in project_files:
+        # Ignorar arquivos de teste na análise principal de métricas
+        if relative_path_str in test_files:
+            continue
+
+        file_path_obj = root_path / relative_path_str
+
+        try:
+            with open(file_path_obj, 'r', encoding='utf-8') as f:
+                code_content = f.read()
+
+            # AST para funções e classes
+            try:
+                ast_tree = ast.parse(code_content, filename=str(file_path_obj))
+            except SyntaxError:
+                # Se houver erro de sintaxe, não podemos processar AST ou Radon para CC.
+                # Podemos ainda obter LOC bruto.
+                raw_analysis = analyze_raw(code_content)
+                file_loc = raw_analysis.loc
+                all_metrics[relative_path_str] = {
+                    'file_loc': file_loc,
+                    'functions': [],
+                    'error': 'SyntaxError parsing file'
+                }
+                if file_loc > file_loc_threshold:
+                    large_files_summary.append((relative_path_str, file_loc))
+                continue # Pula para o próximo arquivo
+
+            # Métricas de LOC do arquivo
+            raw_analysis = analyze_raw(code_content)
+            file_loc = raw_analysis.loc
+            if file_loc > file_loc_threshold:
+                large_files_summary.append((relative_path_str, file_loc))
+
+            file_functions_metrics = []
+
+            # Complexidade Ciclomática com Radon
+            # Radon espera um AST, então usamos o que já parseamos
+            visitor = ComplexityVisitor.from_ast(ast_tree)
+
+            # Iterar sobre funções e classes para métricas
+            for node in ast_tree.body:
+                if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)):
+                    func_name = node.name
+                    # Radon calcula LOC para a função de forma diferente (linhas de código lógicas)
+                    # Para consistência com o LOC total do arquivo, podemos re-analisar o bloco da função
+                    # ou usar o lineno e end_lineno.
+                    func_loc = (node.end_lineno or node.lineno) - node.lineno + 1
+
+                    # Encontrar a complexidade da função usando o nome
+                    # (Radon armazena por nome, o que pode ser um problema com métodos de mesmo nome em classes diferentes)
+                    # Uma abordagem mais robusta seria iterar `visitor.functions` e `visitor.classes`
+                    # e mapear de volta para os nós AST se necessário, ou usar `lineno`.
+                    current_cc = 0
+                    for f_block in visitor.functions: # Procura por nome e linha inicial
+                        if f_block.name == func_name and f_block.lineno == node.lineno:
+                            current_cc = f_block.complexity
+                            break
+                    # Para métodos dentro de classes
+                    if current_cc == 0: # Se não achou, pode ser um método
+                        for class_block in visitor.classes:
+                            for method_block in class_block.methods:
+                                if method_block.name == func_name and method_block.lineno == node.lineno:
+                                    current_cc = method_block.complexity
+                                    break
+                            if current_cc != 0:
+                                break
+
+                    args_list = [ast.unparse(arg) for arg in node.args.args]
+                    args_str = ", ".join(args_list)
+
+                    is_large_func = func_loc > func_loc_threshold
+                    is_complex_func = current_cc > func_cc_threshold
+
+                    if is_large_func:
+                        large_functions_summary.append((relative_path_str, func_name, func_loc))
+                    if is_complex_func:
+                        complex_functions_summary.append((relative_path_str, func_name, current_cc))
+
+                    file_functions_metrics.append({
+                        'name': func_name,
+                        'args': args_str,
+                        'loc': func_loc,
+                        'cc': current_cc,
+                        'is_large': is_large_func,
+                        'is_complex': is_complex_func,
+                    })
+
+            all_metrics[relative_path_str] = {
+                'file_loc': file_loc,
+                'functions': file_functions_metrics
+            }
+
+            # Verificar ausência de arquivo de teste
+            # Isso é uma heurística simples. `test_foo.py` ou `foo_test.py` para `foo.py`
+            # Se `relative_path_str` é `agent/brain.py`, esperamos `tests/agent/test_brain.py`
+
+            path_parts = list(pathlib.Path(relative_path_str).parts) # ex: ['agent', 'brain.py']
+            if len(path_parts) > 0 : # Se não for um arquivo na raiz
+                module_name = path_parts[-1][:-3] # 'brain'
+
+                # Construir caminhos de teste esperados
+                # Caso 1: tests/path/to/module/test_module.py
+                expected_test_path1_parts = ["tests"] + path_parts[:-1] + [f"test_{module_name}.py"]
+                expected_test_path1 = str(pathlib.Path(*expected_test_path1_parts))
+
+                # Caso 2: tests/path/to/module/module_test.py
+                expected_test_path2_parts = ["tests"] + path_parts[:-1] + [f"{module_name}_test.py"]
+                expected_test_path2 = str(pathlib.Path(*expected_test_path2_parts))
+
+                # Caso 3: Se o módulo está na raiz: tests/test_module.py
+                expected_test_path3_parts = ["tests"] + [f"test_{module_name}.py"]
+                expected_test_path3 = str(pathlib.Path(*expected_test_path3_parts))
+
+                # Caso 4: Se o módulo está na raiz: tests/module_test.py
+                expected_test_path4_parts = ["tests"] + [f"{module_name}_test.py"]
+                expected_test_path4 = str(pathlib.Path(*expected_test_path4_parts))
+
+                if not (expected_test_path1 in test_files or \
+                        expected_test_path2 in test_files or \
+                        expected_test_path3 in test_files or \
+                        expected_test_path4 in test_files):
+                    # Apenas adicionar se o módulo tiver funções ou for significativamente grande
+                    if file_functions_metrics or file_loc > 20: # Limiar pequeno para considerar
+                        missing_tests_summary.append(relative_path_str)
+
+        except FileNotFoundError:
+            all_metrics[relative_path_str] = {'error': 'File not found during metrics analysis'}
+        except Exception as e:
+            all_metrics[relative_path_str] = {'error': f'Error analyzing {relative_path_str}: {str(e)}'}
+
+    return {
+        "metrics": all_metrics,
+        "summary": {
+            "large_files": large_files_summary,
+            "large_functions": large_functions_summary,
+            "complex_functions": complex_functions_summary,
+            "missing_tests": missing_tests_summary,
+        }
+    }
