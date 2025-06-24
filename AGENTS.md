@@ -82,8 +82,12 @@ agente_autonomo/
   - *Aplica uma lista de instruções de patch aos arquivos.*
 
 ### Arquivo: `agent/memory.py`
-- **Classe:** `Memory`
-  - *Manages persistent memory for the Hephaestus agent, storing historical data*
+- **Classe:** `Memory(filepath: str = "HEPHAESTUS_MEMORY.json", max_objectives_history: int = 20)`
+  - *Manages persistent memory for the Hephaestus agent, storing historical data about objectives, failures, and acquired capabilities. Includes a cleanup routine for objectives.*
+  - **Atributo:** `max_objectives_history: int` - *Maximum number of objectives to keep in history (default: 20).*
+  - **Atributo:** `cycle_count: int` - *Internal counter to trigger cleanup every 5 objective additions.*
+  - **Método:** `cleanup_memory()` - *Removes old, duplicate objectives, keeping the most recent ones up to `max_objectives_history`. Triggered every 5 objective additions.*
+  - *Outros métodos incluem `load`, `save`, `add_completed_objective`, `add_failed_objective`, `add_capability`, `get_history_summary`, `get_full_history_for_prompt`.*
 
 ### Arquivo: `agent/tool_executor.py`
 - **Função:** `run_pytest(test_dir: str='tests/', cwd: str | Path | None=None)`

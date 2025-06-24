@@ -8,18 +8,21 @@ class Memory:
     Manages persistent memory for the Hephaestus agent, storing historical data
     about objectives, failures, and acquired capabilities.
     """
-    def __init__(self, filepath: str = "HEPHAESTUS_MEMORY.json"):
+    def __init__(self, filepath: str = "HEPHAESTUS_MEMORY.json", max_objectives_history: int = 20):
         """
         Initializes the Memory module.
 
         Args:
             filepath: The path to the JSON file used for storing memory.
+            max_objectives_history: The maximum number of objectives to keep in history.
         """
         self.filepath: str = filepath
+        self.max_objectives_history: int = max_objectives_history
         self.completed_objectives: List[Dict[str, Any]] = []
         self.failed_objectives: List[Dict[str, Any]] = []
         self.acquired_capabilities: List[Dict[str, Any]] = []
         self.recent_objectives_log: List[Dict[str, Any]] = [] # Novo atributo
+        self.cycle_count: int = 0
         # knowledge_summary can be added later if needed.
 
     def _get_timestamp(self) -> str:
@@ -109,6 +112,71 @@ class Memory:
         # Keep only the last 5 entries
         if len(self.recent_objectives_log) > 5:
             self.recent_objectives_log = self.recent_objectives_log[-5:]
+        self.cleanup_memory() # Call cleanup_memory after each objective addition
+
+    def cleanup_memory(self) -> None:
+        """
+        Cleans up memory by removing old, duplicate, or abandoned objectives
+        if the cycle count reaches 5.
+        """
+        self.cycle_count += 1
+        if self.cycle_count < 5:
+            return
+
+        self.cycle_count = 0  # Reset cycle count
+
+        all_objectives = self.completed_objectives + self.failed_objectives
+
+        # Remove duplicates, keeping the most recent entry for the same objective description
+        # We sort by date first (older to newer) so that when we encounter duplicates,
+        # the one added to unique_objectives_dict will be the latest one.
+        all_objectives.sort(key=lambda x: x["date"])
+
+        unique_objectives_dict: Dict[str, Dict[str, Any]] = {}
+        for obj in all_objectives:
+            # Using 'objective' field as the key for deduplication
+            unique_objectives_dict[obj["objective"]] = obj
+
+        # Convert back to list and sort by date (most recent first)
+        processed_objectives = sorted(
+            list(unique_objectives_dict.values()),
+            key=lambda x: x["date"],
+            reverse=True
+        )
+
+        # Keep only the last max_objectives_history objectives
+        kept_objectives = processed_objectives[:self.max_objectives_history]
+
+        # Separate back into completed and failed objectives
+        self.completed_objectives = [
+            obj for obj in kept_objectives if obj in self.completed_objectives
+        ]
+        self.failed_objectives = [
+            obj for obj in kept_objectives if obj in self.failed_objectives
+        ]
+
+        # Note: This logic for separating back might not be perfect if an objective string
+        # could exist in both completed and failed (which shouldn't happen with current add methods).
+        # A more robust way would be to check the original list or add a 'status' field
+        # when combining them. For now, this assumes objective strings are unique enough
+        # or that the original lists are the source of truth for status.
+        # A simpler approach for separation, assuming objective dicts are unique by content:
+        new_completed = []
+        new_failed = []
+        original_completed_set = {json.dumps(o, sort_keys=True) for o in self.completed_objectives}
+        original_failed_set = {json.dumps(o, sort_keys=True) for o in self.failed_objectives}
+
+        for obj in kept_objectives:
+            obj_dump = json.dumps(obj, sort_keys=True)
+            if obj_dump in original_completed_set:
+                new_completed.append(obj)
+            elif obj_dump in original_failed_set:
+                new_failed.append(obj)
+
+        # Sort chronologically before assigning
+        self.completed_objectives = sorted(new_completed, key=lambda x: x["date"])
+        self.failed_objectives = sorted(new_failed, key=lambda x: x["date"])
+
 
     def add_failed_objective(self, objective: str, reason: str, details: str) -> None:
         """
