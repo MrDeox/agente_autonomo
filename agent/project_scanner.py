@@ -2,7 +2,7 @@ import os
 import fnmatch
 import pathlib
 import ast
-from typing import List, Optional, Tuple, Dict, Set
+from typing import List, Optional, Tuple, Dict, Set, Any # Adicionado Any
 
 def _extract_elements(code_string: str) -> List[Tuple[str, str, Optional[str], Optional[str]]]:
     try:

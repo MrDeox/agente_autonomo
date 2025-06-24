@@ -688,6 +688,7 @@ hephaestus.log
                 model=initial_objective_model,
                 current_manifest="", # Manifesto vazio para o primeiro objetivo
                 logger=self.logger,
+                project_root_dir=".", # Adicionado project_root_dir
                 memory_summary=self.memory.get_full_history_for_prompt()
             )
             self.objective_stack.append(initial_objective)
@@ -714,6 +715,7 @@ hephaestus.log
                         model=continuous_objective_model,
                         current_manifest=self.state.manifesto_content if hasattr(self.state, 'manifesto_content') else "", # Usar manifesto mais recente se disponível
                         logger=self.logger,
+                        project_root_dir=".", # Adicionado project_root_dir
                         memory_summary=self.memory.get_full_history_for_prompt()
                     )
                     self.objective_stack.append(new_objective)
@@ -737,6 +739,33 @@ hephaestus.log
             current_objective = self.objective_stack.pop()
             self.logger.info(f"\n\n{'='*20} INÍCIO DO CICLO DE EVOLUÇÃO (Ciclo #{cycle_count}) {'='*20}")
             self.logger.info(f"OBJETIVO ATUAL: {current_objective}\n")
+
+            # Verificar loop degenerativo
+            failure_count = 0
+            for log_entry in reversed(self.memory.recent_objectives_log):
+                if log_entry["objective"] == current_objective and log_entry["status"] == "failure":
+                    failure_count += 1
+                # Parar de contar se encontrarmos um sucesso para este objetivo ou se já contamos o suficiente
+                elif log_entry["objective"] == current_objective and log_entry["status"] == "success":
+                    break
+                if failure_count >= 3:
+                    break
+
+            if failure_count >= 3:
+                self.logger.error(f"Loop degenerativo detectado para o objetivo: \"{current_objective}\". Ocorreram {failure_count} falhas consecutivas.")
+                self.memory.add_failed_objective(
+                    objective=current_objective,
+                    reason="DEGENERATIVE_LOOP_DETECTED",
+                    details=f"O objetivo falhou {failure_count} vezes consecutivas. Pausando processamento deste objetivo."
+                )
+                # Em vez de desativar o continuous_mode, vamos apenas pular este objetivo e continuar
+                # para o próximo, se houver. Se a pilha estiver vazia, o comportamento normal do loop (gerar novo ou parar) ocorrerá.
+                self.logger.warn(f"O objetivo \"{current_objective}\" será descartado devido a loop degenerativo.")
+                # Não adicionamos de volta à pilha, efetivamente o descartando.
+                # Se o modo contínuo estiver ativo e a pilha ficar vazia, um novo objetivo será gerado.
+                # Se não, e a pilha estiver vazia, o agente encerrará.
+                continue # Pula para a próxima iteração do while True, pegando o próximo objetivo ou encerrando.
+
 
             try:
                 self._reset_cycle_state() # Usa self.state.current_objective internamente
@@ -830,7 +859,14 @@ hephaestus.log
 
                             self.logger.info("Gerando próximo objetivo evolutivo...")
                             obj_model = self.config.get("models", {}).get("objective_generator", self.light_model)
-                            next_obj = generate_next_objective(self.api_key, obj_model, self.state.manifesto_content, self.logger, self.memory.get_full_history_for_prompt()) # Acesso direto
+                            next_obj = generate_next_objective(
+                                api_key=self.api_key,
+                                model=obj_model,
+                                current_manifest=self.state.manifesto_content,
+                                logger=self.logger,
+                                project_root_dir=".", # Adicionado project_root_dir
+                                memory_summary=self.memory.get_full_history_for_prompt()
+                            ) # Acesso direto
                             self.objective_stack.append(next_obj)
                             self.logger.info(f"Próximo objetivo: {next_obj}")
 
@@ -855,7 +891,14 @@ hephaestus.log
                                 details=f"Validation successful as per strategy '{self.state.strategy_key}'." # Acesso direto
                             )
                         obj_model = self.config.get("models", {}).get("objective_generator", self.light_model)
-                        next_obj = generate_next_objective(self.api_key, obj_model, self.state.manifesto_content, self.logger, self.memory.get_full_history_for_prompt()) # Acesso direto
+                        next_obj = generate_next_objective(
+                            api_key=self.api_key,
+                            model=obj_model,
+                            current_manifest=self.state.manifesto_content,
+                            logger=self.logger,
+                            project_root_dir=".", # Adicionado project_root_dir
+                            memory_summary=self.memory.get_full_history_for_prompt()
+                        ) # Acesso direto
                         self.objective_stack.append(next_obj)
                         self.logger.info(f"Próximo objetivo: {next_obj}")
 
