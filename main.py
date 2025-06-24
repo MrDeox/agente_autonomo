@@ -767,8 +767,16 @@ hephaestus.log
 
                         if not sanity_check_success:
                             self.logger.error(f"FALHA NA SANIDADE PÓS-APLICAÇÃO ({sanity_check_tool_name})! Detalhes: {sanity_check_details}")
-                            reason = f"REGRESSION_DETECTED_BY_{sanity_check_tool_name.upper()}"
-                            context = sanity_check_details
+                            self.logger.info("Tentando reverter o último commit devido à falha na sanidade...")
+                            rollback_success, rollback_output = run_git_command(['git', 'reset', '--hard', 'HEAD~1'])
+                            if rollback_success:
+                                self.logger.info(f"Rollback para HEAD~1 bem-sucedido. Output: {rollback_output}")
+                            else:
+                                self.logger.error(f"FALHA AO TENTAR REVERTER O COMMIT! Output: {rollback_output}")
+                                # Considerar o que fazer neste caso. Por enquanto, apenas logar.
+
+                            reason = f"REGRESSION_DETECTED_BY_{sanity_check_tool_name.upper()}_AND_ROLLED_BACK"
+                            context = f"Sanity check failed: {sanity_check_details}. Rollback to HEAD~1 attempted (Success: {rollback_success})."
                             success = False
                         else:
                             self.logger.info(f"SANIDADE PÓS-APLICAÇÃO ({sanity_check_tool_name}): SUCESSO!")
