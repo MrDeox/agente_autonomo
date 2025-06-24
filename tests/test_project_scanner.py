@@ -108,8 +108,8 @@ def do_something():
 
     return project_dir
 
-@pytest.mark.skip(reason="Temporarily skipped due to intermittent failure. Will be fixed in a future update.")
-def test_update_project_manifest_happy_path(sample_project_structure: Path, tmp极_path: Path):
+# @pytest.mark.skip(reason="Temporarily skipped due to intermittent failure. Will be fixed in a future update.") # Skip removido
+def test_update_project_manifest_happy_path(sample_project_structure: Path, tmp_path: Path): # Corrigido tmp极_path para tmp_path
     manifest_output_path = tmp_path / "AGENTS_TEST.md"
     target_files_rel = ["main.py", "data.json"]
 
@@ -154,11 +154,125 @@ def test_update_project_manifest_happy_path(sample_project_structure: Path, tmp�
     assert "async def async_main_runner():" in content
     assert "### Arquivo: `data.json`" in content
     assert '{"key": "value"}' in content
-    # utils.py não deve aparecer na seção 3 (Conteúdo completo) pois não é um arquivo alvo
-    # Verificar se não há nenhum cabeçalho para utils.py
-    assert "### Arquivo: `utils.py`" not in content
-    # Verificar também se o conteúdo do utils.py não está presente
-    assert "def do_something():" not in content
+
+    # Verificar que utils.py NÃO está na seção de CONTEÚDO COMPLETO
+    # Dividir o conteúdo pelas seções principais
+    parts = content.split("## 3. CONTEÚDO COMPLETO DOS ARQUIVOS ALVO")
+    assert len(parts) == 2, "A seção de conteúdo completo não foi encontrada ou há múltiplas."
+    content_section_2_api_summary = parts[0]
+    content_section_3_target_files = parts[1]
+
+    # utils.py DEVE estar no resumo da API (Seção 2)
+    assert "### Arquivo: `utils.py`" in content_section_2_api_summary
+    assert "do_something()" in content_section_2_api_summary # Verifica a presença da função no resumo
+    assert "Faz algo útil." in content_section_2_api_summary # Verifica a presença da docstring no resumo
+
+    # utils.py NÃO DEVE estar no conteúdo completo dos arquivos alvo (Seção 3)
+    assert "### Arquivo: `utils.py`" not in content_section_3_target_files
+    # E seu conteúdo completo também não
+    assert "def do_something():\n    '''Faz algo útil.'''\n    return \"done\"" not in content_section_3_target_files
+
+
+@pytest.fixture
+def project_with_tests_structure(tmp_path: Path):
+    project_dir = tmp_path / "project_with_tests"
+    project_dir.mkdir()
+
+    # Arquivos Python válidos
+    (project_dir / "module_a.py").write_text("class ModuleA: pass\ndef func_a(): pass")
+
+    app_dir = project_dir / "app"
+    app_dir.mkdir()
+    (app_dir / "module_b.py").write_text("class ModuleB: pass")
+    (app_dir / "main.py").write_text("import os") # Arquivo regular em um dir que tem subpasta 'tests'
+
+    # Arquivos de teste no nível raiz e em subpastas
+    (project_dir / "test_module_a.py").write_text("def test_func_a(): assert True")
+    (app_dir / "module_b_test.py").write_text("def test_module_b_works(): assert True") # sufixo _test.py
+    (app_dir / "test_main.py").write_text("def test_main_app(): assert True") # prefixo test_
+
+    # Pastas de teste
+    tests_dir_root = project_dir / "tests"
+    tests_dir_root.mkdir()
+    (tests_dir_root / "test_utils.py").write_text("def test_some_util(): assert 1 == 1")
+    (tests_dir_root / "conftest.py").write_text("# conftest for root tests") # conftest.py deve ser mantido
+
+    app_tests_dir = app_dir / "tests"
+    app_tests_dir.mkdir()
+    (app_tests_dir / "test_core_functionality.py").write_text("def test_core(): assert True")
+
+    # Pasta 'test' (nome exato)
+    test_dir_exact = project_dir / "test"
+    test_dir_exact.mkdir()
+    (test_dir_exact / "test_another_feature.py").write_text("def test_another(): assert True")
+
+    # Arquivo não Python em pasta de teste (deve ser ignorado junto com a pasta)
+    (tests_dir_root / "fixture_data.json").write_text('{"data": "test_value"}')
+
+    # Arquivo Python que não é de teste em uma pasta que poderia ser confundida com pasta de teste
+    # Ex: um módulo chamado 'tester.py' ou uma pasta 'automation_tests' que não queremos excluir por padrão.
+    (project_dir / "tester_module.py").write_text("class Tester: pass") # Não deve ser confundido com test_*.py
+
+    non_test_folder_with_test_substring = project_dir / "automation_testing_framework"
+    non_test_folder_with_test_substring.mkdir()
+    (non_test_folder_with_test_substring / "runner.py").write_text("class Runner: pass")
+
+
+    return project_dir
+
+def test_update_project_manifest_filters_tests_correctly(project_with_tests_structure: Path, tmp_path: Path):
+    manifest_output_path = tmp_path / "AGENTS_TEST_filtering.md"
+
+    update_project_manifest(
+        root_dir=str(project_with_tests_structure),
+        target_files=["module_a.py", "app/module_b.py"], # Arquivos alvo válidos
+        output_path=str(manifest_output_path)
+        # Usando excluded_dir_patterns padrão: {"tests", "test"}
+    )
+
+    assert manifest_output_path.exists()
+    content = manifest_output_path.read_text()
+
+    # Verificar Estrutura de Arquivos
+    assert "project_with_tests/" in content
+    assert "    module_a.py" in content
+    assert "    app/" in content
+    assert "        module_b.py" in content
+    assert "        main.py" in content # main.py em app/ deve estar lá
+    assert "    tester_module.py" in content # Não deve ser filtrado
+    assert "    automation_testing_framework/" in content # Pasta não deve ser filtrada
+    assert "        runner.py" in content # Arquivo dentro da pasta não deve ser filtrado
+
+    # Verificar que arquivos e pastas de teste NÃO estão na estrutura
+    assert "    test_module_a.py" not in content
+    assert "        module_b_test.py" not in content # app/module_b_test.py
+    assert "        test_main.py" not in content # app/test_main.py
+    assert "    tests/" not in content # Pasta tests/ no root
+    assert "        test_utils.py" not in content
+    assert "        fixture_data.json" not in content # Arquivo não-py em pasta de teste
+    assert "    app/tests/" not in content # Pasta app/tests/
+    assert "    test/" not in content # Pasta test/ no root (nome exato)
+
+    # conftest.py na pasta 'tests' (que é excluída) não deve aparecer.
+    # Se quiséssemos manter conftest.py, a lógica de exclusão de diretórios precisaria ser mais granular.
+    # Por enquanto, se a pasta 'tests' é excluída, tudo dentro dela é.
+    assert "conftest.py" not in content
+
+    # Verificar Resumo de Interfaces (APIs Internas)
+    assert "### Arquivo: `module_a.py`" in content
+    assert "### Arquivo: `app/module_b.py`" in content
+    assert "### Arquivo: `app/main.py`" in content
+    assert "### Arquivo: `tester_module.py`" in content
+    assert "### Arquivo: `automation_testing_framework/runner.py`" in content
+
+    assert "### Arquivo: `test_module_a.py`" not in content
+    assert "### Arquivo: `app/module_b_test.py`" not in content
+    assert "### Arquivo: `app/test_main.py`" not in content
+    assert "### Arquivo: `tests/test_utils.py`" not in content
+    assert "### Arquivo: `app/tests/test_core_functionality.py`" not in content
+    assert "### Arquivo: `test/test_another_feature.py`" not in content
+    assert "### Arquivo: `tests/conftest.py`" not in content
+
 
 def test_update_project_manifest_target_file_not_found(sample_project_structure: Path, tmp_path: Path):
     manifest_output_path = tmp_path / "AGENTS_TEST_missing.md"

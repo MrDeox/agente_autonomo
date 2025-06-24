@@ -62,9 +62,21 @@ def _extract_skeleton(code_string: str) -> str:
     
     return "\n".join(skeleton_lines)
 
-def update_project_manifest(root_dir: str, target_files: List[str], output_path: str = "AGENTS.md") -> None:
+def update_project_manifest(
+    root_dir: str,
+    target_files: List[str],
+    output_path: str = "AGENTS.md",
+    excluded_dir_patterns: Optional[List[str]] = None
+) -> None:
     root_path = pathlib.Path(root_dir).resolve()
     skip_dirs = {'venv', '__pycache__', '.git', 'node_modules'}
+    # Adicionar padrões padrão se nenhum for fornecido, e garantir que sejam sets para performance
+    default_excluded_dir_patterns = {"tests", "test"}
+    if excluded_dir_patterns is None:
+        active_excluded_dir_patterns = default_excluded_dir_patterns
+    else:
+        active_excluded_dir_patterns = set(excluded_dir_patterns) | default_excluded_dir_patterns
+
     target_files_set = set(target_files)
     
     target_content_cache: Dict[str, Tuple[Optional[str], Optional[Exception]]] = {}
@@ -80,7 +92,21 @@ def update_project_manifest(root_dir: str, target_files: List[str], output_path:
 
             # Filtrar dirs ANTES de decidir se o root atual deve ser pulado por modificação de dirs[:]
             original_dirs_for_current_root = list(dirs) # Copia para referência
+
+            # Nova lógica de filtragem de diretórios
+            # Primeiro, os diretórios básicos de skip_dirs e ocultos
             dirs[:] = [d for d in dirs if not d.startswith('.') and d not in skip_dirs]
+            # Depois, os padrões de diretórios excluídos
+            # Para excluded_dir_patterns, precisamos checar o nome do diretório E o caminho relativo
+            # Isso é feito para permitir padrões como "tests" (qualquer pasta chamada tests)
+            # ou "src/tests" (uma pasta específica).
+            # No entanto, `d` aqui é apenas o nome base. Para padrões de caminho, precisaríamos do caminho completo.
+            # Vamos simplificar por agora para filtrar apenas pelo nome base do diretório.
+            # Padrões mais complexos (como caminhos relativos) exigiriam uma lógica mais elaborada aqui
+            # ou um pré-processamento de todos os caminhos.
+            # Por enquanto, `active_excluded_dir_patterns` conterá nomes de diretórios a serem excluídos.
+            dirs[:] = [d for d in dirs if d not in active_excluded_dir_patterns and not any(fnmatch.fnmatch(d, pattern) for pattern in active_excluded_dir_patterns)]
+
 
             # Escrever o nome do diretório atual (root)
             # A menos que o próprio root seja um diretório skip_dirs (o que não deve acontecer se root_path for o início)
@@ -90,17 +116,37 @@ def update_project_manifest(root_dir: str, target_files: List[str], output_path:
                  # Ainda assim, queremos listar o próprio root_dir
                  pass # Não pular a escrita do root_dir em si
 
+            # Se o diretório atual (root) corresponde a um padrão de exclusão, pule-o completamente.
+            # Isso não impede que os.walk entre nele se não for filtrado por dirs[:],
+            # mas impede sua listagem e o processamento de seus arquivos.
+            # Esta verificação é feita APÓS a modificação de dirs[:],
+            # pois os.walk já decidiu entrar neste 'root'.
+            # No entanto, para ser mais eficaz, a decisão de pular um 'root' deve ser feita
+            # antes de qualquer processamento ou escrita para esse 'root'.
+
+            # CORREÇÃO: A filtragem de `dirs[:]` já impede a entrada em subdiretórios.
+            # O que precisamos aqui é garantir que, se o `current_path_obj` (o `root` atual)
+            # em si for um diretório que deveria ser excluído (exceto se for o `root_path` inicial),
+            # então não o listamos e não processamos seus arquivos.
+
+            current_dir_name = os.path.basename(root)
+            if current_path_obj != root_path: # Não excluir o diretório raiz do manifesto
+                if current_dir_name in active_excluded_dir_patterns or \
+                   any(fnmatch.fnmatch(current_dir_name, pattern) for pattern in active_excluded_dir_patterns) or \
+                   current_dir_name in skip_dirs: # Adicionado skip_dirs aqui também
+                    continue # Pula para o próximo diretório no os.walk
+
             # Calcular indentação e escrever o nome do diretório atual
             if current_path_obj == root_path:
                 level_parts = []
             else:
                 try:
                     level_parts = current_path_obj.relative_to(root_path).parts
-                except ValueError: # current_path_obj não é subdiretório de root_path (não deveria acontecer com os.walk)
-                    level_parts = current_path_obj.parts # Fallback, mas improvável
+                except ValueError:
+                    level_parts = current_path_obj.parts
 
             indent = ' ' * 4 * len(level_parts)
-            manifest.write(f"{indent}{os.path.basename(root)}/\n")
+            manifest.write(f"{indent}{current_dir_name}/\n")
             
             # Pular o processamento de ARQUIVOS DENTRO DESTE DIRETÓRIO (root)
             # se ele não tiver mais subdiretórios para visitar (dirs ficou vazio após filtro)
@@ -118,6 +164,16 @@ def update_project_manifest(root_dir: str, target_files: List[str], output_path:
             # Processar arquivos DENTRO do diretório 'root' atual
             for f_name in files:
                 if f_name.startswith('.'): # Pular arquivos ocultos na listagem de arquivos
+                    continue
+
+                # Verificar se é um arquivo de teste Python
+                is_test_file = False
+                if f_name.endswith('.py'):
+                    if f_name.startswith('test_') or f_name.endswith('_test.py'):
+                        is_test_file = True
+
+                # Se for um arquivo de teste, não o liste na estrutura de arquivos e não processe para API.
+                if is_test_file:
                     continue
 
                 manifest.write(f"{sub_indent}{f_name}\n")
