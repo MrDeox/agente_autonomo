@@ -5,6 +5,8 @@ import tempfile
 import time
 import logging # ADICIONADO
 import argparse # ADICIONADO PARA ARGUMENTOS DE LINHA DE COMANDO
+import csv # ADICIONADO PARA LOG DE EVOLUÇÃO
+from datetime import datetime # ADICIONADO PARA LOG DE EVOLUÇÃO
 from pathlib import Path
 from dotenv import load_dotenv
 from typing import Optional, Dict, Any, List, Tuple # ADICIONADO PARA TYPE HINTS
@@ -90,7 +92,26 @@ class HephaestusAgent:
         )
         self.logger.info(f"MaestroAgent inicializado com modelos: {maestro_model_list}")
 
+        self.evolution_log_file = "evolution_log.csv" # ADICIONADO
+        self._initialize_evolution_log() # ADICIONADO
+
         self._reset_cycle_state() # Inicializa o estado do ciclo
+
+    def _initialize_evolution_log(self): # ADICIONADO
+        """Verifica e inicializa o arquivo de log de evolução com cabeçalho, se necessário."""
+        log_file_path = Path(self.evolution_log_file)
+        if not log_file_path.exists():
+            self.logger.info(f"Criando arquivo de log de evolução: {self.evolution_log_file}")
+            try:
+                with open(log_file_path, 'w', newline='', encoding='utf-8') as f:
+                    writer = csv.writer(f)
+                    writer.writerow([
+                        "ciclo", "objetivo", "status", "tempo_gasto_segundos",
+                        "score_qualidade", "estrategia_usada", "timestamp_inicio",
+                        "timestamp_fim", "razao_status", "contexto_status"
+                    ])
+            except IOError as e:
+                self.logger.error(f"Não foi possível criar o arquivo de log de evolução {self.evolution_log_file}: {e}")
 
     def _initialize_git_repository(self) -> bool:
         """
@@ -706,6 +727,13 @@ hephaestus.log
 
         # Loop principal de execução
         while True: # Modificado para suportar modo contínuo
+            timestamp_inicio_ciclo = datetime.now() # ADICIONADO PARA LOG DE EVOLUÇÃO
+            ciclo_status_final = "falha" # Default para o caso de exceções antes da definição de `success`
+            razao_final = "ciclo_interrompido_prematuramente"
+            contexto_final = "N/A"
+            estrategia_final = ""
+            objetivo_do_ciclo = ""
+
             if not self.objective_stack:
                 if self.continuous_mode:
                     self.logger.info(f"\n{'='*20} MODO CONTÍNUO {'='*20}\nPilha de objetivos vazia. Gerando novo objetivo...")
@@ -944,6 +972,52 @@ Se o problema foi nos patches, corrija-os. Se foi na validação ou sanidade, aj
                 # Salvar memória ao final de cada ciclo, independentemente do resultado do ciclo.
                 self.memory.save()
                 self.logger.info(f"Memória salva em {self.memory.filepath} ({len(self.memory.completed_objectives)} completed, {len(self.memory.failed_objectives)} failed)")
+
+                # Coletar dados para o log de evolução
+                timestamp_fim_ciclo = datetime.now()
+                tempo_gasto_segundos = (timestamp_fim_ciclo - timestamp_inicio_ciclo).total_seconds()
+
+                # `success` é definida dentro do try, mas pode não ser se uma exceção ocorrer antes.
+                # Usamos ciclo_status_final, que tem um default.
+                if 'success' in locals() and success is not None: # Verifica se success foi definida
+                    ciclo_status_final = "sucesso" if success else "falha"
+
+                # `reason` e `context` vêm de self.state.validation_result
+                # Se self.state.validation_result não foi definido (ciclo quebrou antes), usamos os defaults.
+                if hasattr(self.state, 'validation_result') and self.state.validation_result:
+                    _, razao_final, contexto_final = self.state.validation_result
+
+                if hasattr(self.state, 'strategy_key') and self.state.strategy_key:
+                    estrategia_final = self.state.strategy_key
+
+                if hasattr(self.state, 'current_objective') and self.state.current_objective:
+                    objetivo_do_ciclo = self.state.current_objective
+                elif 'current_objective' in locals() and current_objective: # Se self.state.current_objective não foi setado
+                    objetivo_do_ciclo = current_objective
+
+
+                log_entry_evolution = [
+                    cycle_count,
+                    objetivo_do_ciclo,
+                    ciclo_status_final,
+                    round(tempo_gasto_segundos, 2),
+                    "", # score_qualidade (vazio por enquanto)
+                    estrategia_final,
+                    timestamp_inicio_ciclo.isoformat(),
+                    timestamp_fim_ciclo.isoformat(),
+                    razao_final,
+                    contexto_final
+                ]
+                try:
+                    with open(self.evolution_log_file, 'a', newline='', encoding='utf-8') as f:
+                        writer = csv.writer(f)
+                        writer.writerow(log_entry_evolution)
+                except IOError as e:
+                    self.logger.error(f"Não foi possível escrever no arquivo de log de evolução {self.evolution_log_file}: {e}")
+                except Exception as e: # Captura outras exceções potenciais ao tentar logar
+                    self.logger.error(f"Erro inesperado ao tentar escrever no log de evolução: {e}", exc_info=True)
+
+
                 self.logger.info(f"{'='*20} FIM DO CICLO DE EVOLUÇÃO {'='*20}")
                 time.sleep(self.config.get("cycle_delay_seconds", 1))
 
