@@ -129,9 +129,6 @@ Gere APENAS uma única string de texto contendo o próximo objetivo. Seja concis
     content, error = _call_llm_api(api_key, model, prompt, 0.3, base_url, logger)
 
     if error:
-        # O erro de "Invalid URL" aconteceria antes, na tentativa de concatenar memory_summary à base_url.
-        # Com a correção, esse tipo de erro não deve mais ocorrer devido à manipulação da URL.
-        # O log aqui permanece para outros tipos de erro da API.
         log_message = f"Erro ao gerar próximo objetivo: {error}"
         if logger:
             logger.error(log_message)
