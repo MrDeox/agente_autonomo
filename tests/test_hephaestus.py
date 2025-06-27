@@ -79,14 +79,15 @@ def agent_instance(mock_logger, temp_config_file, mock_env_vars, tmp_path):
 
     # Mockear o arquivo de configuração para que ele use o temp_config_file
     with patch('main.HephaestusAgent.load_config', return_value=json.load(open(temp_config_file))):
-        # Patch _initialize_git_repository before HephaestusAgent is instantiated
-        with patch.object(MockableHephaestusAgent, '_initialize_git_repository', return_value=True) as mock_init_git:
+        # Patch git initialization before HephaestusAgent is instantiated
+        with patch('agent.git_utils.initialize_git_repository', return_value=True) as mock_init_git:
                 # Mock para evitar chamadas reais à API LLM
                 with (
                     patch('agent.brain._call_llm_api', return_value=("Mocked LLM Response", None)) as mock_llm_call,
                     patch('agent.agents._call_llm_api', return_value=("Mocked LLM Response Agents", None)) as mock_llm_agents,
-                    patch('main.run_git_command', return_value=(True, "Mocked git output")) as mock_git,
-                    patch('main.update_project_manifest') as mock_update_manifest,
+                    patch('main.run_git_command', return_value=(True, "Mocked git output")) as mock_git_main,
+                    patch('agent.cycle_runner.run_git_command', return_value=(True, "Mocked git output")) as mock_git,
+                    patch('agent.cycle_runner.update_project_manifest') as mock_update_manifest,
                     patch(
                         'agent.validation_steps.patch_applicator.PatchApplicator.execute',
                         return_value=(True, 'PATCH_APPLICATION_SUCCESS', '')
@@ -123,12 +124,13 @@ def agent_instance(mock_logger, temp_config_file, mock_env_vars, tmp_path):
                     agent._mocks = {
                         "llm_brain": mock_llm_call,
                         "llm_agents": mock_llm_agents,
+                        "git_main": mock_git_main,
                         "git": mock_git,
                         "manifest": mock_update_manifest,
                         "apply_patches": mock_apply_patches,
                         "validate_syntax": mock_validate_syntax,
                         "pytest": mock_run_pytest,
-                        "init_git": mock_init_git # Add back here
+                        "init_git": mock_init_git
                     }
                     return agent # Fornece a instância do agente para o teste
 
