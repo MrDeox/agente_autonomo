@@ -186,7 +186,8 @@ def _handle_delete_block(full_path: Path, lines: list[str], instruction: dict,
                 f"Bloco literal '{pattern}' não encontrado em '{full_path}' para DELETE_BLOCK.")
 
     if deleted:
-        pass
+        logger.debug(
+            f"Bloco removido para '{pattern}' em '{full_path}'.")
     elif full_path.exists():
         logger.warning(
             f"Nenhuma deleção realizada para '{pattern}' em '{full_path}'.")
@@ -454,21 +455,11 @@ def apply_patches(instructions: list[dict], logger: logging.Logger, base_path: s
                     # Se a linha original já era vazia, ela permanece.
                     # Esta lógica é complexa para ser perfeita sem entender a intenção.
                     # A abordagem mais simples é que o LLM forneça blocos que incluam newlines para deleção.
-                    final_lines = []
-                    original_content_set = set(file_content_str.splitlines())
-                    potential_new_lines = "\n".join(lines).splitlines() # Re-split para normalizar
-
-                    # Se uma linha existia antes e agora não existe mais (devido à deleção do bloco),
-                    # e a linha que tomou seu lugar (ou a anterior/posterior) é vazia,
-                    # essa linha vazia pode ser candidata à remoção se ela foi criada pela deleção.
-                    # Isso é muito difícil de acertar genericamente.
-                    # Por agora, confiamos que `splitlines()` e a remoção do bloco já fazem um bom trabalho.
-                    # Se o `block_to_delete` incluir o `\n` final, a linha some. Se não, o `\n` fica.
-                    # O LLM deve ser instruído a incluir o `\n` no `block_to_delete` se a linha inteira deve sumir.
-                    pass # A lógom sucesso após operação '{operation}'.")
-ica de splitlines já trata bem se o bloco removido era a linha inteira.
+                    logger.debug(
+                        f"Bloco removido para '{block_to_delete_pattern}' em '{full_path}'.")
                 elif full_path.exists():
-                     logger.warning(f"Nenhuma deleção realizada para '{block_to_delete_pattern}' em '{full_path}'.") # CORRIGIDO
+                    logger.warning(
+                        f"Nenhuma deleção realizada para '{block_to_delete_pattern}' em '{full_path}'.")
 
 
         overall_success &= success
@@ -476,7 +467,9 @@ ica de splitlines já trata bem se o bloco removido era a linha inteira.
         if not skip_write:
             with open(full_path, "w", encoding="utf-8") as f:
                 f.write("\n".join(lines))
-            logger.info(f"Arquivo '{full_path}' salvo c
+            logger.info(
+                f"Arquivo '{full_path}' salvo após operação '{operation}'.")
+
     if overall_success:
         logger.info(
             f"Todas as {len(instructions)} instruções de patch processadas. Arquivos afetados (tentativas): {processed_files}")
