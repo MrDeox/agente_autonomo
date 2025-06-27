@@ -1,7 +1,7 @@
 import pytest
 from unittest.mock import patch, Mock
 from datetime import datetime
-from agent.brain import _call_llm_api
+from agent.utils.llm_client import call_llm_api
 
 @pytest.fixture
 def mock_logger():
@@ -13,19 +13,16 @@ def mock_logger():
 # tests/test_brain.py
 import pytest
 import json
-import requests # Mantido devido à cópia de _call_llm_api
+import requests
 import logging
 from unittest.mock import MagicMock, patch
 
 from agent.brain import (
-    _call_llm_api, # Mantido para testar a cópia local
     generate_next_objective,
     generate_capacitation_objective,
-    # get_action_plan, # Removido
-    # get_maestro_decision, # Removido
-    # parse_json_response # Removido
-    generate_commit_message # Adicionado para teste se necessário
+    generate_commit_message
 )
+from agent.utils.llm_client import call_llm_api
 
 # Logger mockado
 @pytest.fixture
@@ -37,10 +34,9 @@ def mock_logger():
     logger.error = MagicMock()
     return logger
 
-# --- Testes para _call_llm_api (cópia local em brain.py) ---
-# Estes testes verificam a funcionalidade da cópia de _call_llm_api que permanece em brain.py
-# para uso por generate_next_objective, etc.
-@patch('agent.brain.requests.post') # Patch no local correto
+# --- Testes para call_llm_api (em agent.utils.llm_client) ---
+# Verificam a funcionalidade da chamada LLM usada pelas funções do brain
+@patch('agent.utils.llm_client.requests.post')
 def test_brain_call_llm_api_success(mock_post, mock_logger):
     mock_response = MagicMock()
     mock_response.status_code = 200
@@ -49,7 +45,7 @@ def test_brain_call_llm_api_success(mock_post, mock_logger):
     }
     mock_post.return_value = mock_response
 
-    content, error = _call_llm_api("fake_key_brain", "model_brain", "prompt_brain", 0.5, "http://fake.url.brain", mock_logger)
+    content, error = call_llm_api("fake_key_brain", "model_brain", "prompt_brain", 0.5, "http://fake.url.brain", mock_logger)
 
     assert content == "Resposta LLM simulada (brain)"
     assert error is None
@@ -57,26 +53,26 @@ def test_brain_call_llm_api_success(mock_post, mock_logger):
     # Verificar se o logger foi chamado com a mensagem específica
     mock_logger.debug.assert_called_once()
     args, _ = mock_logger.debug.call_args
-    assert "API Response (brain._call_llm_api)" in args[0]
+    assert "LLM API Response" in args[0]
 
 
-@patch('agent.brain.requests.post')
+@patch('agent.utils.llm_client.requests.post')
 def test_brain_call_llm_api_request_exception(mock_post, mock_logger):
     mock_post.side_effect = requests.exceptions.RequestException("Erro de rede (brain)")
-    content, error = _call_llm_api("fk", "mb", "pb", 0.5, "http://fake.url.brain", mock_logger)
+    content, error = call_llm_api("fk", "mb", "pb", 0.5, "http://fake.url.brain", mock_logger)
     assert content is None
     assert "Request failed: Erro de rede (brain)" in error
 
 
-# --- Testes para generate_next_objective (que usa a _call_llm_api de brain.py) ---
-@patch('agent.brain._call_llm_api') # Patch no _call_llm_api DENTRO de brain.py
+# --- Testes para generate_next_objective (que usa call_llm_api) ---
+@patch('agent.brain.call_llm_api')
 def test_generate_next_objective_success(mock_call_llm_api, mock_logger):
     mock_call_llm_api.return_value = ("Próximo objetivo simulado.", None)
 
     objective = generate_next_objective("key", "model_light", "manifesto_atual", mock_logger, "/dummy/path", base_url="http://fake.url")
     assert objective == "Próximo objetivo simulado."
     mock_call_llm_api.assert_called_once()
-    # Verificar args da chamada para _call_llm_api
+    # Verificar args da chamada para call_llm_api
     # A chamada em generate_next_objective usa keyword arguments
     args, kwargs = mock_call_llm_api.call_args
     assert not args # Assegurar que não foram passados argumentos posicionais
@@ -87,7 +83,7 @@ def test_generate_next_objective_success(mock_call_llm_api, mock_logger):
     assert kwargs['base_url'] == "http://fake.url"
     assert kwargs['logger'] == mock_logger
 
-@patch('agent.brain._call_llm_api')
+@patch('agent.brain.call_llm_api')
 def test_generate_next_objective_api_error(mock_call_llm_api, mock_logger):
     mock_call_llm_api.return_value = (None, "Erro de API simulado")
 
@@ -95,7 +91,7 @@ def test_generate_next_objective_api_error(mock_call_llm_api, mock_logger):
     assert objective == "Analisar o estado atual do projeto e propor uma melhoria incremental" # Fallback
     mock_logger.error.assert_called_with("Erro ao gerar próximo objetivo: Erro de API simulado")
 
-    @patch('agent.brain._call_llm_api')
+    @patch('agent.brain.call_llm_api')
     def test_generate_next_objective_empty_llm_response(mock_call_llm_api, mock_logger):
         mock_call_llm_api.return_value = ("", None) # Resposta de conteúdo vazia
 
@@ -112,7 +108,7 @@ def test_generate_next_objective_api_error(mock_call_llm_api, mock_logger):
         mock_logger.warning.assert_called_with("Resposta vazia do LLM para próximo objetivo.")
 
 
-@patch('agent.brain._call_llm_api')
+@patch('agent.brain.call_llm_api')
 def test_generate_next_objective_empty_manifest(mock_call_llm_api, mock_logger):
     mock_call_llm_api.return_value = ("Objetivo para manifesto vazio", None)
 
@@ -126,7 +122,7 @@ def test_generate_next_objective_empty_manifest(mock_call_llm_api, mock_logger):
     assert "Hephaestus" in prompt_arg
     assert "objetivo" in prompt_arg
 
-@patch('agent.brain._call_llm_api')
+@patch('agent.brain.call_llm_api')
 def test_generate_next_objective_with_memory(mock_call_llm_api, mock_logger):
     mock_call_llm_api.return_value = ("Objetivo com memória.", None)
     memory_summary = "Lembre-se de X."
@@ -139,8 +135,8 @@ def test_generate_next_objective_with_memory(mock_call_llm_api, mock_logger):
     assert memory_summary in prompt_arg
 
 
-# --- Testes para generate_capacitation_objective (que usa a _call_llm_api de brain.py) ---
-@patch('agent.brain._call_llm_api') # Patch no _call_llm_api DENTRO de brain.py
+# --- Testes para generate_capacitation_objective (que usa call_llm_api) ---
+@patch('agent.brain.call_llm_api')
 def test_generate_capacitation_objective_success(mock_call_llm_api, mock_logger):
     mock_call_llm_api.return_value = ("Objetivo de capacitação simulado.", None)
 
@@ -156,14 +152,14 @@ def test_generate_capacitation_objective_success(mock_call_llm_api, mock_logger)
     assert args[4] == "http://fake.url"
     assert args[5] == mock_logger
 
-@patch('agent.brain._call_llm_api')
+@patch('agent.brain.call_llm_api')
 def test_generate_capacitation_objective_api_error(mock_call_llm_api, mock_logger):
     mock_call_llm_api.return_value = (None, "Erro de API capacitação")
     objective = generate_capacitation_objective("key", "model", "Análise.", logger=mock_logger)
     assert objective == "Analisar a necessidade de capacitação e propor uma solução" # Fallback
     mock_logger.error.assert_called_with("Erro ao gerar objetivo de capacitação: Erro de API capacitação")
 
-@patch('agent.brain._call_llm_api')
+@patch('agent.brain.call_llm_api')
 def test_generate_capacitation_objective_with_memory(mock_call_llm_api, mock_logger):
     mock_call_llm_api.return_value = ("Objetivo de capacitação com memória.", None)
     memory_summary = "Capacitação X já foi tentada."
@@ -174,9 +170,9 @@ def test_generate_capacitation_objective_with_memory(mock_call_llm_api, mock_log
     assert "HISTÓRICO RECENTE DO AGENTE" in prompt_arg
     assert memory_summary in prompt_arg
 
-# --- Testes para generate_commit_message (que usa a _call_llm_api de brain.py - simulado) ---
+# --- Testes para generate_commit_message (simulado, sem chamada real de LLM) ---
 # A função generate_commit_message no código fornecido está atualmente simulando a chamada LLM
-# e construindo a mensagem heuristicamente. Portanto, não precisamos mockar _call_llm_api para ela.
+# e construindo a mensagem heuristicamente. Portanto, não precisamos mockar call_llm_api para ela.
 def test_generate_commit_message_feat(mock_logger):
     objective = "Adicionar nova funcionalidade X"
     analysis = "Implementado X com sucesso."
@@ -201,15 +197,14 @@ def test_generate_commit_message_long_objective_truncates(mock_logger):
 
 """
 Observações sobre os testes de `brain.py` após refatoração:
-- Testes para `get_action_plan`, `get_maestro_decision`, e `parse_json_response` foram removidos
+- Testes para `get_action_plan`, `get_maestro_decision` e `parse_json_response` foram removidos
   deste arquivo, pois essas funções foram movidas para `agent/agents.py`.
   Os testes correspondentes estão agora em `tests/test_agents.py`.
-- Testes para a cópia local de `_call_llm_api` em `brain.py` foram mantidos e adaptados
-  para garantir que as funções restantes (`generate_next_objective`, etc.) usem-na corretamente.
-- Testes para `generate_next_objective` e `generate_capacitation_objective` foram mantidos,
-  assegurando que eles chamam a `_call_llm_api` interna de `brain.py`.
-  Foram adicionados casos para testar o uso do `memory_summary`.
-- Testes para `generate_commit_message` foram adicionados/mantidos, refletindo sua lógica atual
+- Testes para a chamada `call_llm_api` foram mantidos e adaptados para garantir que as funções
+  restantes (`generate_next_objective`, etc.) a utilizem corretamente.
+- Testes para `generate_next_objective` e `generate_capacitation_objective` continuam verificando
+  o uso de `call_llm_api` e o parâmetro `memory_summary`.
+- Testes para `generate_commit_message` foram mantidos, refletindo sua lógica atual
   (que é uma simulação/heurística, não uma chamada LLM real no código fornecido).
 - O arquivo está mais enxuto, focando apenas nas responsabilidades que permaneceram em `brain.py`.
 """

@@ -1,25 +1,14 @@
 import json
 import logging
-# import requests # No longer needed here, _call_llm_api is now in llm_client
+# import requests # No longer needed here, call_llm_api is imported from utils
 import traceback # Keep if parse_json_response uses it, otherwise remove
 from typing import Optional, Dict, Any, List, Tuple
 
 from agent.utils.llm_client import call_llm_api
 
-def _call_llm_api(
-    api_key: str,
-    model: str,
-    prompt: str,
-    temperature: float,
-    base_url: str,
-    logger: logging.Logger,
-) -> Tuple[Optional[str], Optional[str]]:
-    """Lightweight wrapper for ``call_llm_api`` from ``agent.utils.llm_client``."""
-    return call_llm_api(api_key, model, prompt, temperature, base_url, logger)
-
 # Esta função é uma cópia de agent.brain.parse_json_response
 # Idealmente, seria movida para um módulo de utilitários compartilhado se usada em mais lugares.
-# For now, keeping it here as the refactor is focused on _call_llm_api
+# Mantida aqui por simplicidade durante a refatoração
 def parse_json_response(raw_str: str, logger: logging.Logger) -> Tuple[Optional[Dict[str, Any]], Optional[str]]:
     """
     Analisa uma string bruta que se espera conter JSON, limpando-a e decodificando-a.
@@ -87,7 +76,7 @@ def parse_json_response(raw_str: str, logger: logging.Logger) -> Tuple[Optional[
         # else: print(f"parse_json_response: {detailed_error}") # Avoid direct print
         return None, f"Unexpected error during JSON parsing: {str(e)}"
 
-# _call_llm_api function was removed from here. It's now imported from agent.utils.llm_client
+# call_llm_api is imported from agent.utils.llm_client
 
 
 class ArchitectAgent:
