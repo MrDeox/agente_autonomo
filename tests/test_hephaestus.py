@@ -1,20 +1,10 @@
-import re
-import warnings
-import pytest
-import re
-import warnings
-from unittest.mock import call
-from unittest.mock import call
-import pytest
 import logging
 import os
-from unittest.mock import patch, MagicMock, call # Adicionado call
-from pathlib import Path
-import json # Adicionado import json
+import json
+import pytest
+from unittest.mock import patch, MagicMock, call
 
 # Adicionar imports necessários do seu projeto
-from main import HephaestusAgent
-from agent.memory import Memory
 
 # Configuração de logger para testes, se necessário
 # Pode ser útil para depurar testes, mas geralmente não é necessário para asserções.
@@ -62,10 +52,6 @@ def mock_env_vars(monkeypatch):
     """Mock das variáveis de ambiente necessárias."""
     monkeypatch.setenv("OPENROUTER_API_KEY", "test_api_key")
     # Adicione outras variáveis de ambiente se o agente as utilizar diretamente
-
-# Adicionar imports necessários do seu projeto
-# from main import HephaestusAgent # Removed import here
-from agent.memory import Memory # Keep this import if Memory is used directly in tests
 
 @pytest.fixture
 def agent_instance(mock_logger, temp_config_file, mock_env_vars, tmp_path):
