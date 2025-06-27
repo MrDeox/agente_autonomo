@@ -1,6 +1,7 @@
 import subprocess
 import sys
 import time
+import requests  # Adicionado para suportar web_search
 from typing import Tuple, Dict, Any
 
 import psutil
@@ -148,3 +149,35 @@ def run_git_command(command: list[str]) -> Tuple[bool, str]:
         return False, "Erro: O comando 'git' não foi encontrado. Certifique-se de que o Git está instalado e no PATH."
     except Exception as e:
         return False, f"Erro inesperado ao executar comando Git: {str(e)}"
+
+
+def web_search(query: str) -> Tuple[bool, str]:
+    """
+    Realiza uma pesquisa na web usando a API DuckDuckGo e retorna os resultados.
+
+    Args:
+        query: A string de pesquisa a ser enviada para o DuckDuckGo.
+
+    Returns:
+        Tuple[bool, str]: (success, results)
+        - success: True se a pesquisa for bem-sucedida, False caso contrário.
+        - results: Resultados formatados da pesquisa ou mensagem de erro.
+    """
+    try:
+        # Implementação simplificada - em produção usar biblioteca adequada
+        search_url = f"https://api.duckduckgo.com/?q={query}&format=json"
+        response = requests.get(search_url)
+        response.raise_for_status()
+        data = response.json()
+        
+        # Processar resultados
+        results = []
+        for i, result in enumerate(data.get('Results', [])[:5], 1):
+            results.append(f"{i}. {result.get('Text', 'Sem descrição')}\n   URL: {result.get('FirstURL', '')}")
+        
+        if not results:
+            return True, "Nenhum resultado encontrado para a pesquisa."
+        
+        return True, "\n\n".join(results)
+    except Exception as e:
+        return False, f"Erro na pesquisa web: {str(e)}"

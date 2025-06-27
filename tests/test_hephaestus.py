@@ -81,49 +81,56 @@ def agent_instance(mock_logger, temp_config_file, mock_env_vars, tmp_path):
     with patch('main.HephaestusAgent.load_config', return_value=json.load(open(temp_config_file))):
         # Patch _initialize_git_repository before HephaestusAgent is instantiated
         with patch.object(MockableHephaestusAgent, '_initialize_git_repository', return_value=True) as mock_init_git:
-            # Mock para evitar chamadas reais à API LLM
-            with patch('agent.brain._call_llm_api', return_value=("Mocked LLM Response", None)) as mock_llm_call, \
-                 patch('agent.agents._call_llm_api', return_value=("Mocked LLM Response Agents", None)) as mock_llm_agents, \
-                 patch('main.run_git_command', return_value=(True, "Mocked git output")) as mock_git, \
-                 patch('main.update_project_manifest') as mock_update_manifest, \
-                 patch('main.apply_patches') as mock_apply_patches, \
-                 patch('main.validate_python_code', return_value=(True, None)) as mock_validate_py, \
-                 patch('main.validate_json_syntax', return_value=(True, None)) as mock_validate_json, \
-                 patch('main.run_pytest', return_value=(True, "Pytest OK")) as mock_run_pytest, \
-                 patch('main.check_file_existence', return_value=(True, "Files exist")) as mock_check_files:
+                # Mock para evitar chamadas reais à API LLM
+                with (
+                    patch('agent.brain._call_llm_api', return_value=("Mocked LLM Response", None)) as mock_llm_call,
+                    patch('agent.agents._call_llm_api', return_value=("Mocked LLM Response Agents", None)) as mock_llm_agents,
+                    patch('main.run_git_command', return_value=(True, "Mocked git output")) as mock_git,
+                    patch('main.update_project_manifest') as mock_update_manifest,
+                    patch(
+                        'agent.validation_steps.patch_applicator.PatchApplicator.execute',
+                        return_value=(True, 'PATCH_APPLICATION_SUCCESS', '')
+                    ) as mock_apply_patches,
+                    patch(
+                        'agent.validation_steps.syntax_validator.SyntaxValidator.execute',
+                        return_value=(True, 'SYNTAX_VALIDATION_SUCCESS', '')
+                    ) as mock_validate_syntax,
+                    patch(
+                        'agent.validation_steps.pytest_validator.PytestValidator.execute',
+                        return_value=(True, 'PYTEST_SUCCESS', '')
+                    ) as mock_run_pytest
+                ):
 
-                # Garantir que não existe .git para forçar o caminho de inicialização
-                git_dir = tmp_path / ".git"
-                if git_dir.exists():
-                    if git_dir.is_dir():
-                        import shutil
-                        shutil.rmtree(git_dir)
-                    else:
-                        git_dir.unlink()
+                    # Garantir que não existe .git para forçar o caminho de inicialização
+                    git_dir = tmp_path / ".git"
+                    if git_dir.exists():
+                        if git_dir.is_dir():
+                            import shutil
+                            shutil.rmtree(git_dir)
+                        else:
+                            git_dir.unlink()
 
-                # Criar arquivos e diretórios básicos que o agente pode esperar
-                (tmp_path / "tests").mkdir(exist_ok=True)
-                (tmp_path / "AGENTS.md").touch() # Para _generate_manifest
+                    # Criar arquivos e diretórios básicos que o agente pode esperar
+                    (tmp_path / "tests").mkdir(exist_ok=True)
+                    (tmp_path / "AGENTS.md").touch() # Para _generate_manifest
 
-                agent = MockableHephaestusAgent( # Use the aliased class
-                    logger_instance=mock_logger,
-                    continuous_mode=False, # Testar modo não contínuo por padrão
-                    objective_stack_depth_for_testing=1 # Limitar a 1 ciclo para a maioria dos testes
-                )
-                # Anexar mocks ao agente para facilitar o acesso nos testes, se necessário
-                agent._mocks = {
-                    "llm_brain": mock_llm_call,
-                    "llm_agents": mock_llm_agents,
-                    "git": mock_git,
-                    "manifest": mock_update_manifest,
-                    "apply_patches": mock_apply_patches,
-                    "validate_py": mock_validate_py,
-                    "validate_json": mock_validate_json,
-                    "pytest": mock_run_pytest,
-                    "check_files": mock_check_files,
-                    "init_git": mock_init_git # Add back here
-                }
-                return agent # Fornece a instância do agente para o teste
+                    agent = MockableHephaestusAgent( # Use the aliased class
+                        logger_instance=mock_logger,
+                        continuous_mode=False, # Testar modo não contínuo por padrão
+                        objective_stack_depth_for_testing=1 # Limitar a 1 ciclo para a maioria dos testes
+                    )
+                    # Anexar mocks ao agente para facilitar o acesso nos testes, se necessário
+                    agent._mocks = {
+                        "llm_brain": mock_llm_call,
+                        "llm_agents": mock_llm_agents,
+                        "git": mock_git,
+                        "manifest": mock_update_manifest,
+                        "apply_patches": mock_apply_patches,
+                        "validate_syntax": mock_validate_syntax,
+                        "pytest": mock_run_pytest,
+                        "init_git": mock_init_git # Add back here
+                    }
+                    return agent # Fornece a instância do agente para o teste
 
     # Restaurar o diretório de trabalho original
     os.chdir(original_cwd)

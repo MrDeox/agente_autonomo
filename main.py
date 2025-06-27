@@ -24,13 +24,14 @@ from agent.brain import (
 from agent.agents import ArchitectAgent, MaestroAgent # NOVAS CLASSES DE AGENTE
 # from agent.patch_applicator import apply_patches # Será substituído por manipulação em memória
 # AGORA: from agent.patch_applicator import apply_patches # Será usado com o novo patch_applicator
-from agent.code_validator import validate_python_code, validate_json_syntax # Reavaliar uso
-from agent.tool_executor import run_in_sandbox, run_pytest, check_file_existence, run_git_command # ADICIONADO run_git_command
+
+from agent.tool_executor import run_pytest, check_file_existence, run_git_command # ADICIONADO run_git_command
 
 # Importar o novo patch_applicator
-from agent.patch_applicator import apply_patches # ADICIONADO
+
 from agent.memory import Memory # ADICIONADO PARA MEMÓRIA PERSISTENTE
 from agent.state import AgentState # ADICIONADO PARA ESTADO ESTRUTURADO
+from agent.validation_steps import get_validation_step
 
 # Configuração do Logging
 logger = logging.getLogger(__name__) # ADICIONADO
@@ -427,127 +428,88 @@ hephaestus.log
         self.state.strategy_key = strategy_key
         return True
 
-    def _execute_step_apply_patches(self, patches_to_apply: List[Dict[str, Any]], current_base_path: str, use_sandbox: bool) -> bool:
-        if not patches_to_apply:
-            self.logger.info("Nenhum patch para aplicar. Pulando passo apply_patches_to_disk.")
-            return True
+    def _execute_validation_strategy(self) -> None:
+        strategy_key = self.state.strategy_key
+        strategy_config = self.config["validation_strategies"].get(strategy_key, {})
+        steps = strategy_config.get("steps", [])
+        self.logger.info(f"\nExecuting strategy '{strategy_key}' with steps: {steps}")
+        self.state.validation_result = (False, "STRATEGY_PENDING", f"Starting strategy {strategy_key}")
 
-        self.logger.info(f"Aplicando {len(patches_to_apply)} patches em '{current_base_path}'...")
+        patches_to_apply = self.state.get_patches_to_apply()
+        sandbox_dir_obj = None
         try:
-            apply_patches(instructions=patches_to_apply, logger=self.logger, base_path=current_base_path)
-            self.logger.info(f"Patches aplicados com sucesso em '{current_base_path}'.")
-            self.state.applied_files_report = {
-                patch_instr.get("file_path"): {
-                    "status": f"attempted_in_{'sandbox' if use_sandbox else 'real_project'}",
-                    "message": f"Patch application attempted in {'sandbox' if use_sandbox else 'real project'}."
-                }
-                for patch_instr in patches_to_apply if patch_instr.get("file_path")
-            }
-            return True
-        except Exception as e:
-            self.logger.error(f"ERRO CRÍTICO ao aplicar patches em '{current_base_path}': {e}", exc_info=True)
-            reason_code = "PATCH_APPLICATION_FAILED_IN_SANDBOX" if use_sandbox else "PATCH_APPLICATION_FAILED"
-            self.state.validation_result = (False, reason_code, str(e))
-            return False
+            use_sandbox = any(step in ["apply_patches_to_disk", "validate_syntax", "run_pytest_validation"] for step in steps) and patches_to_apply
+            current_base_path = "."
+            if use_sandbox:
+                sandbox_dir_obj = tempfile.TemporaryDirectory(prefix="hephaestus_sandbox_")
+                current_base_path = sandbox_dir_obj.name
+                self.logger.info(f"Created temporary sandbox at: {current_base_path}")
+                self.logger.info(f"Copying project to sandbox: {current_base_path}...")
+                shutil.copytree(".", current_base_path, dirs_exist_ok=True)
+                self.logger.info("Copy to sandbox complete.")
 
-    def _execute_step_validate_syntax(self, patches_to_apply: List[Dict[str, Any]], current_base_path: str, use_sandbox: bool) -> bool:
-        if not patches_to_apply:
-            self.logger.info("Nenhum patch aplicado para validar sintaxe. Pulando passo validate_syntax.")
-            return True
+            for step_name in steps:
+                self.logger.info(f"--- Validation/Execution Step: {step_name} ---")
+                try:
+                    validation_step_class = get_validation_step(step_name)
+                    step_instance = validation_step_class(
+                        logger=self.logger,
+                        base_path=current_base_path,
+                        patches_to_apply=patches_to_apply,
+                        use_sandbox=use_sandbox,
+                    )
+                    step_success, reason, details = step_instance.execute()
+                    if not step_success:
+                        self.state.validation_result = (False, reason, details)
+                        self.logger.error(f"Step '{step_name}' failed. Stopping strategy '{strategy_key}'. Details: {details}")
+                        break
+                except ValueError as e:
+                    self.logger.error(f"Unknown validation step: {step_name}. Treating as FAILURE.")
+                    self.state.validation_result = (False, "UNKNOWN_VALIDATION_STEP", f"Unknown step: {step_name}")
+                    break
+                except Exception as e:
+                    self.logger.error(f"An unexpected error occurred during step '{step_name}': {e}", exc_info=True)
+                    reason_code = f"{step_name.upper()}_UNEXPECTED_ERROR"
+                    self.state.validation_result = (False, reason_code, str(e))
+                    break
 
-        self.logger.info(f"Iniciando validação de sintaxe em: {current_base_path}")
-        all_syntax_valid = True
-        error_details = []
-        files_to_validate = {p.get("file_path") for p in patches_to_apply if p.get("file_path")}
+            validation_succeeded, reason, details = self.state.validation_result
 
-        for file_path_relative in files_to_validate:
-            full_file_path_in_target = Path(current_base_path) / file_path_relative
-            self.logger.debug(f"Validando sintaxe de: {full_file_path_in_target}")
-            if not full_file_path_in_target.exists():
-                self.logger.warning(f"Arquivo {full_file_path_in_target} não encontrado em '{current_base_path}' para validação. Pode ter sido removido ou não criado.")
-                continue # Se o arquivo não existe, não há o que validar sintaticamente aqui.
+            if use_sandbox:
+                if not validation_succeeded and "_IN_SANDBOX" in reason:
+                    self.logger.warn(f"Validation in sandbox failed ({reason}). Discarding patches. Details: {details}")
+                elif validation_succeeded:
+                    self.logger.info("Validations in sandbox passed. Promoting changes to the real project.")
+                    try:
+                        copied_files_count = 0
+                        files_mentioned_in_patches = {instr.get("file_path") for instr in patches_to_apply if instr.get("file_path")}
+                        for file_path_relative_str in files_mentioned_in_patches:
+                            sandbox_file = Path(current_base_path) / file_path_relative_str
+                            real_project_file = Path(".") / file_path_relative_str
+                            if sandbox_file.exists():
+                                real_project_file.parent.mkdir(parents=True, exist_ok=True)
+                                shutil.copy2(sandbox_file, real_project_file)
+                                copied_files_count += 1
+                            elif real_project_file.exists():
+                                real_project_file.unlink(missing_ok=True)
+                                self.logger.info(f"File {real_project_file} removed from real project as it no longer exists in the sandbox.")
+                                copied_files_count += 1
+                        self.logger.info(f"{copied_files_count} files/directories synchronized from sandbox to real project.")
+                        self.state.validation_result = (True, "APPLIED_AND_VALIDATED", f"Strategy '{strategy_key}' completed, patches applied and validated via sandbox.")
+                    except Exception as e:
+                        self.logger.error(f"CRITICAL ERROR promoting changes from sandbox to real project: {e}", exc_info=True)
+                        self.state.validation_result = (False, "PROMOTION_FAILED", str(e))
 
-            if file_path_relative.endswith(".py"):
-                is_valid, msg, _ = validate_python_code(full_file_path_in_target, self.logger)
-                if not is_valid:
-                    self.logger.warn(f"Erro de sintaxe Python em {full_file_path_in_target}: {msg}")
-                    all_syntax_valid = False
-                    error_details.append(f"{file_path_relative}: {msg}")
-            elif file_path_relative.endswith(".json"): # Também validar JSON aqui se validate_json_syntax não for um passo separado
-                is_valid, msg = validate_json_syntax(full_file_path_in_target, self.logger)
-                if not is_valid:
-                    self.logger.warn(f"Erro de sintaxe JSON em {full_file_path_in_target}: {msg}")
-                    all_syntax_valid = False
-                    error_details.append(f"{file_path_relative}: {msg}")
-            # Adicionar mais tipos de arquivo se necessário
-
-        if not all_syntax_valid:
-            reason_code = "SYNTAX_VALIDATION_FAILED_IN_SANDBOX" if use_sandbox else "SYNTAX_VALIDATION_FAILED"
-            self.state.validation_result = (False, reason_code, "\n".join(error_details))
-            return False
-
-        self.logger.info(f"Validação de sintaxe em '{current_base_path}': SUCESSO.")
-        return True
-
-    def _execute_step_validate_json_syntax(self, patches_to_apply: List[Dict[str, Any]], current_base_path: str, use_sandbox: bool) -> bool:
-        if not patches_to_apply:
-            self.logger.info("Nenhum patch aplicado para validar sintaxe JSON. Pulando passo validate_json_syntax.")
-            return True
-
-        self.logger.info(f"Iniciando validação de sintaxe JSON específica em: {current_base_path}")
-        json_syntax_valid = True
-        json_error_details = []
-        # Filtrar apenas arquivos .json das patches aplicadas
-        files_to_validate_json = {
-            p.get("file_path") for p in patches_to_apply
-            if p.get("file_path") and p.get("file_path", "").endswith(".json")
-        }
-
-        if not files_to_validate_json:
-            self.logger.info("Nenhum arquivo JSON encontrado nos patches para validação de sintaxe JSON específica.")
-            return True
-
-        for file_path_relative in files_to_validate_json:
-            full_file_path_in_target = Path(current_base_path) / file_path_relative
-            if not full_file_path_in_target.exists():
-                self.logger.warning(f"Arquivo JSON {full_file_path_in_target} não encontrado em '{current_base_path}' para validação.")
-                continue
-
-            is_valid, msg = validate_json_syntax(full_file_path_in_target, self.logger)
-            if not is_valid:
-                self.logger.warn(f"Erro de sintaxe JSON em {full_file_path_in_target}: {msg}")
-                json_syntax_valid = False
-                json_error_details.append(f"{file_path_relative}: {msg}")
-
-        if not json_syntax_valid:
-            reason_code = "JSON_SYNTAX_VALIDATION_FAILED_IN_SANDBOX" if use_sandbox else "JSON_SYNTAX_VALIDATION_FAILED"
-            self.state.validation_result = (False, reason_code, "\n".join(json_error_details))
-            return False
-
-        self.logger.info(f"Validação de sintaxe JSON específica em '{current_base_path}': SUCESSO.")
-        return True
-
-    def _execute_step_run_pytest(self, current_base_path: str, use_sandbox: bool) -> bool:
-        self.logger.info(f"Executando Pytest em: {current_base_path}...")
-        # Assumindo que os testes estão em 'tests/' relativo ao current_base_path
-        # Se current_base_path é o sandbox, os testes copiados para o sandbox serão executados.
-        # Se current_base_path é ".", os testes do projeto real serão executados.
-        success_pytest, details_pytest = run_pytest(test_dir='tests/', cwd=current_base_path)
-
-        if not success_pytest:
-            self.logger.warn(f"Falha no Pytest em '{current_base_path}': {details_pytest}")
-            reason_code = "PYTEST_FAILURE_IN_SANDBOX" if use_sandbox else "PYTEST_FAILURE"
-            self.state.validation_result = (False, reason_code, details_pytest)
-            return False
-
-        self.logger.info(f"Validação Pytest em '{current_base_path}': SUCESSO.")
-        return True
-
-    def _execute_step_run_benchmark(self, current_base_path: str, use_sandbox: bool) -> bool:
-        # Atualmente, este é um passo simulado.
-        self.logger.info(f"Passo de Benchmark executado (simulado) em '{current_base_path}'.")
-        # Se fosse real, poderia definir self.state.validation_result em caso de falha.
-        return True
+            if strategy_key == "DISCARD":
+                self.state.validation_result = (True, "DISCARDED", "Discard strategy executed.")
+            elif validation_succeeded and self.state.validation_result[1] == "STRATEGY_PENDING":
+                self.state.validation_result = (True, "NO_ACTION_SUCCESS", f"Strategy '{strategy_key}' completed without modification actions or explicit failure, all steps OK.")
+        finally:
+            if sandbox_dir_obj:
+                self.logger.info(f"Cleaning up temporary sandbox: {sandbox_dir_obj.name}")
+                sandbox_dir_obj.cleanup()
+                self.logger.info("Sandbox cleaned.")
+        return
 
     def _execute_validation_strategy(self) -> None:
         strategy_key = self.state.strategy_key # Acesso direto
