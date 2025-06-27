@@ -1,4 +1,5 @@
 import pytest
+import requests
 from unittest.mock import patch, MagicMock
 from agent.tool_executor import web_search
 
