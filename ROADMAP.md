@@ -20,44 +20,72 @@ Este documento delineia os upgrades planejados para o agente Hephaestus, em orde
   -   **Status:** Não iniciado.
   -   **Descrição:** Fazer com que o agente meça seu próprio tempo de execução e uso de memória. Isso adiciona um novo eixo de otimização (eficiência) e permite que ele detecte e corrija regressões de performance.
 
+- [ ] **4. Memória de Longo Prazo (Banco Vetorial):**  
+  -   **Status:** Não iniciado.
+  -   **Descrição:** Adotar banco de vetores (ex: Pinecone) para armazenar embeddings de objetivos e resultados, permitindo buscas semânticas eficientes e enriquecendo o contexto dos prompts.
+
+- [ ] **5. Aprendizado Reforçado:**  
+  -   **Status:** Não iniciado.
+  -   **Descrição:** Integrar RL para aprimorar escolha de estratégias, recompensando objetivos alcançados e penalizando falhas (híbrido LLM+RL).
+
+- [ ] **6. Auto-treino do Modelo:**  
+  -   **Status:** Não iniciado.
+  -   **Descrição:** Capturar dados de ciclos para treinar modelo interno otimizado, reduzindo dependência de APIs externas.
+
 ## Tier A: Aceleradores Estratégicos
 
-- [ ] **4. Uso Avançado de Git (Feature Branches):**
+- [ ] **1. Uso Avançado de Git (Feature Branches):**
   -   **Status:** Não iniciado.
   -   **Descrição:** Mudar o fluxo de trabalho para que cada objetivo seja desenvolvido em uma `feature branch` separada. Isso torna o processo mais limpo e seguro, eliminando a necessidade de `git reset --hard` em caso de falha.
 
-- [ ] **5. Análise de Logs em Runtime:**
+- [ ] **2. Análise de Logs em Runtime:**
   -   **Status:** Não iniciado.
   -   **Descrição:** Dar ao agente a capacidade de ler e interpretar seu próprio arquivo de log (`hephaestus.log`) para encontrar e corrigir warnings ou erros não fatais.
 
+- [ ] **3. Modularização e PLUGINS:**  
+  -   **Status:** Não iniciado.
+  -   **Descrição:** Extrair funcionalidades em serviços desacoplados (microservices/plugins) para facilitar testes e escalonamento.
+
+- [ ] **4. Cobertura de Testes e CI:**  
+  -   **Status:** Não iniciado.
+  -   **Descrição:** Implementar suíte de testes abrangente e pipeline CI/CD para garantir estabilidade.
+
 ## Tier B: Refinamentos e Saúde a Longo Prazo
 
-- [ ] **6. Debate Multi-Agente para Soluções:**
+- [ ] **1. Debate Multi-Agente para Soluções:**
   -   **Status:** Não iniciado.
   -   **Descrição:** Instanciar múltiplos `ArchitectAgent` em paralelo para gerar diferentes soluções para o mesmo problema, com um "CouncilAgent" para decidir a melhor abordagem.
 
-- [ ] **7. Modo de Desenvolvimento Guiado por Testes (TDD):**
+- [ ] **2. Modo de Desenvolvimento Guiado por Testes (TDD):**
   -   **Status:** Não iniciado.
   -   **Descrição:** Implementar uma estratégia onde o agente primeiro escreve um teste que falha e, em seguida, escreve o código para fazê-lo passar.
 
-- [ ] **8. Planejamento Estratégico de Longo Prazo (Roadmap):**
+- [ ] **3. Planejamento Estratégico de Longo Prazo (Roadmap):**
   -   **Status:** Não iniciado.
   -   **Descrição:** Permitir que o agente crie um roadmap de alto nível para si mesmo, em vez de gerar um objetivo de cada vez.
 
-- [ ] **9. Gerenciamento de Dependências:**
+- [ ] **4. Gerenciamento de Dependências:**
   -   **Status:** Não iniciado.
   -   **Descrição:** Fazer com que o agente verifique `requirements.txt` e proponha atualizações para dependências desatualizadas.
 
+- [ ] **5. Expansão Multi-Agente:**  
+  -   **Status:** Não iniciado.
+  -   **Descrição:** Criar múltiplos agentes especialistas trabalhando em paralelo para acelerar desenvolvimento.
+
 ## Tier C: Melhorias de Usabilidade e Manutenção
 
-- [ ] **10. Documentação Automática de Código:**
+- [ ] **1. Documentação Automática de Código:**
   -   **Status:** Não iniciado.
   -   **Descrição:** Capacitar o agente a gerar ou atualizar automaticamente a documentação de funções, classes e módulos, seguindo padrões como docstrings Python.
 
-- [ ] **11. Refatoração de Código Legado:**
+- [ ] **2. Refatoração de Código Legado:**
   -   **Status:** Não iniciado.
   -   **Descrição:** Desenvolver a capacidade do agente de identificar e refatorar seções de código consideradas "legado" ou de baixa qualidade, melhorando a manutenibilidade.
 
-- [ ] **12. Otimização de Configurações:**
+- [ ] **3. Otimização de Configurações:**
   -   **Status:** Não iniciado.
   -   **Descrição:** Permitir que o agente analise e proponha otimizações para arquivos de configuração (`hephaestus_config.json`, `example_config.json`), ajustando parâmetros para melhor performance ou robustez.
+
+- [ ] **4. Interface de Monitoramento:**  
+  -   **Status:** Não iniciado.
+  -   **Descrição:** Desenvolver dashboard/API para exibir estado do agente em tempo real, facilitando supervisão.
