@@ -75,7 +75,7 @@ def agent_instance(mock_logger, temp_config_file, mock_env_vars, tmp_path):
                     patch('agent.cycle_runner.run_git_command', return_value=(True, "Mocked git output")) as mock_git,
                     patch('agent.cycle_runner.update_project_manifest') as mock_update_manifest,
                     patch(
-                        'agent.validation_steps.patch_applicator.PatchApplicator.execute',
+                        'agent.validation_steps.patch_applicator.PatchApplicatorStep.execute',
                         return_value=(True, 'PATCH_APPLICATION_SUCCESS', '')
                     ) as mock_apply_patches,
                     patch(

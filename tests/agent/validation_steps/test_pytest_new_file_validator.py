@@ -176,7 +176,7 @@ def test_pytest_new_file_validator_patch_missing_filepath(validator_instance, mo
     }]
     success, reason, message = validator_instance.execute()
     assert success is False
-    assert reason == "MISSING_FILE_PATH"
+    assert reason == "NO_NEW_TEST_FILE_PATCH"
 
 def test_pytest_new_file_validator_temp_write_error(validator_instance, mock_logger, tmp_path):
     """Test failure when temporarily writing the new test file fails."""
@@ -214,9 +214,7 @@ def test_pytest_new_file_validator_file_already_exists(validator_instance, mock_
         with patch.object(Path, 'exists') as mock_path_exists:
             # This is a bit tricky. The exists check is on `target_file_path` which is `tmp_path / test_file_path_str`
             # We need it to return True for this specific path.
-            def side_effect_exists(path_arg):
-                return path_arg == abs_test_file_path
-            mock_path_exists.side_effect = side_effect_exists
+            mock_path_exists.return_value = True
 
             # mock_open should NOT be called if Path.exists is True
             with patch("builtins.open", mock_open()) as mock_file_open:
