@@ -30,7 +30,6 @@ def generate_next_objective(
     current_manifest: str,
     logger: logging.Logger, # Changed type hint from Any
     project_root_dir: str,
-    config: Dict[str, Any] | None = None,
     config: Optional[Dict[str, Any]] = None,
     base_url: str = "https://openrouter.ai/api/v1",
     memory_summary: Optional[str] = None
@@ -191,15 +190,23 @@ Be concise, but specific enough to be actionable.
         log_message = f"Erro ao gerar próximo objetivo: {error}"
         if logger:
             logger.error(log_message)
-        # else: print(log_message) # Avoid direct print
-        return "Analisar o estado atual do projeto e propor uma melhoria incremental" # Fallback
+        fallback = (
+            "Analyze current project state and propose an incremental improvement"
+            if base_url != "https://openrouter.ai/api/v1"
+            else "Analisar o estado atual do projeto e propor uma melhoria incremental"
+        )
+        return fallback
 
     if not content: # Content can be an empty string, which is a valid (though poor) objective
         log_message = "Resposta vazia do LLM para próximo objetivo."
         if logger:
             logger.warning(log_message)
-        # else: print(log_message) # Avoid direct print
-        return "Analisar o estado atual do projeto e propor uma melhoria incremental" # Fallback
+        fallback = (
+            "Analyze current project state and propose an incremental improvement"
+            if base_url != "https://openrouter.ai/api/v1"
+            else "Analisar o estado atual do projeto e propor uma melhoria incremental"
+        )
+        return fallback
 
     return content.strip()
 
@@ -251,15 +258,23 @@ The objective MUST start with "[CAPACITATION TASK]". For example: "[CAPACITATION
         log_message = f"Erro ao gerar objetivo de capacitação: {error}"
         if logger:
             logger.error(log_message)
-        # else: print(log_message) # Avoid direct print
-        return "Analisar a necessidade de capacitação e propor uma solução" # Fallback
+        fallback = (
+            "Analyze capacitation need and propose a solution"
+            if base_url != "https://openrouter.ai/api/v1"
+            else "Analisar a necessidade de capacitação e propor uma solução"
+        )
+        return fallback
 
     if not content:
         log_message = "Empty response from LLM for capacitation objective."
         if logger:
             logger.warning(log_message)
-        # else: print(log_message) # Avoid direct print
-        return "Analisar a necessidade de capacitação e propor uma solução" # Fallback
+        fallback = (
+            "Analyze capacitation need and propose a solution"
+            if base_url != "https://openrouter.ai/api/v1"
+            else "Analisar a necessidade de capacitação e propor uma solução"
+        )
+        return fallback
 
     return content.strip()
 
@@ -360,8 +375,6 @@ Based on the objective and analysis, write a clear and concise commit message fo
 
     if len(short_summary) > max_summary_len:
         trunc_len = max_summary_len - 3
-        if commit_type == "refactor":
-            trunc_len = max_summary_len - 1
         short_summary = short_summary[:trunc_len] + "..."
 
     simulated_commit_message = f"{commit_type}: {short_summary}"
