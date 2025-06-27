@@ -103,7 +103,9 @@ def run_cycles(agent: "HephaestusAgent") -> None:
                 reason="DEGENERATIVE_LOOP_DETECTED",
                 details=f"O objetivo falhou {failure_count} vezes consecutivas. Pausando processamento deste objetivo.",
             )
-            agent.logger.warn(f"O objetivo \"{current_objective}\" será descartado devido a loop degenerativo.")
+            agent.logger.warning(
+                f"O objetivo \"{current_objective}\" será descartado devido a loop degenerativo."
+            )
             continue
 
         try:
@@ -114,7 +116,9 @@ def run_cycles(agent: "HephaestusAgent") -> None:
                 agent.logger.error("Falha crítica ao gerar manifesto. Encerrando ciclo.")
                 break
             if not agent._run_architect_phase():
-                agent.logger.warn("Falha na fase do Arquiteto. Pulando para o próximo objetivo se houver.")
+                agent.logger.warning(
+                    "Falha na fase do Arquiteto. Pulando para o próximo objetivo se houver."
+                )
                 agent.memory.add_failed_objective(current_objective, "ARCHITECT_PHASE_FAILED", "ArchitectAgent could not generate a plan.")
                 if not agent.objective_stack and not agent.continuous_mode:
                     break
@@ -276,7 +280,9 @@ def run_cycles(agent: "HephaestusAgent") -> None:
                     agent.logger.info(f"Próximo objetivo: {next_obj}")
 
             if not success:
-                agent.logger.warn(f"\nFALHA NO CICLO! Razão Final: {reason}\nContexto Final: {context}")
+                agent.logger.warning(
+                    f"\nFALHA NO CICLO! Razão Final: {reason}\nContexto Final: {context}"
+                )
                 agent.memory.add_failed_objective(objective=agent.state.current_objective or "N/A", reason=reason, details=context)
 
                 correctable_failure_reasons = {
@@ -297,7 +303,9 @@ def run_cycles(agent: "HephaestusAgent") -> None:
                     correctable_failure_reasons.add(reason)
 
                 if reason in correctable_failure_reasons:
-                    agent.logger.warn(f"Falha corrigível ({reason}). Gerando objetivo de correção.")
+                    agent.logger.warning(
+                        f"Falha corrigível ({reason}). Gerando objetivo de correção."
+                    )
                     agent.objective_stack.append(current_objective)
 
                     original_patches_json = json.dumps(agent.state.get_patches_to_apply(), indent=2) if agent.state.action_plan_data else "N/A"

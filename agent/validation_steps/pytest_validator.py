@@ -16,7 +16,9 @@ class PytestValidator(ValidationStep):
         success, details = run_pytest(test_dir='tests/', cwd=self.base_path)
 
         if not success:
-            self.logger.warn(f"Pytest failed in '{self.base_path}': {details}")
+            self.logger.warning(
+                f"Pytest failed in '{self.base_path}': {details}"
+            )
             reason_code = "PYTEST_FAILURE_IN_SANDBOX" if self.use_sandbox else "PYTEST_FAILURE"
             return False, reason_code, details
 

@@ -10,8 +10,8 @@ import logging
 # from typing import Optional, Dict, Any, List, Tuple # Already imported above
 
 # parse_json_response is in agent/agents.py (or could be in utils)
-# _call_llm_api is now in agent/utils/llm_client.py and named call_llm_api
 # get_action_plan is in ArchitectAgent.plan_action
+# call_llm_api is imported from agent.utils.llm_client
 # get_maestro_decision is in MaestroAgent.choose_strategy
 
 # Functions remaining in brain.py:
@@ -21,17 +21,6 @@ import logging
 
 from agent.project_scanner import analyze_code_metrics
 from agent.utils.llm_client import call_llm_api
-
-def _call_llm_api(
-    api_key: str,
-    model: str,
-    prompt: str,
-    temperature: float,
-    base_url: str,
-    logger: logging.Logger,
-) -> Tuple[Optional[str], Optional[str]]:
-    """Lightweight wrapper for ``call_llm_api`` from ``agent.utils.llm_client``."""
-    return call_llm_api(api_key, model, prompt, temperature, base_url, logger)
 
 
 def generate_next_objective(

@@ -16,10 +16,23 @@ Autonomous AI agent for software development
 - Autonomous code generation and modification
 - Project analysis and documentation
 - Self-improvement capabilities
+- Internet search via `web_search` helper
 
 ## Configuration
 
 See `hephaestus_config.json` for available options.
+
+## Web Search Helper
+
+The `web_search` helper provides quick internet lookup using DuckDuckGo's instant answer API. No API key is required, but DuckDuckGo imposes request rate limits. Excessive queries may lead to temporary blocking, so keep usage moderate.
+
+```python
+from agent.tool_executor import web_search
+
+success, results = web_search("python unit testing")
+if success:
+    print(results)
+```
 
 ## Testing
 

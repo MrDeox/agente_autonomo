@@ -253,7 +253,6 @@ def apply_patches(instructions: list[dict], logger: logging.Logger, base_path: s
             continue
 
         full_path.parent.mkdir(parents=True, exist_ok=True)
-
         skip_write = False
         success = True
         if operation == "INSERT":
@@ -266,14 +265,218 @@ def apply_patches(instructions: list[dict], logger: logging.Logger, base_path: s
             logger.error(f"Operação desconhecida '{operation}' para o arquivo '{full_path}'. Pulando.")
             overall_success = False
             continue
+            lines = []
+            if full_path.exists():
+                with open(full_path, "r", encoding="utf-8") as f:
+                    lines = f.read().splitlines()
+            elif operation not in ["INSERT", "REPLACE"]:
+                logger.warning(f"Operação '{operation}' em arquivo inexistente '{full_path}'. Pulando.") # CORRIGIDO
+                # overall_success não é afetado aqui, pois a "operação" de deletar algo que não existe pode ser considerada sucesso.
+                continue
+            elif operation == "REPLACE" and not instruction.get("block_to_replace"): # Se REPLACE e sem block_to_replace, é create/overwrite
+                logger.info(f"Operação REPLACE em arquivo inexistente '{full_path}' será tratada como CREATE.")
+                # Permite continuar para criar o arquivo com o novo conteúdo.
+
+
+            if operation == "INSERT":
+                content_to_insert = instruction.get("content", "")
+                if not isinstance(content_to_insert, list):
+                    content_to_insert_lines = content_to_insert.splitlines()
+                else:
+                    content_to_insert_lines = [str(line) for line in content_to_insert] # Garantir que sejam strings
+
+                line_number = instruction.get("line_number")
+
+                if line_number is not None:
+                    try:
+                        line_number = int(line_number)
+                        if line_number <= 0: # Considerar 1 como a primeira linha
+                            logger.warning(f"line_number {line_number} inválido para INSERT em '{full_path}', usando 1.") # CORRIGIDO
+                            line_number = 1
+                    except ValueError:
+                        logger.error(f"line_number '{line_number}' inválido para INSERT em '{full_path}'. Pulando patch.")
+                        overall_success = False
+                        continue
+
+                    insert_at_index = max(0, line_number - 1)
+                    if insert_at_index > len(lines):
+                        insert_at_index = len(lines)
+                else:
+                    insert_at_index = len(lines)
+
+                lines[insert_at_index:insert_at_index] = content_to_insert_lines
+                logger.debug(f"Conteúdo inserido em '{full_path}' na linha {line_number if line_number else 'final'}.")
+
+            elif operation == "REPLACE":
+                block_to_replace_pattern = instruction.get("block_to_replace")
+                content_to_replace_with = instruction.get("content", "")
+                if not isinstance(content_to_replace_with, list):
+                    new_content_lines = content_to_replace_with.splitlines()
+                else:
+                    new_content_lines = [str(line) for line in content_to_replace_with]
+
+                if block_to_replace_pattern is None : # Se for None, é substituição de arquivo inteiro
+                    logger.info(f"REPLACE sem 'block_to_replace' para '{full_path}'. Arquivo será sobrescrito.")
+                    lines = new_content_lines
+                else:
+                    file_content_str = "\n".join(lines)
+                    # Heurística para regex: se contiver caracteres que não são comuns em código mas são em regex.
+                    # Ou, se o LLM explicitamente indicar que é um regex. (Adicionar "is_regex": true ao patch)
+                    is_regex = instruction.get("is_regex", False) or any(c in block_to_replace_pattern for c in r"*+?^$[]{}()|\\")
+
+                    replaced = False
+                    if is_regex:
+                        try:
+                            new_content_str_for_regex = "\n".join(new_content_lines)
+                            # Usar re.escape no content se for para ser literal, mas geralmente o LLM fornecerá o content já formatado.
+                            modified_content, num_subs = re.subn(block_to_replace_pattern, new_content_str_for_regex, file_content_str, count=0, flags=re.MULTILINE | re.DOTALL)
+                            if num_subs > 0:
+                                lines = modified_content.splitlines()
+                                logger.debug(f"Bloco(s) regex '{block_to_replace_pattern}' substituído(s) em '{full_path}' ({num_subs} ocorrências).")
+                                replaced = True
+                            else:
+                                logger.warning(f"Padrão regex '{block_to_replace_pattern}' não encontrado em '{full_path}' para REPLACE.")
+                        except re.error as e:
+                            logger.error(f"Erro de regex em 'block_to_replace': '{block_to_replace_pattern}' para '{full_path}'. Erro: {e}. Tentando como string literal.")
+                            # Fallback para string literal
+                            if block_to_replace_pattern in file_content_str:
+                                modified_content = file_content_str.replace(block_to_replace_pattern, "\n".join(new_content_lines), 1)
+                                lines = modified_content.splitlines()
+                                logger.debug(f"Bloco '{block_to_replace_pattern}' (literal fallback) substituído em '{full_path}'.")
+                                replaced = True
+                            else:
+                                logger.warning(f"Bloco '{block_to_replace_pattern}' (literal fallback) não encontrado em '{full_path}' para REPLACE.")
+                    else:
+                        if block_to_replace_pattern in file_content_str:
+                            modified_content = file_content_str.replace(block_to_replace_pattern, "\n".join(new_content_lines), 1)
+                            lines = modified_content.splitlines()
+                            logger.debug(f"Bloco literal '{block_to_replace_pattern}' substituído em '{full_path}'.")
+                            replaced = True
+                        else: # Se o bloco literal não for encontrado, e o arquivo existir, isso é um aviso.
+                              # Se o arquivo não existia, e block_to_replace_pattern não era None (ou seja, não era para sobrescrever tudo),
+                              # então é um erro lógico do patch.
+                            if full_path.exists():
+                                logger.warning(f"Bloco literal '{block_to_replace_pattern}' não encontrado em '{full_path}' para REPLACE.")
+                            else: # Arquivo não existia e um bloco específico deveria ser substituído (impossível)
+                                logger.error(f"Tentativa de REPLACE de bloco específico '{block_to_replace_pattern}' em arquivo inexistente '{full_path}'. Pulando.")
+                                overall_success = False # Isso é uma falha lógica do patch
+                                continue # Pula a escrita do arquivo
+
+                    if not replaced and full_path.exists() and block_to_replace_pattern is not None :
+                         logger.warning(f"Nenhuma substituição realizada para '{block_to_replace_pattern}' em '{full_path}'.")  # Mantido como warning
+                    elif not full_path.exists() and block_to_replace_pattern is None: # Arquivo não existia, block_to_replace é None (sobrescrever)
+                        logger.info(f"Arquivo '{full_path}' será criado com o novo conteúdo.")
+                        # 'lines' já está com new_content_lines, então está correto.
+
+
+            elif operation == "DELETE_BLOCK":
+                block_to_delete_pattern = instruction.get("block_to_delete")
+                
+                if block_to_delete_pattern is None: # DELETE_BLOCK com None significa remover arquivo inteiro
+                    if full_path.exists():
+                        try:
+                            os.remove(full_path)
+                            logger.info(f"Arquivo '{full_path}' removido com sucesso (DELETE_BLOCK com block_to_delete=None).")
+                            continue
+                        except Exception as e:
+                            logger.error(f"Falha ao remover arquivo '{full_path}': {e}")
+                            overall_success = False
+                            continue
+                    else:
+                        logger.warning(
+                            f"Arquivo '{full_path}' não existe. Nada para deletar com DELETE_BLOCK."
+                        )
+                        continue
+
+                if not block_to_delete_pattern: # String vazia
+                    logger.error(f"Operação DELETE_BLOCK para '{full_path}' não especificou 'block_to_delete' válido. Pulando.")
+                    overall_success = False
+                    continue
+
+                if not full_path.exists():
+                    logger.warning(
+                        f"Arquivo '{full_path}' não existe. Nada para deletar com DELETE_BLOCK."
+                    )
+                    continue
+
+
+                file_content_str = "\n".join(lines)
+                is_regex_del = instruction.get("is_regex", False) or any(c in block_to_delete_pattern for c in r"*+?^$[]{}()|\\")
+
+                deleted = False
+                if is_regex_del:
+                    try:
+                        # Para DELETE_BLOCK, queremos que o re.sub remova o bloco E a linha em branco que possa sobrar.
+                        # Isso é complicado com re.sub diretamente. Uma estratégia é deletar e depois limpar linhas vazias.
+                        # Ou, tentar capturar newlines adjacentes no regex: (^\s* + SEU_REGEX + \s*\n)
+                        # Por simplicidade, vamos deletar e depois limpar linhas vazias, mas isso pode ser muito agressivo.
+                        # Uma abordagem melhor: se o padrão casar uma linha inteira (começa com ^, termina com $ ou \n),
+                        # então a linha é removida. Se casar parte de uma linha, só essa parte é removida.
+
+                        # Tentativa: fazer o padrão regex capturar linhas inteiras se possível
+                        # Ex: se o padrão é "foo", mudar para r"^(?:.*?foo.*?\n|.*?foo.*?$)" para capturar a linha toda
+                        # Isso é complexo. Vamos manter a substituição por "" e depois uma limpeza.
+
+                        modified_content, num_subs = re.subn(block_to_delete_pattern, "", file_content_str, count=0, flags=re.MULTILINE | re.DOTALL)
+                        if num_subs > 0:
+                            temp_lines = modified_content.splitlines()
+                            # Limpeza mais conservadora: remover linhas que se tornaram *completamente* vazias APÓS a substituição.
+                            # Não remove linhas que já eram vazias e eram adjacentes.
+                            lines = [line for line in temp_lines if line.strip() or line in lines] # Mantém linhas originais vazias
+                            lines = [line for i, line in enumerate(temp_lines) if line.strip() or (i > 0 and temp_lines[i-1].strip()) or (i < len(temp_lines) - 1 and temp_lines[i+1].strip())]
+
+
+                            logger.debug(f"Bloco(s) regex '{block_to_delete_pattern}' deletado(s) em '{full_path}' ({num_subs} ocorrências).")
+                            deleted = True
+                        else:
+                            logger.warning(f"Padrão regex '{block_to_delete_pattern}' não encontrado em '{full_path}' para DELETE_BLOCK.")
+                    except re.error as e:
+                        logger.error(f"Erro de regex em 'block_to_delete': '{block_to_delete_pattern}'. Erro: {e}. Tentando como literal.")
+                        if block_to_delete_pattern in file_content_str:
+                            modified_content = file_content_str.replace(block_to_delete_pattern, "", 1)
+                            lines = modified_content.splitlines() # Splitlines já remove a linha se ela se tornar vazia
+                            logger.debug(f"Bloco '{block_to_delete_pattern}' (literal fallback) deletado em '{full_path}'.")
+                            deleted = True
+                        else:
+                            logger.warning(f"Bloco '{block_to_delete_pattern}' (literal fallback) não encontrado em '{full_path}' para DELETE_BLOCK.")
+                else:
+                    if block_to_delete_pattern in file_content_str:
+                        # Para deleção literal, é mais seguro se o LLM fornecer o bloco com newlines exatos.
+                        modified_content = file_content_str.replace(block_to_delete_pattern, "", 1)
+                        lines = modified_content.splitlines()
+                        logger.debug(f"Bloco literal '{block_to_delete_pattern}' deletado em '{full_path}'.")
+                        deleted = True
+                    else:
+                        logger.warning(f"Bloco literal '{block_to_delete_pattern}' não encontrado em '{full_path}' para DELETE_BLOCK.")
+
+                if deleted:
+                    # Uma limpeza final de linhas que ficaram totalmente vazias por causa da deleção.
+                    # Se a linha original já era vazia, ela permanece.
+                    # Esta lógica é complexa para ser perfeita sem entender a intenção.
+                    # A abordagem mais simples é que o LLM forneça blocos que incluam newlines para deleção.
+                    final_lines = []
+                    original_content_set = set(file_content_str.splitlines())
+                    potential_new_lines = "\n".join(lines).splitlines() # Re-split para normalizar
+
+                    # Se uma linha existia antes e agora não existe mais (devido à deleção do bloco),
+                    # e a linha que tomou seu lugar (ou a anterior/posterior) é vazia,
+                    # essa linha vazia pode ser candidata à remoção se ela foi criada pela deleção.
+                    # Isso é muito difícil de acertar genericamente.
+                    # Por agora, confiamos que `splitlines()` e a remoção do bloco já fazem um bom trabalho.
+                    # Se o `block_to_delete` incluir o `\n` final, a linha some. Se não, o `\n` fica.
+                    # O LLM deve ser instruído a incluir o `\n` no `block_to_delete` se a linha inteira deve sumir.
+                    pass # A lógom sucesso após operação '{operation}'.")
+ica de splitlines já trata bem se o bloco removido era a linha inteira.
+                elif full_path.exists():
+                     logger.warning(f"Nenhuma deleção realizada para '{block_to_delete_pattern}' em '{full_path}'.") # CORRIGIDO
+
 
         overall_success &= success
 
         if not skip_write:
             with open(full_path, "w", encoding="utf-8") as f:
                 f.write("\n".join(lines))
-            logger.info(f"Arquivo '{full_path}' salvo com sucesso após operação '{operation}'.")
-
+            logger.info(f"Arquivo '{full_path}' salvo c
     if overall_success:
         logger.info(
             f"Todas as {len(instructions)} instruções de patch processadas. Arquivos afetados (tentativas): {processed_files}")
