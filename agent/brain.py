@@ -5,6 +5,7 @@ from typing import Optional, Any, Tuple, Dict, List # Added Dict, List
 from datetime import datetime
 import json
 import logging
+import re
 # import requests # No longer needed here, call_llm_api is now in llm_client
 # import traceback # No longer directly used here, but llm_client might use it
 # from typing import Optional, Dict, Any, List, Tuple # Already imported above
@@ -315,21 +316,31 @@ Based on the objective and analysis, write a clear and concise commit message fo
     if detected_type:
         commit_type = detected_type
     else:
-        # Heuristic for commit type if not explicitly provided in objective
-        if any(word in objective_lower for word in ["add", "create", "implement", "introduce", "functionality", "feature", "capability"]):
+        def find_word(words: list[str]) -> str | None:
+            for w in words:
+                if re.search(rf"\b{re.escape(w)}\b", objective_lower):
+                    return w
+            return None
+
+        if (w := find_word(["add", "create", "implement", "introduce", "functionality", "feature", "capability"])):
             commit_type = "feat"
-        elif any(word in objective_lower for word in ["fix", "correct", "resolve", "bug", "issue", "problem"]):
+        elif (w := find_word(["fix", "correct", "resolve", "bug", "issue", "problem"])):
             commit_type = "fix"
-        elif any(word in objective_lower for word in ["refactor", "restructure", "reorganize", "cleanup"]):
+        elif (w := find_word(["refactor", "restructure", "reorganize", "cleanup"])):
             commit_type = "refactor"
-        elif any(word in objective_lower for word in ["doc", "document", "documentation", "readme"]):
+        elif (w := find_word(["doc", "document", "documentation", "readme"])):
             commit_type = "docs"
-        elif any(word in objective_lower for word in ["test", "tests", "testing"]):
+        elif (w := find_word(["test", "tests", "testing"])):
             commit_type = "test"
-        elif any(word in objective_lower for word in ["build", "ci", "pipeline", "config", "setup", "dependency", "dependencies"]):
+        elif (w := find_word(["build", "ci", "pipeline", "config", "setup", "dependency", "dependencies"])):
             commit_type = "build"
-        elif any(word in objective_lower for word in ["chore", "maintenance", "housekeeping", "style", "format"]):
+        elif (w := find_word(["chore", "maintenance", "housekeeping", "style", "format"])):
             commit_type = "chore"
+        else:
+            w = None
+
+        if w and objective_lower.startswith(w + " "):
+            commit_message_summary = objective[len(w):].lstrip()
         # Add more heuristics if needed
 
     # Clean and truncate the summary part
