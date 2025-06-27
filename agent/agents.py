@@ -63,12 +63,16 @@ def parse_json_response(raw_str: str, logger: logging.Logger) -> Tuple[Optional[
         parsed_json = json.loads(clean_content)
         return parsed_json, None
     except json.JSONDecodeError as e:
+        error_message = f"Erro ao decodificar JSON: {str(e)}. Cleaned content (partial): {clean_content[:500]}"
+        if logger: logger.error(f"parse_json_response: {error_message}. Original response (partial): {raw_str[:200]}")
+        return None, f"Erro ao decodificar JSON: {str(e)}. Original response (partial): {raw_str[:200]}"
         error_message = f"Erro ao decodificar JSON: {str(e)}. Conteúdo limpo (parcial): {clean_content[:500]}"
         if logger:
             logger.error(
                 f"parse_json_response: {error_message}. Resposta original (parcial): {raw_str[:200]}"
             )
         return None, f"Erro ao decodificar JSON: {str(e)}. Resposta original (parcial): {raw_str[:200]}"
+
     except Exception as e:
         error_message = f"Erro inesperado ao processar JSON: {str(e)}"
         detailed_error = (
@@ -187,6 +191,7 @@ Your response MUST be a valid JSON object and nothing else.
                 self.logger.error(err_msg)
                 return None, err_msg
             if patch["operation"] in ["INSERT", "REPLACE"] and "content" not in patch:
+                err_msg = f"ArchitectAgent: patch {patch['operation']} no índice {i} para '{patch['file_path']}' não tem 'content'."
                 err_msg = f"ArchitectAgent: Patch {patch['operation']} no índice {i} para '{patch['file_path']}' não tem 'content'."
                 self.logger.error(err_msg)
                 return None, err_msg
@@ -295,6 +300,7 @@ Example: {{"strategy_key": "CAPACITATION_REQUIRED"}}
             parsed_json, error_parsing = parse_json_response(content, self.logger)
 
             if error_parsing:
+                attempt_log["raw_response"] = f"Erro ao fazer parse (modelo {model}): {error_parsing}. Content: {content[:200]}"
                 attempt_log["raw_response"] = f"Erro ao fazer parse (modelo {model}): {error_parsing}. Conteúdo: {content[:200]}"
                 attempt_logs.append(attempt_log)
                 continue
@@ -305,6 +311,7 @@ Example: {{"strategy_key": "CAPACITATION_REQUIRED"}}
                 continue
 
             if not isinstance(parsed_json, dict) or "strategy_key" not in parsed_json:
+                error_msg = f"JSON com formato inválido ou faltando 'strategy_key' (modelo {model})"
                 error_msg = f"JSON com formato inválido ou faltando 'strategy_key' (modelo {model}). Recebido: {parsed_json}"
                 if self.logger: self.logger.warning(f"MaestroAgent: {error_msg}")
                 attempt_log["raw_response"] = f"{error_msg}. Original: {content[:200]}"
@@ -314,6 +321,7 @@ Example: {{"strategy_key": "CAPACITATION_REQUIRED"}}
             # Further validation: is the strategy_key valid?
             chosen_strategy = parsed_json.get("strategy_key")
             if chosen_strategy not in available_strategies and chosen_strategy not in ["CAPACITATION_REQUIRED", "WEB_SEARCH_REQUIRED"]:
+                error_msg = f"'strategy_key' escolhido ('{chosen_strategy}') não é válido ou CAPACITATION_REQUIRED (modelo {model}). Válidos: {available_keys}, CAPACITATION_REQUIRED"
                 error_msg = (
                     f"Estratégia escolhida ('{chosen_strategy}') não é válida ou CAPACITATION_REQUIRED (modelo {model}). Válidas: {available_keys}, CAPACITATION_REQUIRED"
                 )
