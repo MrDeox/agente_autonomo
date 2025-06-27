@@ -5,6 +5,11 @@
     "objective_generator": "deepseek/deepseek-r1-0528:free",
     "capacitation_generator": "deepseek/deepseek-r1-0528:free"
   },
+  "code_analysis_thresholds": {
+    "file_loc": 300,
+    "function_loc": 50,
+    "function_cc": 10
+  },
   "validation_strategies": {
     "SYNTAX_ONLY": {
       "steps": ["validate_syntax", "apply_patches_to_disk"],

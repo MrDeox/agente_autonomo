@@ -1,251 +1,201 @@
-import logging
-from typing import Optional, Any
-import json
-import requests
+# import logging # Already imported below
+from typing import Optional, Any, Tuple, Dict, List # Added Dict, List
+# import json # Already imported below
+# import requests # No longer needed here
 from datetime import datetime
 import json
-import logging # Adicionado
-import requests # Removido, pois _call_llm_api foi movido para agents.py
-import traceback # Removido, pois não é mais usado diretamente aqui
-from typing import Optional, Dict, Any, List, Tuple
+import logging
+# import requests # No longer needed here, call_llm_api is now in llm_client
+# import traceback # No longer directly used here, but llm_client might use it
+# from typing import Optional, Dict, Any, List, Tuple # Already imported above
 
-# As funções parse_json_response e _call_llm_api foram movidas para agent/agents.py
-# A função get_action_plan foi movida para ArchitectAgent.plan_action em agent/agents.py
-# A função get_maestro_decision foi movida para MaestroAgent.choose_strategy em agent/agents.py
+# parse_json_response is in agent/agents.py (or could be in utils)
+# _call_llm_api is now in agent/utils/llm_client.py and named call_llm_api
+# get_action_plan is in ArchitectAgent.plan_action
+# get_maestro_decision is in MaestroAgent.choose_strategy
 
-# Funções que permanecem em brain.py:
+# Functions remaining in brain.py:
 # - generate_next_objective
 # - generate_capacitation_objective
-# - generate_commit_message (se não for movida para um agente específico no futuro)
+# - generate_commit_message
 
-# É necessário manter _call_llm_api aqui se as funções restantes o utilizarem diretamente.
-# Vamos verificar se generate_next_objective, generate_capacitation_objective
-# e generate_commit_message usam _call_llm_api.
-# Sim, elas usam. Então _call_llm_api (e por extensão, requests) precisa ficar ou ser importado.
+from agent.project_scanner import analyze_code_metrics # New import
+from agent.utils.llm_client import call_llm_api # IMPORT THE CENTRALIZED FUNCTION
 
-# _call_llm_api foi movida para agents.py, mas ainda é usada aqui.
-# Para evitar dependência circular ou refatoração maior no momento,
-# esta função será mantida aqui como uma cópia temporária.
-# TODO: Refatorar _call_llm_api para um local compartilhado (ex: utils.llm_client).
-
-from agent.project_scanner import analyze_code_metrics # Nova importação
-
-def _call_llm_api(api_key: str, model: str, prompt: str, temperature: float, base_url: str, logger: Any) -> Tuple[Optional[str], Optional[str]]:
-    """Função auxiliar para fazer chamadas à API LLM."""
-    url = f"{base_url}/chat/completions"
-    headers = {
-        "Authorization": f"Bearer {api_key}",
-        "Content-Type": "application/json"
-    }
-    payload = {
-        "model": model,
-        "messages": [{"role": "user", "content": prompt}],
-        "temperature": temperature
-    }
-    try:
-        response = requests.post(url, json=payload, headers=headers)
-        response.raise_for_status()
-        response_json = response.json()
-        if logger: logger.debug(f"API Response (brain._call_llm_api): {response_json}")
-        if "choices" not in response_json:
-            return None, f"API response missing 'choices' key. Full response: {response_json}"
-        content = response_json["choices"][0]["message"]["content"]
-        return content, None
-    except requests.exceptions.RequestException as e:
-        if hasattr(e, 'response') and e.response is not None:
-            error_details = f"Status: {e.response.status_code}, Response: {e.response.text}"
-        else:
-            error_details = str(e)
-        return None, f"Request failed: {error_details}"
-    except KeyError as e:
-        return None, f"KeyError: {str(e)} in API response"
-    except Exception as e: # Captura de exceção mais genérica para robustez
-        # Usar traceback aqui seria útil se não estivesse sendo removido
-        # return None, f"Unexpected error: {str(e)}\n{traceback.format_exc()}"
-        return None, f"Unexpected error in _call_llm_api (brain): {str(e)}"
-
+# _call_llm_api was removed from here.
 
 def generate_next_objective(
     api_key: str,
     model: str,
     current_manifest: str,
-    logger: Any, # logging.Logger
-    project_root_dir: str, # Novo parâmetro para o caminho raiz do projeto
+    logger: logging.Logger, # Changed type hint from Any
+    project_root_dir: str,
+    config: Dict[str, Any], # Added config parameter for thresholds
     base_url: str = "https://openrouter.ai/api/v1",
     memory_summary: Optional[str] = None
 ) -> str:
     """
-    Gera o próximo objetivo evolutivo usando um modelo leve e análise de código.
+    Generates the next evolutionary objective using a lightweight model and code analysis.
     """
-    if logger: logger.info("Gerando próximo objetivo...")
+    if logger: logger.info("Generating next objective...")
 
-    # 1. Analisar métricas do código
+    # 1. Analyze code metrics using thresholds from config
     code_analysis_summary_str = ""
     try:
-        if logger: logger.info(f"Analisando métricas do código em: {project_root_dir}")
-        # Usar "." como root_dir para analyze_code_metrics se project_root_dir for o diretório atual do Hephaestus
-        # Idealmente, project_root_dir deve ser o caminho absoluto para a raiz do projeto que Hephaestus está analisando.
-        # Para este exemplo, vamos assumir que o script principal (main.py) está na raiz do projeto Hephaestus,
-        # e se ele estiver analisando a si mesmo, "." é apropriado.
-        # Se Hephaestus analisar OUTRO projeto, project_root_dir deve apontar para esse projeto.
-        # Vamos assumir que o `main.py` passa o `config.project_path` ou `os.getcwd()`
+        if logger: logger.info(f"Analyzing code metrics in: {project_root_dir}")
 
-        # Definindo limiares (podem vir de configuração no futuro)
-        FILE_LOC_THRESHOLD = 300
-        FUNC_LOC_THRESHOLD = 50
-        FUNC_CC_THRESHOLD = 10
+        # Get thresholds from config, with defaults
+        thresholds = config.get("code_analysis_thresholds", {})
+        file_loc_threshold = thresholds.get("file_loc", 300)
+        func_loc_threshold = thresholds.get("function_loc", 50)
+        func_cc_threshold = thresholds.get("function_cc", 10)
 
-        # Excluded patterns - pode vir da configuração do projeto também
-        # Por agora, usamos os padrões default de analyze_code_metrics
         analysis_results = analyze_code_metrics(
             root_dir=project_root_dir,
-            file_loc_threshold=FILE_LOC_THRESHOLD,
-            func_loc_threshold=FUNC_LOC_THRESHOLD,
-            func_cc_threshold=FUNC_CC_THRESHOLD
+            file_loc_threshold=file_loc_threshold,
+            func_loc_threshold=func_loc_threshold,
+            func_cc_threshold=func_cc_threshold
         )
 
         summary_data = analysis_results.get("summary", {})
         sections = []
 
         if summary_data.get("large_files"):
-            sections.append("Arquivos Grandes (potenciais candidatos a modularização):")
+            sections.append("Large Files (potential candidates for modularization):")
             for path, loc in summary_data["large_files"]:
                 sections.append(f"  - {path} (LOC: {loc})")
 
         if summary_data.get("large_functions"):
-            sections.append("\nFunções Grandes (potenciais candidatas a refatoração/divisão):")
+            sections.append("\nLarge Functions (potential candidates for refactoring/splitting):")
             for path, name, loc in summary_data["large_functions"]:
                 sections.append(f"  - {path} -> {name}() (LOC: {loc})")
 
         if summary_data.get("complex_functions"):
-            sections.append("\nFunções Complexas (alta CC, potenciais candidatas a refatoração/simplificação):")
+            sections.append("\nComplex Functions (high CC, potential candidates for refactoring/simplification):")
             for path, name, cc in summary_data["complex_functions"]:
                 sections.append(f"  - {path} -> {name}() (CC: {cc})")
 
         if summary_data.get("missing_tests"):
-            sections.append("\nMódulos sem Arquivos de Teste Correspondentes (considerar criar testes):")
+            sections.append("\nModules without Corresponding Test Files (consider creating tests):")
             for path in summary_data["missing_tests"]:
                 sections.append(f"  - {path}")
 
         if not sections:
-            code_analysis_summary_str = "Nenhuma métrica de código notável (arquivos grandes, funções complexas/grandes, ou testes ausentes) foi identificada com os limiares atuais."
+            code_analysis_summary_str = "No notable code metrics (large files, complex/large functions, or missing tests) were identified with the current thresholds."
         else:
             code_analysis_summary_str = "\n".join(sections)
 
-        if logger: logger.debug(f"Resumo da análise de código:\n{code_analysis_summary_str}")
+        if logger: logger.debug(f"Code analysis summary:\n{code_analysis_summary_str}")
 
     except Exception as e:
-        if logger: logger.error(f"Erro ao analisar métricas do código: {e}", exc_info=True)
-        code_analysis_summary_str = "Erro ao processar a análise de código."
+        if logger: logger.error(f"Error analyzing code metrics: {e}", exc_info=True)
+        code_analysis_summary_str = "Error processing code analysis."
 
 
-    # 2. Preparar contexto do manifesto e memória
-    current_manifest = current_manifest or "" # Garantir que não seja None
+    # 2. Prepare manifest and memory context
+    current_manifest = current_manifest or "" # Ensure not None
     sanitized_memory = memory_summary.strip() if memory_summary and memory_summary.strip() else None
     memory_context_section = ""
-    if sanitized_memory and sanitized_memory != "No relevant history available.":
+    if sanitized_memory and sanitized_memory.lower() != "no relevant history available.":
         memory_context_section = f"""
-[HISTÓRICO RECENTE DO PROJETO E DO AGENTE (Hephaestus)]
+[RECENT PROJECT AND AGENT HISTORY (Hephaestus)]
 {sanitized_memory}
-Considere este histórico para evitar repetir falhas, construir sobre sucessos e identificar lacunas.
+Consider this history to avoid repeating failures, build on successes, and identify gaps.
 """
-    # 3. Construir o prompt
-    if not current_manifest.strip() and not code_analysis_summary_str.strip(): # Primeiro ciclo, sem análise
+    # 3. Build the prompt
+    if not current_manifest.strip() and not code_analysis_summary_str.strip(): # First cycle, no analysis
         prompt_template = """
-[Contexto]
-Você é o 'Planejador Estratégico' do agente de IA autônomo Hephaestus. Este é o primeiro ciclo de execução, o manifesto do projeto ainda não existe e a análise de código não retornou dados significativos. Sua tarefa é propor um objetivo inicial para criar a documentação básica do projeto ou realizar uma análise inicial.
+[Context]
+You are the 'Strategic Planner' of the autonomous AI agent Hephaestus. This is the first execution cycle, the project manifest does not yet exist, and code analysis has not returned significant data. Your task is to propose an initial objective to create basic project documentation or perform an initial analysis.
 {memory_section}
-[Exemplos de Primeiros Objetivos]
-- "Crie o arquivo AGENTS.md com a estrutura básica do projeto."
-- "Documente as interfaces principais no manifesto do projeto."
-- "Descreva a arquitetura básica do agente no manifesto."
-- "Execute uma varredura inicial para identificar os principais componentes do projeto."
+[Examples of First Objectives]
+- "Create the AGENTS.md file with the basic project structure."
+- "Document the main interfaces in the project manifest."
+- "Describe the basic agent architecture in the manifest."
+- "Perform an initial scan to identify the main project components."
 
-[Sua Tarefa]
-Gere APENAS uma única string de texto contendo o objetivo inicial. Seja conciso e direto.
+[Your Task]
+Generate ONLY a single text string containing the initial objective. Be concise and direct.
 """
         prompt = prompt_template.format(memory_section=memory_context_section)
     else:
-        # O prompt será construído no próximo passo do plano.
         prompt_template = """
-[Contexto Principal]
-Você é o 'Planejador Estratégico Avançado' do agente de IA autônomo Hephaestus. Sua principal responsabilidade é identificar e propor o próximo objetivo de desenvolvimento mais impactante para a evolução do agente ou do projeto em análise.
+[Main Context]
+You are the 'Advanced Strategic Planner' of the autonomous AI agent Hephaestus. Your primary responsibility is to identify and propose the next most impactful development objective for the evolution of the agent or the project under analysis.
 
-[Processo de Decisão para o Próximo Objetivo]
-1.  **Analise as Métricas de Código:** Revise a seção `[MÉTRICAS E ANÁLISE DO CÓDIGO]` abaixo. Ela contém dados sobre o tamanho dos arquivos (LOC), tamanho de funções (LOC), complexidade ciclomática (CC) de funções, e módulos que podem estar sem testes.
-2.  **Considere o Manifesto do Projeto:** Se o `[MANIFESTO ATUAL DO PROJETO]` for fornecido, use-o para entender os objetivos gerais, a arquitetura e as áreas já documentadas ou que precisam de atenção.
-3.  **Revise o Histórico Recente:** A seção `[HISTÓRICO RECENTE DO PROJETO E DO AGENTE]` oferece contexto sobre tarefas recentes, sucessos e falhas. Evite repetir objetivos que falharam recentemente da mesma forma, a menos que a causa da falha tenha sido resolvida. Use o histórico para construir sobre sucessos.
-4.  **Priorize Melhorias Estruturais e de Qualidade:** Com base nas métricas, identifique oportunidades para:
-    *   Refatorar módulos muito grandes ou funções muito longas/complexas.
-    *   Criar testes para módulos ou funções críticas/complexas que não os possuem.
-    *   Melhorar a documentação (docstrings, manifesto) onde for crucial.
-    *   Propor a criação de novas capacidades (novos agentes, ferramentas) se a análise indicar uma necessidade estratégica.
-5.  **Seja Específico e Acionável:** O objetivo deve ser claro, conciso e indicar uma ação concreta.
+[Decision Process for the Next Objective]
+1.  **Analyze Code Metrics:** Review the `[CODE METRICS AND ANALYSIS]` section below. It contains data on file size (LOC), function size (LOC), cyclomatic complexity (CC) of functions, and modules that may be missing tests.
+2.  **Consider the Project Manifest:** If the `[CURRENT PROJECT MANIFEST]` is provided, use it to understand the overall goals, architecture, and areas already documented or needing attention.
+3.  **Review Recent History:** The `[RECENT PROJECT AND AGENT HISTORY]` section provides context on recent tasks, successes, and failures. Avoid repeating objectives that recently failed in the same way, unless the cause of failure has been resolved. Use history to build on successes.
+4.  **Prioritize Structural and Quality Improvements:** Based on metrics, identify opportunities to:
+    *   Refactor very large modules or very long/complex functions.
+    *   Create tests for critical/complex modules or functions that lack them.
+    *   Improve documentation (docstrings, manifest) where crucial.
+    *   Propose the creation of new capabilities (new agents, tools) if the analysis indicates a strategic need.
+5.  **Be Specific and Actionable:** The objective should be clear, concise, and indicate a concrete action.
 
 {memory_section}
 
-[MÉTRICAS E ANÁLISE DO CÓDIGO]
+[CODE METRICS AND ANALYSIS]
 {code_analysis_summary}
 
-[MANIFESTO ATUAL DO PROJETO (se existente)]
+[CURRENT PROJECT MANIFEST (if existing)]
 {current_manifest}
 
-[Exemplos de Objetivos Inteligentes e Autoconscientes]
-*   **Refatoração Baseada em Métricas:**
-    *   "Refatorar o módulo `agent/brain.py` (LOC: 350) que é extenso, considerando dividir responsabilidades em módulos menores (ex: `agent/prompt_builder.py` ou `agent/analysis_processor.py`)."
-    *   "A função `generate_next_objective` em `agent/brain.py` (LOC: 85, CC: 12) é longa e complexa. Proponha um plano para refatorá-la em funções menores e mais focadas."
-    *   "Analisar as funções mais complexas (CC > 10) listadas nas métricas e selecionar uma para refatoração."
-*   **Criação de Testes:**
-    *   "O módulo `agent/project_scanner.py` (LOC: 280) não possui um arquivo de teste `tests/agent/test_project_scanner.py`. Crie testes unitários para a função `analyze_code_metrics`."
-    *   "A função `_call_llm_api` em `agent/brain.py` é crítica. Garantir que existam testes de unidade robustos para ela, cobrindo casos de sucesso e falha."
-*   **Melhoria da Documentação Estratégica:**
-    *   "O manifesto (`AGENTS.md`) não descreve a nova funcionalidade de análise de métricas em `project_scanner.py`. Atualize-o."
-    *   "Melhorar as docstrings das funções públicas no módulo `agent/memory.py` para detalhar os parâmetros e o comportamento esperado."
-*   **Desenvolvimento de Novas Capacidades (Agentes/Ferramentas):**
-    *   "Criar um novo agente (ex: `CodeQualityAgent` em `agent/agents.py`) dedicado a monitorar continuamente as métricas de qualidade do código e reportar regressões."
-    *   "Desenvolver uma nova ferramenta em `agent/tool_executor.py` para validar automaticamente a sintaxe de arquivos JSON antes de serem processados."
-    *   "Propor um sistema para Hephaestus avaliar a performance de suas próprias operações e identificar gargalos."
-*   **Objetivos Genéricos (quando métricas/manifesto são insuficientes):**
-    *   "Analisar o módulo `agent/state.py` para identificar possíveis melhorias de clareza ou eficiência."
-    *   "Revisar os logs recentes em busca de erros frequentes e propor um objetivo para corrigi-los."
+[Examples of Smart and Self-Aware Objectives]
+*   **Metrics-Based Refactoring:**
+    *   "Refactor the module `agent/brain.py` (LOC: 350) which is extensive, considering splitting responsibilities into smaller modules (e.g., `agent/prompt_builder.py` or `agent/analysis_processor.py`)."
+    *   "The function `generate_next_objective` in `agent/brain.py` (LOC: 85, CC: 12) is long and complex. Propose a plan to refactor it into smaller, more focused functions."
+    *   "Analyze the most complex functions (CC > 10) listed in the metrics and select one for refactoring."
+*   **Test Creation:**
+    *   "The module `agent/project_scanner.py` (LOC: 280) does not have a corresponding test file `tests/agent/test_project_scanner.py`. Create unit tests for the `analyze_code_metrics` function."
+    *   "The function `call_llm_api` (formerly `_call_llm_api`) is critical. Ensure robust unit tests exist for it, covering success and failure cases."
+*   **Strategic Documentation Improvement:**
+    *   "The manifest (`AGENTS.md`) does not describe the new metrics analysis functionality in `project_scanner.py`. Update it."
+    *   "Improve docstrings for public functions in the `agent/memory.py` module to detail parameters and expected behavior."
+*   **Development of New Capabilities (Agents/Tools):**
+    *   "Create a new agent (e.g., `CodeQualityAgent` in `agent/agents.py`) dedicated to continuously monitoring code quality metrics and reporting regressions."
+    *   "Develop a new tool in `agent/tool_executor.py` to automatically validate the syntax of JSON files before processing."
+    *   "Propose a system for Hephaestus to evaluate the performance of its own operations and identify bottlenecks."
+*   **Generic Objectives (when metrics/manifest are insufficient):**
+    *   "Analyze the `agent/state.py` module to identify potential improvements in clarity or efficiency."
+    *   "Review recent logs for frequent errors and propose an objective to fix them."
 
-[Sua Tarefa]
-Com base em TODA a informação fornecida (métricas, manifesto, histórico), gere APENAS uma única string de texto contendo o PRÓXIMO OBJETIVO ESTRATÉGICO. O objetivo deve ser o mais impactante e lógico para a evolução do projeto neste momento.
-Seja conciso, mas específico o suficiente para ser acionável.
+[Your Task]
+Based on ALL the information provided (metrics, manifest, history), generate ONLY a single text string containing the NEXT STRATEGIC OBJECTIVE. The objective should be the most impactful and logical for the project's evolution at this moment.
+Be concise, but specific enough to be actionable.
 """
         prompt = prompt_template.format(
             memory_section=memory_context_section,
             code_analysis_summary=code_analysis_summary_str,
-            current_manifest=current_manifest if current_manifest.strip() else "N/A (Manifesto não existente ou vazio)"
+            current_manifest=current_manifest if current_manifest.strip() else "N/A (Manifesto non-existent or empty)"
         )
 
-    if logger: logger.debug(f"Prompt para generate_next_objective:\n{prompt}")
+    if logger: logger.debug(f"Prompt for generate_next_objective:\n{prompt}")
 
-    # 4. Chamada à API LLM
-    content, error = _call_llm_api(
+    # 4. Call LLM API using the centralized function
+    content, error = call_llm_api(
         api_key=api_key,
         model=model,
         prompt=prompt,
         temperature=0.3,
-        base_url=base_url,  # URL original sem modificações
+        base_url=base_url,
         logger=logger
     )
 
     if error:
-        log_message = f"Erro ao gerar próximo objetivo: {error}"
+        log_message = f"Error generating next objective: {error}"
         if logger:
             logger.error(log_message)
-        else:
-            print(log_message)
-        return "Analisar o estado atual do projeto e propor uma melhoria incremental"
+        # else: print(log_message) # Avoid direct print
+        return "Analyze current project state and propose an incremental improvement" # Fallback
 
-    if not content:
-        log_message = "Resposta vazia do LLM para próximo objetivo."
+    if not content: # Content can be an empty string, which is a valid (though poor) objective
+        log_message = "Empty response from LLM for next objective."
         if logger:
-            logger.warn(log_message)
-        else:
-            print(log_message)
-        return "Analisar o estado atual do projeto e propor uma melhoria incremental"
+            logger.warning(log_message)
+        # else: print(log_message) # Avoid direct print
+        return "Analyze current project state and propose an incremental improvement" # Fallback
 
     return content.strip()
 
@@ -256,62 +206,56 @@ def generate_capacitation_objective(
     engineer_analysis: str,
     base_url: str = "https://openrouter.ai/api/v1",
     memory_summary: Optional[str] = None,
-    logger: Optional[Any] = None
+    logger: Optional[logging.Logger] = None # Changed type hint
 ) -> str:
-    """Gera um objetivo para criar novas capacidades necessárias."""
-    # url = f"{base_url}/chat/completions" # Movido para _call_llm_api
-    # headers = { ... } # Movido para _call_llm_api
-
+    """Generates an objective to create necessary new capabilities."""
     memory_context_str = ""
-    if memory_summary and memory_summary.strip() and memory_summary != "No relevant history available.":
+    if memory_summary and memory_summary.strip() and memory_summary.lower() != "no relevant history available.":
         memory_context_str = f"""
-[HISTÓRICO RECENTE DO AGENTE (Hephaestus)]
+[RECENT AGENT HISTORY (Hephaestus)]
 {memory_summary}
-Verifique se alguma capacidade similar já foi tentada ou implementada recentemente.
+Check if any similar capability has been attempted or implemented recently.
 """
 
     prompt = f"""
-[Contexto]
-Você é o Planejador de Capacitação do agente Hephaestus. Um engenheiro propôs uma solução que requer novas ferramentas/capacidades que não existem ou não foram suficientes anteriormente.
+[Context]
+You are the Capacitation Planner for the Hephaestus agent. An engineer proposed a solution that requires new tools/capabilities that do not exist or were previously insufficient.
 {memory_context_str}
-[Análise do Engenheiro que Requer Nova Capacidade]
+[Engineer's Analysis Requiring New Capability]
 {engineer_analysis}
 
-[Sua Tarefa]
-Traduza a necessidade descrita na análise em um objetivo de engenharia claro, conciso e executável para criar ou aprimorar a capacidade que falta. O objetivo deve ser uma instrução para o próprio agente Hephaestus se modificar ou adicionar novas ferramentas/funções.
-Considere o histórico para não repetir sugestões de capacitação idênticas se elas falharam ou se já foram bem-sucedidas e a análise indica uma nova necessidade.
+[Your Task]
+Translate the need described in the analysis into a clear, concise, and actionable engineering objective to create or enhance the missing capability. The objective should be an instruction for the Hephaestus agent itself to modify or add new tools/functions.
+Consider the history to avoid repeating identical capacitation suggestions if they failed or if they were already successful and the analysis indicates a new need.
 
-[Exemplo de Objetivo de Capacitação]
-Se a análise diz "precisamos de uma ferramenta para fazer requests web GET", seu output poderia ser: "Adicione uma nova função `http_get(url: str) -> str` ao `agent/tool_executor.py` que use a biblioteca `requests` para fazer requisições GET e retorne o conteúdo da resposta como string."
-Se a análise diz "a função de parsing de JSON falhou com arquivos grandes", seu output poderia ser: "Melhore a função `parse_json_file` em `agent/utils.py` para lidar com streaming de dados ou aumentar a eficiência para arquivos JSON grandes."
+[Example Capacitation Objective]
+If the analysis says "we need a tool to make GET web requests", your output could be: "Add a new function `http_get(url: str) -> str` to `agent/tool_executor.py` that uses the `requests` library to make GET requests and return the response content as a string."
+If the analysis says "the JSON parsing function failed with large files", your output could be: "Improve the `parse_json_file` function in `agent/utils.py` to handle data streaming or increase efficiency for large JSON files."
 
 
-[FORMATO OBRIGATÓRIO]
-Gere APENAS a string de texto do novo objetivo de capacitação.
-O objetivo DEVE começar com "[TAREFA DE CAPACITAÇÃO]". Por exemplo: "[TAREFA DE CAPACITAÇÃO] Adicionar nova ferramenta X."
+[REQUIRED FORMAT]
+Generate ONLY the text string of the new capacitation objective.
+The objective MUST start with "[CAPACITATION TASK]". For example: "[CAPACITATION TASK] Add new tool X."
 """
     
     if logger:
-        logger.debug(f"Prompt para gerar objetivo de capacitação:\n{prompt}")
+        logger.debug(f"Prompt to generate capacitation objective:\n{prompt}")
 
-    # payload = { ... } # Movido para _call_llm_api
-    content, error = _call_llm_api(api_key, model, prompt, 0.3, base_url, logger)
+    content, error = call_llm_api(api_key, model, prompt, 0.3, base_url, logger) # Use imported function
 
     if error:
-        log_message = f"Erro ao gerar objetivo de capacitação: {error}"
+        log_message = f"Error generating capacitation objective: {error}"
         if logger:
             logger.error(log_message)
-        else:
-            print(log_message)
-        return "Analisar a necessidade de capacitação e propor uma solução"
+        # else: print(log_message) # Avoid direct print
+        return "Analyze capacitation need and propose a solution" # Fallback
 
     if not content:
-        log_message = "Resposta vazia do LLM para objetivo de capacitação."
+        log_message = "Empty response from LLM for capacitation objective."
         if logger:
-            logger.warn(log_message)
-        else:
-            print(log_message)
-        return "Analisar a necessidade de capacitação e propor uma solução"
+            logger.warning(log_message)
+        # else: print(log_message) # Avoid direct print
+        return "Analyze capacitation need and propose a solution" # Fallback
 
     return content.strip()
 
@@ -321,83 +265,96 @@ def generate_commit_message(
     model: str,
     analysis_summary: str,
     objective: str,
-    logger: Any, # logging.Logger
+    logger: logging.Logger, # Changed type hint
     base_url: str = "https://openrouter.ai/api/v1"
 ) -> str:
     """
-    Gera uma mensagem de commit concisa e informativa usando um LLM.
+    Generates a concise and informative commit message using an LLM.
+    (Currently simulated for this environment)
 
     Args:
-        api_key: Chave API (ex: OpenRouter).
-        model: Modelo LLM a ser usado.
-        analysis_summary: Resumo da análise e implementação da mudança.
-        objective: O objetivo original da mudança.
-        logger: Instância do logger para registrar informações.
-        base_url: URL base da API LLM.
+        api_key: API key (e.g., OpenRouter).
+        model: LLM model to use.
+        analysis_summary: Summary of the analysis and implementation of the change.
+        objective: The original objective of the change.
+        logger: Logger instance for recording information.
+        base_url: Base URL of the LLM API.
 
     Returns:
-        Uma string contendo a mensagem de commit gerada.
-        Retorna uma mensagem de fallback em caso de erro.
+        A string containing the generated commit message.
+        Returns a fallback message in case of error.
     """
     prompt = f"""
-[Contexto] Você é um engenheiro de software escrevendo uma mensagem de commit para uma mudança que acabou de ser validada e aplicada.
-[Objetivo da Mudança]
+[Context] You are a software engineer writing a commit message for a change that has just been validated and applied.
+[Objective of the Change]
 {objective}
-[Análise/Resumo da Implementação]
+[Analysis/Summary of Implementation]
 {analysis_summary}
-[Sua Tarefa]
-Com base no objetivo e na análise, escreva uma mensagem de commit clara e concisa seguindo o padrão 'Conventional Commits'. Ex: feat: Adiciona ferramenta de benchmark ou fix: Corrige validação de sintaxe para JSON. A mensagem deve ser apenas a string do commit, sem prefixos ou explicações.
+[Your Task]
+Based on the objective and analysis, write a clear and concise commit message following the 'Conventional Commits' standard. E.g., feat: Add benchmark tool or fix: Correct syntax validation for JSON. The message should be only the commit string, without prefixes or explanations.
 """
 
-    logger.info(f"Gerando mensagem de commit com o modelo: {model}...")
+    logger.info(f"Generating commit message with model: {model}...")
 
-    # Simulação da chamada à API LLM, pois não temos acesso real neste ambiente.
-    # Em um ambiente real, usaríamos _call_llm_api ou uma função similar.
-    # Para este exercício, vamos construir uma mensagem de commit baseada nos inputs.
-    # Isso também evita a necessidade de ter uma API_KEY configurada para esta etapa.
+    # This part remains a simulation as per the original code's intent for this function.
+    # If direct LLM call is desired here, it should use call_llm_api.
 
-    # Heurística para determinar o tipo de commit
-    commit_type = "feat"  # Padrão para novos recursos
     objective_lower = objective.lower()
+    commit_type = "feat"  # Default
+    commit_message_summary = objective # Use full objective initially for summary
     
-    # Primeiro verificamos palavras-chave específicas para feat
-    if any(word in objective_lower for word in ["funcionalidade", "feature", "nova capacidade", "novo recurso"]):
-        commit_type = "feat"
-    elif "fix" in objective_lower or "corrigir" in objective_lower or "bug" in objective_lower:
-        commit_type = "fix"
-    elif "refactor" in objective_lower or "refatorar" in objective_lower:
-        commit_type = "refactor"
-    elif "doc" in objective_lower or "documentar" in objective_lower:
-        commit_type = "docs"
-    elif "test" in objective_lower or "teste" in objective_lower:
-        commit_type = "test"
-    elif "build" in objective_lower or "ci" in objective_lower or "config" in objective_lower:
-        commit_type = "build"
-    elif "chore" in objective_lower or "manutenção" in objective_lower or "limpeza" in objective_lower:
-        commit_type = "chore"
+    # Check if objective already has a conventional commit type prefix
+    conventional_types = ["feat", "fix", "build", "chore", "ci", "docs", "style", "refactor", "perf", "test"]
+    detected_type = None
+    for conv_type in conventional_types:
+        if objective_lower.startswith(conv_type + ":"):
+            detected_type = conv_type
+            # Remove the type prefix from the summary part
+            commit_message_summary = objective[len(conv_type)+1:].strip()
+            break
 
-    # Simplificando o corpo da mensagem de commit para este exemplo
-    # Removemos quebras de linha e limitamos o tamanho para o resumo do objetivo.
-    short_objective = objective.replace('\n', ' ').replace('\r', '')
-    if len(short_objective) > 70: # Limite arbitrário para o resumo
-        short_objective = short_objective[:67] + "..."
+    if detected_type:
+        commit_type = detected_type
+    else:
+        # Heuristic for commit type if not explicitly provided in objective
+        if any(word in objective_lower for word in ["add", "create", "implement", "introduce", "functionality", "feature", "capability"]):
+            commit_type = "feat"
+        elif any(word in objective_lower for word in ["fix", "correct", "resolve", "bug", "issue", "problem"]):
+            commit_type = "fix"
+        elif any(word in objective_lower for word in ["refactor", "restructure", "reorganize", "cleanup"]):
+            commit_type = "refactor"
+        elif any(word in objective_lower for word in ["doc", "document", "documentation", "readme"]):
+            commit_type = "docs"
+        elif any(word in objective_lower for word in ["test", "tests", "testing"]):
+            commit_type = "test"
+        elif any(word in objective_lower for word in ["build", "ci", "pipeline", "config", "setup", "dependency", "dependencies"]):
+            commit_type = "build"
+        elif any(word in objective_lower for word in ["chore", "maintenance", "housekeeping", "style", "format"]):
+            commit_type = "chore"
+        # Add more heuristics if needed
 
-    # Fallback para uma mensagem de commit se a chamada LLM (simulada) falhar.
-    # No nosso caso, a simulação sempre "funciona".
-    simulated_commit_message = f"{commit_type}: {short_objective}"
+    # Clean and truncate the summary part
+    short_summary = commit_message_summary.replace('\n', ' ').replace('\r', '').strip()
 
-    logger.info(f"Mensagem de commit gerada (simulada): {simulated_commit_message}")
+    # Max length for the summary part of the commit message
+    # Total conventional commit subject line is often recommended to be <= 72 chars.
+    # Type + colon + space = len(commit_type) + 2
+    max_summary_len = 72 - (len(commit_type) + 2)
+
+    if len(short_summary) > max_summary_len:
+        short_summary = short_summary[:max_summary_len-3] + "..."
+
+    simulated_commit_message = f"{commit_type}: {short_summary}"
+
+    logger.info(f"Commit message generated (simulated): {simulated_commit_message}")
     return simulated_commit_message
 
-    # Código original que chamaria a LLM (mantido comentado para referência):
-    # content, error = _call_llm_api(api_key, model, prompt, 0.5, base_url, logger)
+    # Original LLM call code (commented out):
+    # content, error = call_llm_api(api_key, model, prompt, 0.5, base_url, logger)
     # if error:
-    #     logger.error(f"Erro ao gerar mensagem de commit: {error}")
-    #     # Fallback para uma mensagem de commit genérica
-    #     return f"chore: Atualizações automáticas baseadas no objetivo: {objective}"
+    #     logger.error(f"Error generating commit message: {error}")
+    #     return f"chore: Automatic updates based on objective: {objective}" # Fallback
     # if not content:
-    #     logger.warn("Resposta vazia do LLM para mensagem de commit.")
-    #     return f"chore: Atualizações automáticas (resposta LLM vazia): {objective}"
-    #
-    # # A LLM deve retornar apenas a mensagem de commit.
+    #     logger.warning("Empty LLM response for commit message.")
+    #     return f"chore: Automatic updates (empty LLM response): {objective}" # Fallback
     # return content.strip()
