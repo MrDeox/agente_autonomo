@@ -32,13 +32,17 @@ class SyntaxValidator(ValidationStep):
             if file_path_relative.endswith(".py"):
                 is_valid, msg, _ = validate_python_code(full_file_path_in_target, self.logger)
                 if not is_valid:
-                    self.logger.warn(f"Python syntax error in {full_file_path_in_target}: {msg}")
+                    self.logger.warning(
+                        f"Python syntax error in {full_file_path_in_target}: {msg}"
+                    )
                     all_syntax_valid = False
                     error_details.append(f"{file_path_relative}: {msg}")
             elif file_path_relative.endswith(".json"):
                 is_valid, msg = validate_json_syntax(full_file_path_in_target, self.logger)
                 if not is_valid:
-                    self.logger.warn(f"JSON syntax error in {full_file_path_in_target}: {msg}")
+                    self.logger.warning(
+                        f"JSON syntax error in {full_file_path_in_target}: {msg}"
+                    )
                     all_syntax_valid = False
                     error_details.append(f"{file_path_relative}: {msg}")
 

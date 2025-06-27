@@ -343,7 +343,9 @@ class HephaestusAgent:
                         self.logger.error(f"CRITICAL ERROR promoting changes from sandbox to real project: {e}", exc_info=True)
                         self.state.validation_result = (False, "PROMOTION_FAILED", str(e))
                 elif not current_validation_succeeded:
-                    self.logger.warn(f"Validation in sandbox failed (Reason: {current_reason}). Patches will not be promoted. Details: {current_details}")
+                    self.logger.warning(
+                        f"Validation in sandbox failed (Reason: {current_reason}). Patches will not be promoted. Details: {current_details}"
+                    )
                     # The validation_result is already set to the failure.
 
             # Final check if state is still pending (should be resolved by now)
