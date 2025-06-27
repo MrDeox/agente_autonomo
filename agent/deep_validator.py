@@ -91,13 +91,6 @@ def analyze_complexity(code_string: str) -> dict:
             "classes": []
         }
 
-def detect_code_duplication(code_string: str, min_lines: int = 5) -> list:
-    """
-    Detects duplicated code blocks in the given Python code string.
-    (Placeholder implementation)
-    """
-    # TODO: Implement actual code duplication detection
-    return []
 
 def calculate_quality_score(complexity_report: dict, duplication_report: list) -> float:
     """
