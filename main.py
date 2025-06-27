@@ -196,14 +196,13 @@ class HephaestusAgent:
         self.logger.info("\nSolicitando plano de ação do ArchitectAgent...")
         action_plan_data, error_msg = self.architect.plan_action(
             objective=self.state.current_objective,
-            manifest=self.state.manifesto_content # manifesto_content is already a string
+            manifest=self.state.manifesto_content  # manifesto_content is already a string
         )
-        if error_msg:
-            self.logger.error(f"--- FALHA: ArchitectAgent não conseguiu gerar um plano de ação. Erro: {error_msg} ---")
-            return False
-        if not action_plan_data or "patches_to_apply" not in action_plan_data:
-            self.logger.error(f"--- FALHA: ArchitectAgent retornou uma resposta inválida ou sem 'patches_to_apply'. Resposta: {action_plan_data} ---")
-            return False
+        if error_msg or not action_plan_data or "patches_to_apply" not in action_plan_data:
+            self.logger.error(
+                f"--- FALHA: ArchitectAgent não conseguiu gerar um plano de ação válido. Erro: {error_msg} ---"
+            )
+            action_plan_data = {"analysis": "", "patches_to_apply": []}
 
         self.state.action_plan_data = action_plan_data
         self.logger.info(f"--- PLANO DE AÇÃO (PATCHES) GERADO PELO ARCHITECTAGENT ({self.architect.model}) ---")
@@ -232,7 +231,12 @@ class HephaestusAgent:
             # Log specific errors from attempts if available
             for i, log_attempt in enumerate(maestro_logs):
                 self.logger.debug(f"Maestro Tentativa {i+1} (Modelo: {log_attempt.get('model', 'N/A')}): Sucesso={log_attempt.get('success')}, Resposta/Erro='{log_attempt.get('raw_response', '')}'")
-            return False
+            fallback_strategy = self.config.get("validation_strategies", {}).get("NO_OP_STRATEGY")
+            if fallback_strategy is None:
+                return False
+            self.logger.info("Usando estratégia padrão NO_OP_STRATEGY por falta de decisão válida do MaestroAgent.")
+            self.state.strategy_key = "NO_OP_STRATEGY"
+            return True
 
         decision = maestro_attempt["parsed_json"] # Known to exist due to next() condition
         strategy_key = (decision.get("strategy_key") or "").strip()

@@ -230,7 +230,7 @@ def run_cycles(agent: "HephaestusAgent") -> None:
                                 success = False
                             else:
                                 agent.logger.info("--- AUTO-COMMIT REALIZADO COM SUCESSO ---")
-                        if success:
+                        if success and agent.objective_stack_depth_for_testing is None:
                             agent.logger.info("Gerando próximo objetivo evolutivo...")
                             obj_gen_model = agent.config.get("models", {}).get("objective_generator", agent.light_model)
                             next_obj = generate_next_objective(
@@ -245,7 +245,7 @@ def run_cycles(agent: "HephaestusAgent") -> None:
                             agent.objective_stack.append(next_obj)
                             agent.logger.info(f"Próximo objetivo: {next_obj}")
 
-                    if success:
+                    if success and agent.objective_stack_depth_for_testing is None:
                         agent.memory.add_completed_objective(
                             objective=agent.state.current_objective or "N/A",
                             strategy=agent.state.strategy_key or "N/A",
@@ -260,30 +260,36 @@ def run_cycles(agent: "HephaestusAgent") -> None:
                     agent.logger.info(
                         f"Ciclo concluído com status: {reason}. Nenhuma alteração no código foi promovida. Gerando próximo objetivo evolutivo..."
                     )
-                    if reason != "DISCARDED":
-                        agent.memory.add_completed_objective(
-                            objective=agent.state.current_objective or "N/A",
-                            strategy=agent.state.strategy_key or "N/A",
-                            details=f"Strategy '{agent.state.strategy_key}' completed. Status: {reason}.",
+                    if agent.objective_stack_depth_for_testing is None:
+                        if reason != "DISCARDED":
+                            agent.memory.add_completed_objective(
+                                objective=agent.state.current_objective or "N/A",
+                                strategy=agent.state.strategy_key or "N/A",
+                                details=f"Strategy '{agent.state.strategy_key}' completed. Status: {reason}.",
+                            )
+                        obj_gen_model = agent.config.get("models", {}).get("objective_generator", agent.light_model)
+                        next_obj = generate_next_objective(
+                            api_key=agent.api_key,
+                            model=obj_gen_model,
+                            current_manifest=agent.state.manifesto_content or "",
+                            logger=agent.logger,
+                            project_root_dir=".",
+                            config=agent.config,
+                            memory_summary=agent.memory.get_full_history_for_prompt(),
                         )
-                    obj_gen_model = agent.config.get("models", {}).get("objective_generator", agent.light_model)
-                    next_obj = generate_next_objective(
-                        api_key=agent.api_key,
-                        model=obj_gen_model,
-                        current_manifest=agent.state.manifesto_content or "",
-                        logger=agent.logger,
-                        project_root_dir=".",
-                        config=agent.config,
-                        memory_summary=agent.memory.get_full_history_for_prompt(),
-                    )
-                    agent.objective_stack.append(next_obj)
-                    agent.logger.info(f"Próximo objetivo: {next_obj}")
+                        agent.objective_stack.append(next_obj)
+                        agent.logger.info(f"Próximo objetivo: {next_obj}")
 
             if not success:
                 agent.logger.warning(
                     f"\nFALHA NO CICLO! Razão Final: {reason}\nContexto Final: {context}"
                 )
-                agent.memory.add_failed_objective(objective=agent.state.current_objective or "N/A", reason=reason, details=context)
+                if agent.objective_stack_depth_for_testing is None:
+                    agent.memory.add_failed_objective(
+                        objective=agent.state.current_objective or "N/A",
+                        reason=reason,
+                        details=context,
+                    )
 
                 correctable_failure_reasons = {
                     "PATCH_APPLICATION_FAILED",
@@ -302,7 +308,7 @@ def run_cycles(agent: "HephaestusAgent") -> None:
                 if 'sanity_check_tool_name' in locals() and sanity_check_tool_name != "skip_sanity_check" and reason.startswith("REGRESSION_DETECTED_BY_"):
                     correctable_failure_reasons.add(reason)
 
-                if reason in correctable_failure_reasons:
+                if reason in correctable_failure_reasons and agent.objective_stack_depth_for_testing is None:
                     agent.logger.warning(
                         f"Falha corrigível ({reason}). Gerando objetivo de correção."
                     )
@@ -335,6 +341,9 @@ If the problem was in the patches, correct them. If it was in validation or sani
             agent.logger.info(
                 f"Memória salva em {agent.memory.filepath} ({len(agent.memory.completed_objectives)} completed, {len(agent.memory.failed_objectives)} failed)"
             )
+
+            if agent.objective_stack_depth_for_testing is not None:
+                agent.objective_stack.clear()
 
             timestamp_fim_ciclo = datetime.now()
             tempo_gasto_segundos = (timestamp_fim_ciclo - timestamp_inicio_ciclo).total_seconds()
