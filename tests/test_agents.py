@@ -208,6 +208,16 @@ def test_maestro_choose_strategy_capacitation_required(mock_call_llm, mock_logge
     assert decision_logs[0]["parsed_json"] == {"strategy_key": "CAPACITATION_REQUIRED"}
 
 @patch('agent.agents._call_llm_api')
+def test_maestro_choose_strategy_web_search_required(mock_call_llm, mock_logger):
+    """Test that MaestroAgent can return WEB_SEARCH_REQUIRED strategy"""
+    maestro_response_json_str = json.dumps({"strategy_key": "WEB_SEARCH_REQUIRED"})
+    mock_call_llm.return_value = (maestro_response_json_str, None)
+    maestro = MaestroAgent("key", ["model1"], {"validation_strategies": {}}, mock_logger)
+    decision_logs = maestro.choose_strategy({})
+
+    assert decision_logs[0]["success"] is True
+    assert decision_logs[0]["parsed_json"] == {"strategy_key": "WEB_SEARCH_REQUIRED"}
+@patch('agent.agents._call_llm_api')
 def test_maestro_choose_strategy_with_memory_summary(mock_call_llm, mock_logger):
     maestro_response_json_str = json.dumps({"strategy_key": "STRATEGY_WITH_MEMORY"})
     mock_call_llm.return_value = (maestro_response_json_str, None)
