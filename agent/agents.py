@@ -63,10 +63,9 @@ def parse_json_response(raw_str: str, logger: logging.Logger) -> Tuple[Optional[
         parsed_json = json.loads(clean_content)
         return parsed_json, None
     except json.JSONDecodeError as e:
-        error_message = f"Error decoding JSON: {str(e)}. Cleaned content (partial): {clean_content[:500]}"
+        error_message = f"Erro ao decodificar JSON: {str(e)}. Cleaned content (partial): {clean_content[:500]}"
         if logger: logger.error(f"parse_json_response: {error_message}. Original response (partial): {raw_str[:200]}")
-        # else: print(f"parse_json_response: {error_message}. Original response (partial): {raw_str[:200]}") # Avoid direct print
-        return None, f"Error decoding JSON: {str(e)}. Original response (partial): {raw_str[:200]}"
+        return None, f"Erro ao decodificar JSON: {str(e)}. Original response (partial): {raw_str[:200]}"
     except Exception as e:
         # Using traceback here if it's still imported and deemed necessary for unexpected errors.
         # Otherwise, a simple str(e) is fine.
@@ -150,18 +149,18 @@ Your response MUST be a valid JSON object and nothing else.
         raw_response, error = call_llm_api(self.api_key, self.model, prompt, 0.4, self.base_url, self.logger) # Use imported function
 
         if error:
-            self.logger.error(f"ArchitectAgent: Error calling LLM for patch plan: {error}")
-            return None, f"Error calling LLM for patch plan: {error}"
+            self.logger.error(f"ArchitectAgent: Erro ao chamar LLM para plano de patches: {error}")
+            return None, f"Erro ao chamar LLM para plano de patches: {error}"
 
         if not raw_response:
-            self.logger.error("ArchitectAgent: Empty response from LLM for patch plan.")
-            return None, "Empty response from LLM for patch plan."
+            self.logger.error("ArchitectAgent: Resposta vazia do LLM para plano de patches.")
+            return None, "Resposta vazia do LLM para plano de patches"
 
         parsed_json, error_parsing = parse_json_response(raw_response, self.logger)
 
         if error_parsing:
-            self.logger.error(f"ArchitectAgent: Error parsing JSON for patch plan: {error_parsing}")
-            return None, f"Error parsing JSON for patch plan: {error_parsing}"
+            self.logger.error(f"ArchitectAgent: Erro ao fazer parse do JSON do plano de patches: {error_parsing}")
+            return None, f"Erro ao fazer parse do JSON do plano de patches: {error_parsing}"
 
         if not parsed_json:
             self.logger.error("ArchitectAgent: Parsed JSON for patch plan is None without explicit parsing error.")
@@ -170,8 +169,8 @@ Your response MUST be a valid JSON object and nothing else.
         # Validate structure of parsed_json
         if not isinstance(parsed_json, dict) or "patches_to_apply" not in parsed_json or \
            not isinstance(parsed_json.get("patches_to_apply"), list):
-            self.logger.error("ArchitectAgent: Invalid JSON patch plan or missing 'patches_to_apply' list.")
-            return None, "Invalid JSON patch plan or missing 'patches_to_apply' list."
+            self.logger.error("ArchitectAgent: JSON do plano de patches inválido ou não contém a chave 'patches_to_apply' como uma lista.")
+            return None, "JSON do plano de patches inválido ou não contém a chave 'patches_to_apply' como uma lista."
 
         # Validate individual patches
         for i, patch in enumerate(parsed_json.get("patches_to_apply", [])):
@@ -185,7 +184,7 @@ Your response MUST be a valid JSON object and nothing else.
                 self.logger.error(err_msg)
                 return None, err_msg
             if patch["operation"] in ["INSERT", "REPLACE"] and "content" not in patch:
-                err_msg = f"ArchitectAgent: {patch['operation']} patch at index {i} for '{patch['file_path']}' is missing 'content'."
+                err_msg = f"ArchitectAgent: patch {patch['operation']} no índice {i} para '{patch['file_path']}' não tem 'content'."
                 self.logger.error(err_msg)
                 return None, err_msg
             if patch["operation"] == "DELETE_BLOCK" and "block_to_delete" not in patch:
@@ -235,7 +234,7 @@ class MaestroAgent:
         memory_context_str = ""
         if memory_summary and memory_summary.strip() and memory_summary.lower() != "no relevant history available.":
             memory_context_str = f"""
-[RECENT HISTORY (OBJECTIVES AND STRATEGIES USED)]
+[HISTÓRICO RECENTE (OBJETIVOS E ESTRATÉGIAS USADAS)]
 {memory_summary}
 Consider this history in your decision. Avoid repeating strategies that recently failed for similar objectives.
 """
@@ -278,7 +277,7 @@ Example: {{"strategy_key": "CAPACITATION_REQUIRED"}}
             content, error_api = call_llm_api(self.api_key, model, prompt, 0.2, self.base_url, self.logger) # Use imported function
 
             if error_api:
-                attempt_log["raw_response"] = f"API Error (model {model}): {error_api}"
+                attempt_log["raw_response"] = f"Erro da API (modelo {model}): {error_api}"
                 attempt_logs.append(attempt_log)
                 continue
 
@@ -291,7 +290,7 @@ Example: {{"strategy_key": "CAPACITATION_REQUIRED"}}
             parsed_json, error_parsing = parse_json_response(content, self.logger)
 
             if error_parsing:
-                attempt_log["raw_response"] = f"Parsing Error (model {model}): {error_parsing}. Content: {content[:200]}"
+                attempt_log["raw_response"] = f"Erro ao fazer parse (modelo {model}): {error_parsing}. Content: {content[:200]}"
                 attempt_logs.append(attempt_log)
                 continue
 
@@ -301,7 +300,7 @@ Example: {{"strategy_key": "CAPACITATION_REQUIRED"}}
                 continue
 
             if not isinstance(parsed_json, dict) or "strategy_key" not in parsed_json:
-                error_msg = f"Invalid JSON format or missing 'strategy_key' (model {model}). Received: {parsed_json}"
+                error_msg = f"JSON com formato inválido ou faltando 'strategy_key' (modelo {model})"
                 if self.logger: self.logger.warning(f"MaestroAgent: {error_msg}")
                 attempt_log["raw_response"] = f"{error_msg}. Original: {content[:200]}"
                 attempt_logs.append(attempt_log)
@@ -309,8 +308,8 @@ Example: {{"strategy_key": "CAPACITATION_REQUIRED"}}
 
             # Further validation: is the strategy_key valid?
             chosen_strategy = parsed_json.get("strategy_key")
-            if chosen_strategy not in available_strategies and chosen_strategy != "CAPACITATION_REQUIRED":
-                error_msg = f"Chosen 'strategy_key' ('{chosen_strategy}') is not a valid strategy or CAPACITATION_REQUIRED (model {model}). Valid: {available_keys}, CAPACITATION_REQUIRED"
+            if chosen_strategy not in available_strategies and chosen_strategy not in ["CAPACITATION_REQUIRED", "WEB_SEARCH_REQUIRED"]:
+                error_msg = f"'strategy_key' escolhido ('{chosen_strategy}') não é válido ou CAPACITATION_REQUIRED (modelo {model}). Válidos: {available_keys}, CAPACITATION_REQUIRED"
                 if self.logger: self.logger.warning(f"MaestroAgent: {error_msg}")
                 attempt_log["raw_response"] = f"{error_msg}. Original: {content[:200]}"
                 # Do not mark as success, let it try next model or fail
