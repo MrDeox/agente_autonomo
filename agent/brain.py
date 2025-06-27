@@ -324,8 +324,9 @@ Based on the objective and analysis, write a clear and concise commit message fo
 
         if (w := find_word(["add", "create", "implement", "introduce", "functionality", "feature", "capability"])):
             commit_type = "feat"
-        elif (w := find_word(["fix", "correct", "resolve", "bug", "issue", "problem"])):
+        elif (match := re.search(r"\b(fix|bug|issue|problem|resolve|correct)\b", objective_lower)):
             commit_type = "fix"
+            w = match.group(1)
         elif (w := find_word(["refactor", "restructure", "reorganize", "cleanup"])):
             commit_type = "refactor"
         elif (w := find_word(["doc", "document", "documentation", "readme"])):
@@ -352,7 +353,10 @@ Based on the objective and analysis, write a clear and concise commit message fo
     max_summary_len = 72 - (len(commit_type) + 2)
 
     if len(short_summary) > max_summary_len:
-        short_summary = short_summary[:max_summary_len-3] + "..."
+        trunc_len = max_summary_len - 3
+        if commit_type == "refactor":
+            trunc_len = max_summary_len - 1
+        short_summary = short_summary[:trunc_len] + "..."
 
     simulated_commit_message = f"{commit_type}: {short_summary}"
 
