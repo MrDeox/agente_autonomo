@@ -4,7 +4,8 @@ import logging
 from unittest.mock import MagicMock, patch
 import requests
 
-from agent.agents import ArchitectAgent, MaestroAgent, _call_llm_api, parse_json_response
+from agent.agents import ArchitectAgent, MaestroAgent, parse_json_response
+from agent.utils.llm_client import call_llm_api
 
 # Logger mockado que pode ser passado para as funções do cérebro
 @pytest.fixture
@@ -16,8 +17,8 @@ def mock_logger():
     logger.error = MagicMock()
     return logger
 
-# --- Testes para _call_llm_api (copiado para agent.agents) ---
-@patch('agent.agents.requests.post')
+# --- Testes para call_llm_api (em agent.utils.llm_client) ---
+@patch('agent.utils.llm_client.requests.post')
 def test_agents_call_llm_api_success(mock_post, mock_logger):
     mock_response = MagicMock()
     mock_response.status_code = 200
@@ -26,16 +27,16 @@ def test_agents_call_llm_api_success(mock_post, mock_logger):
     }
     mock_post.return_value = mock_response
 
-    content, error = _call_llm_api("fake_key", "model_x", "prompt_y", 0.5, "http://fake.url", mock_logger)
+    content, error = call_llm_api("fake_key", "model_x", "prompt_y", 0.5, "http://fake.url", mock_logger)
 
     assert content == "Resposta LLM simulada"
     assert error is None
     mock_post.assert_called_once()
 
-@patch('agent.agents.requests.post')
+@patch('agent.utils.llm_client.requests.post')
 def test_agents_call_llm_api_request_exception(mock_post, mock_logger):
     mock_post.side_effect = requests.exceptions.RequestException("Erro de rede simulado")
-    content, error = _call_llm_api("fake_key", "model_x", "prompt_y", 0.5, "http://fake.url", mock_logger)
+    content, error = call_llm_api("fake_key", "model_x", "prompt_y", 0.5, "http://fake.url", mock_logger)
     assert content is None
     assert "Request failed: Erro de rede simulado" in error
 
@@ -59,7 +60,7 @@ def test_agents_parse_json_response_invalid_json(mock_logger):
     assert "Erro ao decodificar JSON" in error
 
 # --- Testes para ArchitectAgent ---
-@patch('agent.agents._call_llm_api')
+@patch('agent.agents.call_llm_api')
 def test_architect_plan_action_success(mock_call_llm, mock_logger):
     valid_patches_json_str = json.dumps({
         "analysis": "Análise detalhada aqui.",
@@ -84,7 +85,7 @@ def test_architect_plan_action_success(mock_call_llm, mock_logger):
     assert "manifesto" in prompt_arg
 
 
-@patch('agent.agents._call_llm_api')
+@patch('agent.agents.call_llm_api')
 def test_architect_plan_action_llm_error(mock_call_llm, mock_logger):
     mock_call_llm.return_value = (None, "Erro de API simulado")
     architect = ArchitectAgent("key", "model_arch", mock_logger)
@@ -93,7 +94,7 @@ def test_architect_plan_action_llm_error(mock_call_llm, mock_logger):
     assert plan_data is None
     assert "Erro ao chamar LLM para plano de patches: Erro de API simulado" in error
 
-@patch('agent.agents._call_llm_api')
+@patch('agent.agents.call_llm_api')
 def test_architect_plan_action_empty_llm_response(mock_call_llm, mock_logger):
     mock_call_llm.return_value = ("", None) # Resposta vazia
     architect = ArchitectAgent("key", "model_arch", mock_logger)
@@ -102,7 +103,7 @@ def test_architect_plan_action_empty_llm_response(mock_call_llm, mock_logger):
     assert "Resposta vazia do LLM para plano de patches" in error
 
 
-@patch('agent.agents._call_llm_api')
+@patch('agent.agents.call_llm_api')
 def test_architect_plan_action_malformed_json(mock_call_llm, mock_logger):
     mock_call_llm.return_value = ("{json_invalido", None)
     architect = ArchitectAgent("key", "model_arch", mock_logger)
@@ -111,7 +112,7 @@ def test_architect_plan_action_malformed_json(mock_call_llm, mock_logger):
     assert plan_data is None
     assert "Erro ao fazer parse do JSON do plano de patches: Erro ao decodificar JSON" in error # Erro de parse_json_response
 
-@patch('agent.agents._call_llm_api')
+@patch('agent.agents.call_llm_api')
 def test_architect_plan_action_json_missing_patches_key(mock_call_llm, mock_logger):
     invalid_json_str = json.dumps({"analysis": "sem patches"})
     mock_call_llm.return_value = (invalid_json_str, None)
@@ -122,7 +123,7 @@ def test_architect_plan_action_json_missing_patches_key(mock_call_llm, mock_logg
     assert "JSON do plano de patches inválido ou não contém a chave 'patches_to_apply' como uma lista." in error
 
 
-@patch('agent.agents._call_llm_api')
+@patch('agent.agents.call_llm_api')
 def test_architect_plan_action_invalid_patch_structure(mock_call_llm, mock_logger):
     # Patch INSERT sem content
     invalid_patches_json_str = json.dumps({
@@ -137,7 +138,7 @@ def test_architect_plan_action_invalid_patch_structure(mock_call_llm, mock_logge
 
 
 # --- Testes para MaestroAgent ---
-@patch('agent.agents._call_llm_api')
+@patch('agent.agents.call_llm_api')
 def test_maestro_choose_strategy_success(mock_call_llm, mock_logger):
     maestro_response_json_str = json.dumps({"strategy_key": "APPLY_AND_TEST"})
     mock_call_llm.return_value = (maestro_response_json_str, None)
@@ -157,7 +158,7 @@ def test_maestro_choose_strategy_success(mock_call_llm, mock_logger):
     prompt_arg = args[2]
     assert json.dumps(action_plan, ensure_ascii=False, indent=2) in prompt_arg # Verificar se o plano de ação está no prompt
 
-@patch('agent.agents._call_llm_api')
+@patch('agent.agents.call_llm_api')
 def test_maestro_choose_strategy_api_error_then_success(mock_call_llm, mock_logger):
     maestro_response_model2_json_str = json.dumps({"strategy_key": "MODEL2_WINS"})
     mock_call_llm.side_effect = [
@@ -178,7 +179,7 @@ def test_maestro_choose_strategy_api_error_then_success(mock_call_llm, mock_logg
     assert decision_logs[1]["parsed_json"] == {"strategy_key": "MODEL2_WINS"}
     assert mock_call_llm.call_count == 2
 
-@patch('agent.agents._call_llm_api')
+@patch('agent.agents.call_llm_api')
 def test_maestro_choose_strategy_parsing_error(mock_call_llm, mock_logger):
     mock_call_llm.return_value = ("json { invalido", None)
     maestro = MaestroAgent("key", ["model1"], {"validation_strategies": {}}, mock_logger)
@@ -188,7 +189,7 @@ def test_maestro_choose_strategy_parsing_error(mock_call_llm, mock_logger):
     assert decision_logs[0]["success"] is False
     assert "Erro ao fazer parse (modelo model1): Erro ao decodificar JSON" in decision_logs[0]["raw_response"]
 
-@patch('agent.agents._call_llm_api')
+@patch('agent.agents.call_llm_api')
 def test_maestro_choose_strategy_json_schema_invalid(mock_call_llm, mock_logger):
     mock_call_llm.return_value = (json.dumps({"other_key": "val"}), None)
     maestro = MaestroAgent("key", ["model1"], {"validation_strategies": {}}, mock_logger)
@@ -197,7 +198,7 @@ def test_maestro_choose_strategy_json_schema_invalid(mock_call_llm, mock_logger)
     assert decision_logs[0]["success"] is False
     assert "JSON com formato inválido ou faltando 'strategy_key' (modelo model1)" in decision_logs[0]["raw_response"]
 
-@patch('agent.agents._call_llm_api')
+@patch('agent.agents.call_llm_api')
 def test_maestro_choose_strategy_capacitation_required(mock_call_llm, mock_logger):
     maestro_response_json_str = json.dumps({"strategy_key": "CAPACITATION_REQUIRED"})
     mock_call_llm.return_value = (maestro_response_json_str, None)
@@ -207,7 +208,7 @@ def test_maestro_choose_strategy_capacitation_required(mock_call_llm, mock_logge
     assert decision_logs[0]["success"] is True
     assert decision_logs[0]["parsed_json"] == {"strategy_key": "CAPACITATION_REQUIRED"}
 
-@patch('agent.agents._call_llm_api')
+@patch('agent.agents.call_llm_api')
 def test_maestro_choose_strategy_web_search_required(mock_call_llm, mock_logger):
     """Test that MaestroAgent can return WEB_SEARCH_REQUIRED strategy"""
     maestro_response_json_str = json.dumps({"strategy_key": "WEB_SEARCH_REQUIRED"})
@@ -217,7 +218,7 @@ def test_maestro_choose_strategy_web_search_required(mock_call_llm, mock_logger)
 
     assert decision_logs[0]["success"] is True
     assert decision_logs[0]["parsed_json"] == {"strategy_key": "WEB_SEARCH_REQUIRED"}
-@patch('agent.agents._call_llm_api')
+@patch('agent.agents.call_llm_api')
 def test_maestro_choose_strategy_with_memory_summary(mock_call_llm, mock_logger):
     maestro_response_json_str = json.dumps({"strategy_key": "STRATEGY_WITH_MEMORY"})
     mock_call_llm.return_value = (maestro_response_json_str, None)

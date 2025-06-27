@@ -46,8 +46,6 @@ agente_autonomo/
   - *Detects duplicated code blocks in the given Python code string.*
 
 ### Arquivo: `agent/brain.py`
-- **Função:** `_call_llm_api(api_key: str, model: str, prompt: str, temperature: float, base_url: str, logger: Any)`
-  - *Função auxiliar para fazer chamadas à API LLM.*
 - **Função:** `generate_next_objective(api_key: str, model: str, current_manifest: str, logger: Any, project_root_dir: str, base_url: str='https://openrouter.ai/api/v1', memory_summary: Optional[str]=None)`
   - *Gera o próximo objetivo evolutivo usando um modelo leve e análise de código.*
 - **Função:** `generate_capacitation_objective(api_key: str, model: str, engineer_analysis: str, base_url: str='https://openrouter.ai/api/v1', memory_summary: Optional[str]=None, logger: Optional[Any]=None)`
@@ -65,13 +63,14 @@ agente_autonomo/
 - **Função:** `validate_json_syntax(file_path: str | Path, logger: logging.Logger)`
   - *Valida se um arquivo contém JSON válido.*
 
-### Arquivo: `agent/agents.py`
 - **Função:** `parse_json_response(raw_str: str, logger: Any)`
   - *Analisa uma string bruta que se espera conter JSON, limpando-a e decodificando-a.*
-- **Função:** `_call_llm_api(api_key: str, model: str, prompt: str, temperature: float, base_url: str, logger: Any)`
-  - *Função auxiliar para fazer chamadas à API LLM.*
 - **Classe:** `ArchitectAgent`
 - **Classe:** `MaestroAgent`
+
+### Arquivo: `agent/utils/llm_client.py`
+- **Função:** `call_llm_api(api_key: str, model: str, prompt: str, temperature: float, base_url: str, logger: Any)`
+  - *Função auxiliar para fazer chamadas à API LLM.*
 
 ### Arquivo: `agent/patch_applicator.py`
 - **Função:** `apply_patches(instructions: list[dict], logger: logging.Logger, base_path: str='.')`

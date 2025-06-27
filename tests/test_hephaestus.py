@@ -83,8 +83,8 @@ def agent_instance(mock_logger, temp_config_file, mock_env_vars, tmp_path):
         with patch('agent.git_utils.initialize_git_repository', return_value=True) as mock_init_git:
                 # Mock para evitar chamadas reais à API LLM
                 with (
-                    patch('agent.brain._call_llm_api', return_value=("Mocked LLM Response", None)) as mock_llm_call,
-                    patch('agent.agents._call_llm_api', return_value=("Mocked LLM Response Agents", None)) as mock_llm_agents,
+                    patch('agent.brain.call_llm_api', return_value=("Mocked LLM Response", None)) as mock_llm_call,
+                    patch('agent.agents.call_llm_api', return_value=("Mocked LLM Response Agents", None)) as mock_llm_agents,
                     patch('main.run_git_command', return_value=(True, "Mocked git output")) as mock_git_main,
                     patch('agent.cycle_runner.run_git_command', return_value=(True, "Mocked git output")) as mock_git,
                     patch('agent.cycle_runner.update_project_manifest') as mock_update_manifest,
