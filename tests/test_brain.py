@@ -33,7 +33,7 @@ def mock_logger():
     logger = MagicMock(spec=logging.Logger)
     logger.info = MagicMock()
     logger.debug = MagicMock()
-    logger.warn = MagicMock()
+    logger.warning = MagicMock()
     logger.error = MagicMock()
     return logger
 
@@ -109,7 +109,7 @@ def test_generate_next_objective_api_error(mock_call_llm_api, mock_logger):
             memory_summary=""
         )
         assert "Analisar" in objective # Verificação mais flexível
-        mock_logger.warn.assert_called_with("Resposta vazia do LLM para próximo objetivo.")
+        mock_logger.warning.assert_called_with("Resposta vazia do LLM para próximo objetivo.")
 
 
 @patch('agent.brain._call_llm_api')

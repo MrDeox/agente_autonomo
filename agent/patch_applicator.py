@@ -177,7 +177,9 @@ def apply_patches(instructions: list[dict], logger: logging.Logger, base_path: s
                             overall_success = False
                             continue
                     else:
-                        logger.warn(f"Arquivo '{full_path}' não existe. Nada para deletar com DELETE_BLOCK.")
+                        logger.warning(
+                            f"Arquivo '{full_path}' não existe. Nada para deletar com DELETE_BLOCK."
+                        )
                         continue
 
                 if not block_to_delete_pattern: # String vazia
@@ -186,7 +188,9 @@ def apply_patches(instructions: list[dict], logger: logging.Logger, base_path: s
                     continue
 
                 if not full_path.exists():
-                    logger.warn(f"Arquivo '{full_path}' não existe. Nada para deletar com DELETE_BLOCK.")
+                    logger.warning(
+                        f"Arquivo '{full_path}' não existe. Nada para deletar com DELETE_BLOCK."
+                    )
                     continue
 
 

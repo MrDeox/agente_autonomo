@@ -12,7 +12,7 @@ def mock_logger():
     logger = MagicMock(spec=logging.Logger)
     logger.info = MagicMock()
     logger.debug = MagicMock()
-    logger.warn = MagicMock()
+    logger.warning = MagicMock()
     logger.error = MagicMock()
     return logger
 
