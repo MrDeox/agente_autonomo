@@ -23,9 +23,10 @@ See `hephaestus_config.json` for available options.
 
 ## Testing
 
-Run the test suite with [pytest](https://docs.pytest.org/):
+Install dependencies and run the test suite with [pytest](https://docs.pytest.org/):
 
 ```bash
+pip install -r requirements.txt
 pytest
 ```
 
