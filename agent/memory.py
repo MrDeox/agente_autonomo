@@ -97,7 +97,8 @@ class Memory:
             "objective": objective,
             "strategy_used": strategy,
             "details": details,
-            "date": self._get_timestamp()
+            "date": self._get_timestamp(),
+            "status": "completed"  # Adicionado status
         }
         self.completed_objectives.append(record)
         self._add_to_recent_objectives_log(objective, "success")
@@ -126,57 +127,44 @@ class Memory:
 
         self.cycle_count = 0  # Reset cycle count
 
-        all_objectives = self.completed_objectives + self.failed_objectives
+        # 1. Combine all historical objectives
+        all_historical_objectives = self.completed_objectives + self.failed_objectives
 
-        # Remove duplicates, keeping the most recent entry for the same objective description
-        # We sort by date first (older to newer) so that when we encounter duplicates,
-        # the one added to unique_objectives_dict will be the latest one.
-        all_objectives.sort(key=lambda x: x["date"])
+        # 2. Sort by date (older to newer) to ensure the latest is kept during deduplication
+        all_historical_objectives.sort(key=lambda x: x["date"])
 
+        # 3. Deduplicate by 'objective' string, keeping the most recent entry (due to prior sort)
         unique_objectives_dict: Dict[str, Dict[str, Any]] = {}
-        for obj in all_objectives:
-            # Using 'objective' field as the key for deduplication
-            unique_objectives_dict[obj["objective"]] = obj
+        for obj in all_historical_objectives:
+            unique_objectives_dict[obj["objective"]] = obj # Keeps the last one encountered for a given key
 
-        # Convert back to list and sort by date (most recent first)
-        processed_objectives = sorted(
+        # 4. Convert back to list, now containing unique objectives (most recent version of each)
+        # Sort by date (most recent first) for truncation
+        unique_objectives_list = sorted(
             list(unique_objectives_dict.values()),
             key=lambda x: x["date"],
             reverse=True
         )
 
-        # Keep only the last max_objectives_history objectives
-        kept_objectives = processed_objectives[:self.max_objectives_history]
+        # 5. Truncate to max_objectives_history
+        kept_objectives = unique_objectives_list[:self.max_objectives_history]
 
-        # Separate back into completed and failed objectives
-        self.completed_objectives = [
-            obj for obj in kept_objectives if obj in self.completed_objectives
-        ]
-        self.failed_objectives = [
-            obj for obj in kept_objectives if obj in self.failed_objectives
-        ]
-
-        # Note: This logic for separating back might not be perfect if an objective string
-        # could exist in both completed and failed (which shouldn't happen with current add methods).
-        # A more robust way would be to check the original list or add a 'status' field
-        # when combining them. For now, this assumes objective strings are unique enough
-        # or that the original lists are the source of truth for status.
-        # A simpler approach for separation, assuming objective dicts are unique by content:
-        new_completed = []
-        new_failed = []
-        original_completed_set = {json.dumps(o, sort_keys=True) for o in self.completed_objectives}
-        original_failed_set = {json.dumps(o, sort_keys=True) for o in self.failed_objectives}
+        # 6. Clear and reconstruct completed_objectives and failed_objectives lists
+        self.completed_objectives = []
+        self.failed_objectives = []
 
         for obj in kept_objectives:
-            obj_dump = json.dumps(obj, sort_keys=True)
-            if obj_dump in original_completed_set:
-                new_completed.append(obj)
-            elif obj_dump in original_failed_set:
-                new_failed.append(obj)
+            # obj now contains the "status" field added in add_completed/failed_objective
+            if obj.get("status") == "completed": # Use .get() for safety, though status should exist
+                self.completed_objectives.append(obj)
+            elif obj.get("status") == "failed":
+                self.failed_objectives.append(obj)
+            # else: could log an error if status is missing or unexpected
 
-        # Sort chronologically before assigning
-        self.completed_objectives = sorted(new_completed, key=lambda x: x["date"])
-        self.failed_objectives = sorted(new_failed, key=lambda x: x["date"])
+        # 7. Re-sort the separated lists chronologically (older to newer)
+        # This maintains the original order for items within their respective lists.
+        self.completed_objectives.sort(key=lambda x: x["date"])
+        self.failed_objectives.sort(key=lambda x: x["date"])
 
 
     def add_failed_objective(self, objective: str, reason: str, details: str) -> None:
@@ -192,7 +180,8 @@ class Memory:
             "objective": objective,
             "reason": reason,
             "details": details,
-            "date": self._get_timestamp()
+            "date": self._get_timestamp(),
+            "status": "failed"  # Adicionado status
         }
         self.failed_objectives.append(record)
         self._add_to_recent_objectives_log(objective, "failure")
