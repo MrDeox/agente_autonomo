@@ -19,10 +19,20 @@ import logging
 # - generate_capacitation_objective
 # - generate_commit_message
 
-from agent.project_scanner import analyze_code_metrics # New import
-from agent.utils.llm_client import call_llm_api # IMPORT THE CENTRALIZED FUNCTION
+from agent.project_scanner import analyze_code_metrics
+from agent.utils.llm_client import call_llm_api
 
-# _call_llm_api was removed from here.
+def _call_llm_api(
+    api_key: str,
+    model: str,
+    prompt: str,
+    temperature: float,
+    base_url: str,
+    logger: logging.Logger,
+) -> Tuple[Optional[str], Optional[str]]:
+    """Lightweight wrapper for ``call_llm_api`` from ``agent.utils.llm_client``."""
+    return call_llm_api(api_key, model, prompt, temperature, base_url, logger)
+
 
 def generate_next_objective(
     api_key: str,
