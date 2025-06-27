@@ -30,6 +30,7 @@ def generate_next_objective(
     current_manifest: str,
     logger: logging.Logger, # Changed type hint from Any
     project_root_dir: str,
+    config: Dict[str, Any] | None = None,
     config: Optional[Dict[str, Any]] = None,
     base_url: str = "https://openrouter.ai/api/v1",
     memory_summary: Optional[str] = None
@@ -38,6 +39,8 @@ def generate_next_objective(
     Generates the next evolutionary objective using a lightweight model and code analysis.
     """
     if logger: logger.info("Generating next objective...")
+
+    config = config or {}
 
     # 1. Analyze code metrics using thresholds from config
     code_analysis_summary_str = ""
