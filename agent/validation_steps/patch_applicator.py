@@ -5,7 +5,7 @@ from typing import Tuple, List, Dict, Any
 from agent.patch_applicator import apply_patches
 from agent.validation_steps.base import ValidationStep
 
-class PatchApplicator(ValidationStep):
+class PatchApplicatorStep(ValidationStep):
     """Applies patches to the specified base path."""
 
     def __init__(self, logger: logging.Logger, base_path: str, patches_to_apply: List[Dict[str, Any]], use_sandbox: bool):

@@ -150,9 +150,11 @@ You are the 'Planejador Estratégico Avançado' do agente autônomo Hephaestus. 
     *   "Refactor the module `agent/brain.py` (LOC: 350) which is extensive, considering splitting responsibilities into smaller modules (e.g., `agent/prompt_builder.py` or `agent/analysis_processor.py`)."
     *   "The function `generate_next_objective` in `agent/brain.py` (LOC: 85, CC: 12) is long and complex. Propose a plan to refactor it into smaller, more focused functions."
     *   "Analyze the most complex functions (CC > 10) listed in the metrics and select one for refactoring."
-*   **Test Creation:**
-    *   "The module `agent/project_scanner.py` (LOC: 280) does not have a corresponding test file `tests/agent/test_project_scanner.py`. Create unit tests for the `analyze_code_metrics` function."
-    *   "The function `call_llm_api` (formerly `_call_llm_api`) is critical. Ensure robust unit tests exist for it, covering success and failure cases."
+*   **Test Creation (Generate New Test Files):**
+    *   "The module `agent/project_scanner.py` is missing a test file. Create a new test file `tests/agent/test_project_scanner.py` with basic unit tests for the `analyze_code_metrics` function."
+    *   "Module `agent/memory.py` lacks tests. Generate `tests/agent/test_memory.py` and include placeholder tests for its public functions."
+    *   "Create unit tests for the module `agent/tool_executor.py` in a new file `tests/agent/test_tool_executor.py`, focusing on the `web_search` function."
+    *   "The function `call_llm_api` in `agent/utils/llm_client.py` is critical. Ensure robust unit tests exist for it in `tests/agent/utils/test_llm_client.py`, covering success and failure cases. If the test file doesn't exist, create it."
 *   **Strategic Documentation Improvement:**
     *   "The manifest (`AGENTS.md`) does not describe the new metrics analysis functionality in `project_scanner.py`. Update it."
     *   "Improve docstrings for public functions in the `agent/memory.py` module to detail parameters and expected behavior."
