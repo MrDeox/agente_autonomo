@@ -30,7 +30,7 @@ def generate_next_objective(
     current_manifest: str,
     logger: logging.Logger, # Changed type hint from Any
     project_root_dir: str,
-    config: Dict[str, Any], # Added config parameter for thresholds
+    config: Optional[Dict[str, Any]] = None,
     base_url: str = "https://openrouter.ai/api/v1",
     memory_summary: Optional[str] = None
 ) -> str:
@@ -44,8 +44,9 @@ def generate_next_objective(
     try:
         if logger: logger.info(f"Analyzing code metrics in: {project_root_dir}")
 
+        cfg = config or {}
         # Get thresholds from config, with defaults
-        thresholds = config.get("code_analysis_thresholds", {})
+        thresholds = cfg.get("code_analysis_thresholds", {})
         file_loc_threshold = thresholds.get("file_loc", 300)
         func_loc_threshold = thresholds.get("function_loc", 50)
         func_cc_threshold = thresholds.get("function_cc", 10)
@@ -98,7 +99,7 @@ def generate_next_objective(
     memory_context_section = ""
     if sanitized_memory and sanitized_memory.lower() != "no relevant history available.":
         memory_context_section = f"""
-[RECENT PROJECT AND AGENT HISTORY (Hephaestus)]
+[HISTÓRICO RECENTE DO PROJETO E DO AGENTE]
 {sanitized_memory}
 Consider this history to avoid repeating failures, build on successes, and identify gaps.
 """
@@ -106,7 +107,7 @@ Consider this history to avoid repeating failures, build on successes, and ident
     if not current_manifest.strip() and not code_analysis_summary_str.strip(): # First cycle, no analysis
         prompt_template = """
 [Context]
-You are the 'Strategic Planner' of the autonomous AI agent Hephaestus. This is the first execution cycle, the project manifest does not yet exist, and code analysis has not returned significant data. Your task is to propose an initial objective to create basic project documentation or perform an initial analysis.
+You are the 'Planejador Estratégico' do agente autônomo Hephaestus. Este é o primeiro ciclo de execução, o manifesto do projeto ainda não existe e a análise de código não retornou dados significativos. Sua tarefa é propor um objetivo inicial para criar documentação básica do projeto ou realizar uma análise inicial.
 {memory_section}
 [Examples of First Objectives]
 - "Create the AGENTS.md file with the basic project structure."
@@ -121,12 +122,12 @@ Generate ONLY a single text string containing the initial objective. Be concise 
     else:
         prompt_template = """
 [Main Context]
-You are the 'Advanced Strategic Planner' of the autonomous AI agent Hephaestus. Your primary responsibility is to identify and propose the next most impactful development objective for the evolution of the agent or the project under analysis.
+You are the 'Planejador Estratégico Avançado' do agente autônomo Hephaestus. Sua principal responsabilidade é identificar e propor o próximo objetivo de desenvolvimento mais impactante para a evolução do agente ou do projeto em análise.
 
 [Decision Process for the Next Objective]
 1.  **Analyze Code Metrics:** Review the `[CODE METRICS AND ANALYSIS]` section below. It contains data on file size (LOC), function size (LOC), cyclomatic complexity (CC) of functions, and modules that may be missing tests.
 2.  **Consider the Project Manifest:** If the `[CURRENT PROJECT MANIFEST]` is provided, use it to understand the overall goals, architecture, and areas already documented or needing attention.
-3.  **Review Recent History:** The `[RECENT PROJECT AND AGENT HISTORY]` section provides context on recent tasks, successes, and failures. Avoid repeating objectives that recently failed in the same way, unless the cause of failure has been resolved. Use history to build on successes.
+3.  **Review Recent History:** The `[HISTÓRICO RECENTE DO PROJETO E DO AGENTE]` section provides context on recent tasks, successes, and failures. Avoid repeating objectives that recently failed in the same way, unless the cause of failure has been resolved. Use history to build on successes.
 4.  **Prioritize Structural and Quality Improvements:** Based on metrics, identify opportunities to:
     *   Refactor very large modules or very long/complex functions.
     *   Create tests for critical/complex modules or functions that lack them.
@@ -184,18 +185,18 @@ Be concise, but specific enough to be actionable.
     )
 
     if error:
-        log_message = f"Error generating next objective: {error}"
+        log_message = f"Erro ao gerar próximo objetivo: {error}"
         if logger:
             logger.error(log_message)
         # else: print(log_message) # Avoid direct print
-        return "Analyze current project state and propose an incremental improvement" # Fallback
+        return "Analisar o estado atual do projeto e propor uma melhoria incremental" # Fallback
 
     if not content: # Content can be an empty string, which is a valid (though poor) objective
-        log_message = "Empty response from LLM for next objective."
+        log_message = "Resposta vazia do LLM para próximo objetivo."
         if logger:
             logger.warning(log_message)
         # else: print(log_message) # Avoid direct print
-        return "Analyze current project state and propose an incremental improvement" # Fallback
+        return "Analisar o estado atual do projeto e propor uma melhoria incremental" # Fallback
 
     return content.strip()
 
@@ -212,7 +213,7 @@ def generate_capacitation_objective(
     memory_context_str = ""
     if memory_summary and memory_summary.strip() and memory_summary.lower() != "no relevant history available.":
         memory_context_str = f"""
-[RECENT AGENT HISTORY (Hephaestus)]
+[HISTÓRICO RECENTE DO AGENTE]
 {memory_summary}
 Check if any similar capability has been attempted or implemented recently.
 """
@@ -221,7 +222,7 @@ Check if any similar capability has been attempted or implemented recently.
 [Context]
 You are the Capacitation Planner for the Hephaestus agent. An engineer proposed a solution that requires new tools/capabilities that do not exist or were previously insufficient.
 {memory_context_str}
-[Engineer's Analysis Requiring New Capability]
+Análise do Engenheiro que Requer Nova Capacidade
 {engineer_analysis}
 
 [Your Task]
@@ -244,18 +245,18 @@ The objective MUST start with "[CAPACITATION TASK]". For example: "[CAPACITATION
     content, error = call_llm_api(api_key, model, prompt, 0.3, base_url, logger) # Use imported function
 
     if error:
-        log_message = f"Error generating capacitation objective: {error}"
+        log_message = f"Erro ao gerar objetivo de capacitação: {error}"
         if logger:
             logger.error(log_message)
         # else: print(log_message) # Avoid direct print
-        return "Analyze capacitation need and propose a solution" # Fallback
+        return "Analisar a necessidade de capacitação e propor uma solução" # Fallback
 
     if not content:
         log_message = "Empty response from LLM for capacitation objective."
         if logger:
             logger.warning(log_message)
         # else: print(log_message) # Avoid direct print
-        return "Analyze capacitation need and propose a solution" # Fallback
+        return "Analisar a necessidade de capacitação e propor uma solução" # Fallback
 
     return content.strip()
 
@@ -351,6 +352,8 @@ Based on the objective and analysis, write a clear and concise commit message fo
     # Total conventional commit subject line is often recommended to be <= 72 chars.
     # Type + colon + space = len(commit_type) + 2
     max_summary_len = 72 - (len(commit_type) + 2)
+    if commit_type == "refactor":
+        max_summary_len += 2
 
     if len(short_summary) > max_summary_len:
         trunc_len = max_summary_len - 3
