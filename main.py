@@ -324,8 +324,6 @@ hephaestus.log
         return True
 
     def _reset_cycle_state(self):
-        current_objective = self.state.get("current_objective")
-    def _reset_cycle_state(self):
         # current_objective = self.state.get("current_objective") # Antes da dataclass
         current_objective = self.state.current_objective # Com dataclass
 
