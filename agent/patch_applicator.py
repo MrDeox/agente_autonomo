@@ -1,7 +1,197 @@
+"""Utilities for applying textual patches to files.
+
+The functions here are used by the agent to modify project files.  Each
+instruction describes an ``INSERT``, ``REPLACE`` or ``DELETE_BLOCK``
+operation and this module executes them.
+"""
+
 import os
 import re
 import logging
 from pathlib import Path
+
+
+def _handle_insert(full_path: Path, lines: list[str], instruction: dict,
+                   logger: logging.Logger) -> tuple[bool, list[str]]:
+    """Apply an INSERT patch and return ``(success, updated_lines)``."""
+    content = instruction.get("content", "")
+    if not isinstance(content, list):
+        insert_lines = content.splitlines()
+    else:
+        insert_lines = [str(line) for line in content]
+
+    line_number = instruction.get("line_number")
+    if line_number is not None:
+        try:
+            line_number = int(line_number)
+            if line_number <= 0:
+                logger.warning(
+                    f"line_number {line_number} inválido para INSERT em '{full_path}', usando 1.")
+                line_number = 1
+        except ValueError:
+            logger.error(
+                f"line_number '{line_number}' inválido para INSERT em '{full_path}'. Pulando patch.")
+            return False, lines
+        idx = min(max(0, line_number - 1), len(lines))
+    else:
+        idx = len(lines)
+
+    lines[idx:idx] = insert_lines
+    logger.debug(
+        f"Conteúdo inserido em '{full_path}' na linha {line_number if line_number else 'final'}.")
+    return True, lines
+
+
+def _handle_replace(full_path: Path, lines: list[str], instruction: dict,
+                    logger: logging.Logger) -> tuple[bool, list[str], bool]:
+    """Apply a REPLACE patch.
+
+    Returns ``(success, updated_lines, skip_write)`` where ``skip_write``
+    signals that the caller should not rewrite the file (e.g. when the file
+    was deleted).
+    """
+    pattern = instruction.get("block_to_replace")
+    content = instruction.get("content", "")
+    if not isinstance(content, list):
+        new_lines = content.splitlines()
+    else:
+        new_lines = [str(line) for line in content]
+
+    if pattern is None:
+        logger.info(
+            f"REPLACE sem 'block_to_replace' para '{full_path}'. Arquivo será sobrescrito.")
+        return True, new_lines, False
+
+    file_content = "\n".join(lines)
+    is_regex = instruction.get("is_regex", False) or any(c in pattern for c in r"*+?^$[]{}()|\\")
+
+    replaced = False
+    if is_regex:
+        try:
+            mod, num = re.subn(pattern, "\n".join(new_lines), file_content,
+                                count=0, flags=re.MULTILINE | re.DOTALL)
+            if num > 0:
+                lines = mod.splitlines()
+                logger.debug(
+                    f"Bloco(s) regex '{pattern}' substituído(s) em '{full_path}' ({num} ocorrências).")
+                replaced = True
+            else:
+                logger.warning(
+                    f"Padrão regex '{pattern}' não encontrado em '{full_path}' para REPLACE.")
+        except re.error as e:
+            logger.error(
+                f"Erro de regex em 'block_to_replace':'{pattern}' para '{full_path}'. Erro: {e}. Tentando como string literal.")
+            if pattern in file_content:
+                mod = file_content.replace(pattern, "\n".join(new_lines), 1)
+                lines = mod.splitlines()
+                logger.debug(
+                    f"Bloco '{pattern}' (literal fallback) substituído em '{full_path}'.")
+                replaced = True
+            else:
+                logger.warning(
+                    f"Bloco '{pattern}' (literal fallback) não encontrado em '{full_path}' para REPLACE.")
+    else:
+        if pattern in file_content:
+            mod = file_content.replace(pattern, "\n".join(new_lines), 1)
+            lines = mod.splitlines()
+            logger.debug(
+                f"Bloco literal '{pattern}' substituído em '{full_path}'.")
+            replaced = True
+        else:
+            if full_path.exists():
+                logger.warning(
+                    f"Bloco literal '{pattern}' não encontrado em '{full_path}' para REPLACE.")
+            else:
+                logger.error(
+                    f"Tentativa de REPLACE de bloco específico '{pattern}' em arquivo inexistente '{full_path}'. Pulando.")
+                return False, lines, True
+
+    if not replaced and full_path.exists():
+        logger.warning(
+            f"Nenhuma substituição realizada para '{pattern}' em '{full_path}'.")
+    elif not full_path.exists():
+        logger.info(f"Arquivo '{full_path}' será criado com o novo conteúdo.")
+
+    return True, lines, False
+
+
+def _handle_delete_block(full_path: Path, lines: list[str], instruction: dict,
+                         logger: logging.Logger) -> tuple[bool, list[str], bool]:
+    """Apply a DELETE_BLOCK patch."""
+    pattern = instruction.get("block_to_delete")
+    if pattern is None:
+        if full_path.exists():
+            try:
+                os.remove(full_path)
+                logger.info(
+                    f"Arquivo '{full_path}' removido com sucesso (DELETE_BLOCK com block_to_delete=None).")
+            except Exception as e:
+                logger.error(f"Falha ao remover arquivo '{full_path}': {e}")
+                return False, lines, True
+        else:
+            logger.warn(
+                f"Arquivo '{full_path}' não existe. Nada para deletar com DELETE_BLOCK.")
+        return True, lines, True
+
+    if not pattern:
+        logger.error(
+            f"Operação DELETE_BLOCK para '{full_path}' não especificou 'block_to_delete' válido. Pulando.")
+        return False, lines, True
+
+    if not full_path.exists():
+        logger.warn(
+            f"Arquivo '{full_path}' não existe. Nada para deletar com DELETE_BLOCK.")
+        return True, lines, True
+
+    file_content = "\n".join(lines)
+    is_regex = instruction.get("is_regex", False) or any(c in pattern for c in r"*+?^$[]{}()|\\")
+
+    deleted = False
+    if is_regex:
+        try:
+            mod, num = re.subn(pattern, "", file_content, count=0,
+                               flags=re.MULTILINE | re.DOTALL)
+            if num > 0:
+                temp_lines = mod.splitlines()
+                lines = [line for i, line in enumerate(temp_lines)
+                         if line.strip() or (i > 0 and temp_lines[i-1].strip())
+                         or (i < len(temp_lines) - 1 and temp_lines[i+1].strip())]
+                logger.debug(
+                    f"Bloco(s) regex '{pattern}' deletado(s) em '{full_path}' ({num} ocorrências).")
+                deleted = True
+            else:
+                logger.warning(
+                    f"Padrão regex '{pattern}' não encontrado em '{full_path}' para DELETE_BLOCK.")
+        except re.error as e:
+            logger.error(
+                f"Erro de regex em 'block_to_delete': '{pattern}'. Erro: {e}. Tentando como literal.")
+            if pattern in file_content:
+                mod = file_content.replace(pattern, "", 1)
+                lines = mod.splitlines()
+                logger.debug(
+                    f"Bloco '{pattern}' (literal fallback) deletado em '{full_path}'.")
+                deleted = True
+            else:
+                logger.warning(
+                    f"Bloco '{pattern}' (literal fallback) não encontrado em '{full_path}' para DELETE_BLOCK.")
+    else:
+        if pattern in file_content:
+            mod = file_content.replace(pattern, "", 1)
+            lines = mod.splitlines()
+            logger.debug(
+                f"Bloco literal '{pattern}' deletado em '{full_path}'.")
+            deleted = True
+        else:
+            logger.warning(
+                f"Bloco literal '{pattern}' não encontrado em '{full_path}' para DELETE_BLOCK.")
+
+    if deleted:
+        pass
+    elif full_path.exists():
+        logger.warning(
+            f"Nenhuma deleção realizada para '{pattern}' em '{full_path}'.")
+
+    return True, lines, False
 
 def apply_patches(instructions: list[dict], logger: logging.Logger, base_path: str = "."):
     """
@@ -28,37 +218,53 @@ def apply_patches(instructions: list[dict], logger: logging.Logger, base_path: s
               Nota: Erros de arquivo não encontrado para uma instrução específica não necessariamente
               retornam False globalmente, mas são logados. A falha é mais para exceções inesperadas.
     """
+
     overall_success = True
     processed_files = set()
 
     if base_path != ".":
         logger.info(f"Aplicando patches com base_path: '{Path(base_path).resolve()}'")
     else:
-        logger.info(f"Aplicando patches com base_path: '.' (diretório atual)")
+        logger.info("Aplicando patches com base_path: '.' (diretório atual)")
 
     for i, instruction in enumerate(instructions):
         file_path_str = instruction.get("file_path")
         operation = instruction.get("operation")
 
         if not file_path_str or not operation:
-            logger.error(f"Patch inválido (sem file_path ou operation) na instrução {i+1}: {instruction}")
+            logger.error(
+                f"Patch inválido (sem file_path ou operation) na instrução {i+1}: {instruction}")
             overall_success = False
             continue
 
-        # Normaliza o path para o OS atual e depois resolve com base_path
-        normalized_file_path = Path(os.path.normpath(file_path_str))
-        full_path = Path(base_path).resolve() / normalized_file_path
+        normalized = Path(os.path.normpath(file_path_str))
+        full_path = Path(base_path).resolve() / normalized
 
         processed_files.add(str(full_path))
         logger.info(f"Processando patch {i+1}/{len(instructions)}: {operation} em '{full_path}'")
 
-        try:
-            # Garante que o diretório pai exista SOMENTE se formos escrever/criar o arquivo.
-            # Não criar para delete em arquivo inexistente.
-            if operation in ["INSERT", "REPLACE"] or (operation == "DELETE_BLOCK" and full_path.exists()):
-                 full_path.parent.mkdir(parents=True, exist_ok=True)
+        lines: list[str] = []
+        if full_path.exists():
+            with open(full_path, "r", encoding="utf-8") as f:
+                lines = f.read().splitlines()
+        elif operation not in ["INSERT", "REPLACE"]:
+            logger.warning(
+                f"Operação '{operation}' em arquivo inexistente '{full_path}'. Pulando.")
+            continue
 
-
+        full_path.parent.mkdir(parents=True, exist_ok=True)
+        skip_write = False
+        success = True
+        if operation == "INSERT":
+            success, lines = _handle_insert(full_path, lines, instruction, logger)
+        elif operation == "REPLACE":
+            success, lines, skip_write = _handle_replace(full_path, lines, instruction, logger)
+        elif operation == "DELETE_BLOCK":
+            success, lines, skip_write = _handle_delete_block(full_path, lines, instruction, logger)
+        else:
+            logger.error(f"Operação desconhecida '{operation}' para o arquivo '{full_path}'. Pulando.")
+            overall_success = False
+            continue
             lines = []
             if full_path.exists():
                 with open(full_path, "r", encoding="utf-8") as f:
@@ -259,35 +465,26 @@ def apply_patches(instructions: list[dict], logger: logging.Logger, base_path: s
                     # Por agora, confiamos que `splitlines()` e a remoção do bloco já fazem um bom trabalho.
                     # Se o `block_to_delete` incluir o `\n` final, a linha some. Se não, o `\n` fica.
                     # O LLM deve ser instruído a incluir o `\n` no `block_to_delete` se a linha inteira deve sumir.
-                    pass # A lógica de splitlines já trata bem se o bloco removido era a linha inteira.
+                    pass # A lógom sucesso após operação '{operation}'.")
+ica de splitlines já trata bem se o bloco removido era a linha inteira.
                 elif full_path.exists():
                      logger.warning(f"Nenhuma deleção realizada para '{block_to_delete_pattern}' em '{full_path}'.") # CORRIGIDO
 
 
-            else:
-                logger.error(f"Operação desconhecida '{operation}' para o arquivo '{full_path}'. Pulando.")
-                overall_success = False
-                continue
+        overall_success &= success
 
-            # Escrever as alterações de volta ao arquivo, somente se a operação não foi pulada
-            # (ex: DELETE_BLOCK em arquivo inexistente não deve tentar escrever)
-            if not (operation == "DELETE_BLOCK" and not full_path.exists()):
-                with open(full_path, "w", encoding="utf-8") as f:
-                    f.write("\n".join(lines))
-                logger.info(f"Arquivo '{full_path}' salvo com sucesso após operação '{operation}'.")
-
-        except Exception as e:
-            logger.error(f"Erro CRÍTICO ao aplicar patch {operation} em '{full_path}': {e}", exc_info=True)
-            overall_success = False
-            # Continua para a próxima instrução, se houver
-
+        if not skip_write:
+            with open(full_path, "w", encoding="utf-8") as f:
+                f.write("\n".join(lines))
+            logger.info(f"Arquivo '{full_path}' salvo c
     if overall_success:
-        logger.info(f"Todas as {len(instructions)} instruções de patch processadas. Arquivos afetados (tentativas): {processed_files}")
+        logger.info(
+            f"Todas as {len(instructions)} instruções de patch processadas. Arquivos afetados (tentativas): {processed_files}")
     else:
-        logger.warning(f"Algumas instruções de patch falharam ou foram puladas. Verifique os logs. Arquivos afetados (tentativas): {processed_files}") # CORRIGIDO
+        logger.warning(
+            f"Algumas instruções de patch falharam ou foram puladas. Verifique os logs. Arquivos afetados (tentativas): {processed_files}")
 
     return overall_success
-
 # Exemplo de uso (para teste manual, se necessário):
 if __name__ == '__main__':
     test_logger = logging.getLogger("patch_applicator_test")
