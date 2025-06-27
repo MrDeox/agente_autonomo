@@ -4,16 +4,19 @@ Este documento delineia os upgrades planejados para o agente Hephaestus, em orde
 
 ## Tier S: Game-Changers (Maior Impacto)
 
-- [] **1. Geração Automática de Testes:**
-  -   **Status:** Não iniciado..
+- [x] **1. Geração Automática de Testes:**
+  -   **Status:** Concluído.
   -   **Descrição:** Dar ao agente a capacidade de identificar módulos sem testes e escrever novos arquivos de teste (`test_*.py`) para eles. Isso remove o principal gargalo para refatorações seguras e acelera a robustez do agente.
-  -   **Plano:**
-      -   [] Modificar `brain.py` para gerar objetivos específicos de criação de testes quando `analyze_code_metrics` encontrar módulos sem cobertura.
-      -   [] Aprimorar o prompt do `ArchitectAgent` para que ele possa gerar o conteúdo de um arquivo de teste completamente novo, incluindo imports e funções de teste placeholder.
-      -   [] Criar uma nova estratégia de validação em `hephaestus_config.json` para lidar com a criação de novos arquivos de teste e validar sua sintaxe e execução inicial com `pytest`.
+  -   **Implementação:**
+      -   [x] `agent/project_scanner.py` (`analyze_code_metrics`) já identificava módulos sem testes (`missing_tests`).
+      -   [x] `agent/brain.py` (`generate_next_objective`) teve seu prompt atualizado para melhor instruir o LLM a gerar objetivos de criação de testes, especificando o nome do novo arquivo de teste.
+      -   [x] `agent/agents.py` (`ArchitectAgent`) teve seu prompt atualizado para, ao receber um objetivo de criação de testes, gerar o conteúdo completo do novo arquivo de teste, incluindo imports e funções de teste placeholder.
+      -   [x] Criada a estratégia de validação `CREATE_NEW_TEST_FILE_STRATEGY` em `hephaestus_config.json`.
+      -   [x] Criado o validador `PytestNewFileValidator` (em `agent/validation_steps/pytest_new_file_validator.py`) que executa `pytest` especificamente no novo arquivo de teste gerado.
+      -   [x] Adicionados testes unitários para `PytestNewFileValidator`.
 
 - [] **2. Acesso a Conhecimento Externo (Web Search):**
-  -   **Status:** Não iniciado..
+  -   **Status:** Não iniciado.
   -   **Descrição:** Implementar uma nova ferramenta `web_search` que permita ao agente pesquisar na internet para resolver erros ou aprender sobre novas bibliotecas. Isso quebra a "bolha" do agente, permitindo que ele resolva problemas para os quais não foi explicitamente programado.
 
 - [] **3. Consciência da Performance em Runtime:**
