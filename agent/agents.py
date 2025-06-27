@@ -4,7 +4,18 @@ import logging
 import traceback # Keep if parse_json_response uses it, otherwise remove
 from typing import Optional, Dict, Any, List, Tuple
 
-from agent.utils.llm_client import call_llm_api # IMPORT THE CENTRALIZED FUNCTION
+from agent.utils.llm_client import call_llm_api
+
+def _call_llm_api(
+    api_key: str,
+    model: str,
+    prompt: str,
+    temperature: float,
+    base_url: str,
+    logger: logging.Logger,
+) -> Tuple[Optional[str], Optional[str]]:
+    """Lightweight wrapper for ``call_llm_api`` from ``agent.utils.llm_client``."""
+    return call_llm_api(api_key, model, prompt, temperature, base_url, logger)
 
 # Esta função é uma cópia de agent.brain.parse_json_response
 # Idealmente, seria movida para um módulo de utilitários compartilhado se usada em mais lugares.
