@@ -13,7 +13,7 @@ O teste `test_update_project_manifest_happy_path` está falhando porque o arquiv
 Apenas os arquivos especificados em `target_files` (neste caso `main.py` e `data.json`) devem aparecer na seção "CONTEÚDO COMPLETO DOS ARQUIVOS ALVO".
 
 **Prioridade:** Alta
-**Status:** Aberto
+**Status:** Fechado
 **Atribuído a:** 
 **Labels:** bug, tests, project-scanner
 
