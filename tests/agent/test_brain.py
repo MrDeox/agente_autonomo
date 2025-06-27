@@ -125,13 +125,13 @@ class TestBrainFunctions(unittest.TestCase):
         mock_analyze_code_metrics.assert_called_once() # Verify this mock is called
         mock_call_llm_api.assert_called_once()
 
-        called_args_llm = mock_call_llm_api.call_args.args
-        self.assertEqual(called_args_llm[0], self.api_key)
-        self.assertEqual(called_args_llm[1], self.model)
-        self.assertIn("Test Manifest", called_args_llm[2])
-        self.assertEqual(called_args_llm[3], 0.3)
-        self.assertEqual(called_args_llm[4], self.base_url)
-        self.assertEqual(called_args_llm[5], self.logger)
+        called_kwargs_llm = mock_call_llm_api.call_args.kwargs
+        self.assertEqual(called_kwargs_llm["api_key"], self.api_key)
+        self.assertEqual(called_kwargs_llm["model"], self.model)
+        self.assertIn("Test Manifest", called_kwargs_llm["prompt"])
+        self.assertEqual(called_kwargs_llm["temperature"], 0.3)
+        self.assertEqual(called_kwargs_llm["base_url"], self.base_url)
+        self.assertEqual(called_kwargs_llm["logger"], self.logger)
 
     @patch('agent.brain.call_llm_api')
     def test_generate_next_objective_llm_call_error(self, mock_call_llm_api):

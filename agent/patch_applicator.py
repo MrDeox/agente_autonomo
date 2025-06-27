@@ -457,6 +457,7 @@ def apply_patches(instructions: list[dict], logger: logging.Logger, base_path: s
                     # A abordagem mais simples é que o LLM forneça blocos que incluam newlines para deleção.
                     logger.debug(
                         f"Bloco removido para '{block_to_delete_pattern}' em '{full_path}'.")
+                    pass
                 elif full_path.exists():
                     logger.warning(
                         f"Nenhuma deleção realizada para '{block_to_delete_pattern}' em '{full_path}'.")
