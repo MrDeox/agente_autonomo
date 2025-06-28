@@ -21,10 +21,11 @@ import re
 # - generate_commit_message
 
 from agent.project_scanner import analyze_code_metrics
+import asyncio # Necessário para async
 from agent.utils.llm_client import call_llm_api
 
 
-def generate_next_objective(
+async def generate_next_objective( # Tornando async
     api_key: str,
     model: str,
     current_manifest: str,
@@ -179,7 +180,7 @@ Be concise, but specific enough to be actionable.
     if logger: logger.debug(f"Prompt for generate_next_objective:\n{prompt}")
 
     # 4. Call LLM API using the centralized function
-    content, error = call_llm_api(
+    content, error = await call_llm_api( # Usando await
         api_key=api_key,
         model=model,
         prompt=prompt,
@@ -213,7 +214,7 @@ Be concise, but specific enough to be actionable.
     return content.strip()
 
 
-def generate_capacitation_objective(
+async def generate_capacitation_objective( # Tornando async
     api_key: str,
     model: str,
     engineer_analysis: str,
@@ -254,7 +255,7 @@ The objective MUST start with "[CAPACITATION TASK]". For example: "[CAPACITATION
     if logger:
         logger.debug(f"Prompt to generate capacitation objective:\n{prompt}")
 
-    content, error = call_llm_api(api_key, model, prompt, 0.3, base_url, logger) # Use imported function
+    content, error = await call_llm_api(api_key, model, prompt, 0.3, base_url, logger) # Usando await
 
     if error:
         log_message = f"Erro ao gerar objetivo de capacitação: {error}"
@@ -281,7 +282,7 @@ The objective MUST start with "[CAPACITATION TASK]". For example: "[CAPACITATION
     return content.strip()
 
 
-def generate_commit_message(
+async def generate_commit_message( # Tornando async
     api_key: str,
     model: str,
     analysis_summary: str,
@@ -291,7 +292,7 @@ def generate_commit_message(
 ) -> str:
     """
     Generates a concise and informative commit message using an LLM.
-    (Currently simulated for this environment)
+    (Currently simulated for this environment, but will use await for call_llm_api if enabled)
 
     Args:
         api_key: API key (e.g., OpenRouter).
@@ -384,8 +385,8 @@ Based on the objective and analysis, write a clear and concise commit message fo
     logger.info(f"Commit message generated (simulated): {simulated_commit_message}")
     return simulated_commit_message
 
-    # Original LLM call code (commented out):
-    # content, error = call_llm_api(api_key, model, prompt, 0.5, base_url, logger)
+    # Original LLM call code (commented out, but would need await):
+    # content, error = await call_llm_api(api_key, model, prompt, 0.5, base_url, logger)
     # if error:
     #     logger.error(f"Error generating commit message: {error}")
     #     return f"chore: Automatic updates based on objective: {objective}" # Fallback

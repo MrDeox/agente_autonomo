@@ -1,8 +1,10 @@
+import asyncio
 import json
 import os
+import aiofiles # Adicionado
 import shutil
+import sys
 import tempfile
-import time
 import logging # ADICIONADO
 import argparse # ADICIONADO PARA ARGUMENTOS DE LINHA DE COMANDO
 import csv # ADICIONADO PARA LOG DE EVOLUÇÃO
@@ -79,7 +81,7 @@ class HephaestusAgent:
 
         # Inicialização dos Agentes Especializados
         architect_model = self.config.get("models", {}).get("architect_default", self.model_list[0])
-        self.architect = ArchitectAgent(
+        self.architect_agent = ArchitectAgent( # Nome da variável corrigido para clareza
             api_key=self.api_key,
             model=architect_model,
             logger=self.logger.getChild("ArchitectAgent") # Logger específico
@@ -87,7 +89,7 @@ class HephaestusAgent:
         self.logger.info(f"ArchitectAgent inicializado com modelo: {architect_model}")
 
         maestro_model_list = self.config.get("models", {}).get("maestro_default_list", self.model_list) # Permite lista no config
-        self.maestro = MaestroAgent(
+        self.maestro_agent = MaestroAgent( # Nome da variável corrigido para clareza
             api_key=self.api_key,
             model_list=maestro_model_list,
             config=self.config, # Maestro pode precisar de acesso a outras partes da config
@@ -168,7 +170,7 @@ class HephaestusAgent:
 
         return {}
 
-    def _generate_manifest(self) -> bool:
+    async def _generate_manifest(self) -> bool:
         self.logger.info("Gerando manifesto do projeto (AGENTS.md)...")
         try:
             # Determine target files for manifest generation based on objective
@@ -183,18 +185,18 @@ class HephaestusAgent:
                 elif "project_scanner.py" in self.state.current_objective: # existing logic
                      target_files_for_manifest.append("agent/project_scanner.py")
 
-            update_project_manifest(root_dir=".", target_files=target_files_for_manifest)
-            with open("AGENTS.md", "r", encoding="utf-8") as f:
-                self.state.manifesto_content = f.read()
+            await update_project_manifest(root_dir=".", target_files=target_files_for_manifest)
+            async with aiofiles.open("AGENTS.md", "r", encoding="utf-8") as f: # Changed to aiofiles
+                self.state.manifesto_content = await f.read()
             self.logger.info(f"--- MANIFESTO GERADO (Tamanho: {len(self.state.manifesto_content)} caracteres) ---")
             return True
         except Exception as e:
             self.logger.error(f"ERRO CRÍTICO ao gerar manifesto: {e}", exc_info=True)
             return False
 
-    def _run_architect_phase(self) -> bool:
+    async def _run_architect_phase(self) -> bool:
         self.logger.info("\nSolicitando plano de ação do ArchitectAgent...")
-        action_plan_data, error_msg = self.architect.plan_action(
+        action_plan_data, error_msg = await self.architect_agent.plan_action(
             objective=self.state.current_objective,
             manifest=self.state.manifesto_content  # manifesto_content is already a string
         )
@@ -205,18 +207,18 @@ class HephaestusAgent:
             action_plan_data = {"analysis": "", "patches_to_apply": []}
 
         self.state.action_plan_data = action_plan_data
-        self.logger.info(f"--- PLANO DE AÇÃO (PATCHES) GERADO PELO ARCHITECTAGENT ({self.architect.model}) ---")
+        self.logger.info(f"--- PLANO DE AÇÃO (PATCHES) GERADO PELO ARCHITECTAGENT ({self.architect_agent.model}) ---")
         self.logger.debug(f"Análise do Arquiteto: {self.state.get_architect_analysis()}")
         self.logger.debug(f"Patches: {json.dumps(self.state.get_patches_to_apply(), indent=2)}")
         return True
 
-    def _run_maestro_phase(self) -> bool:
+    async def _run_maestro_phase(self) -> bool:
         self.logger.info("\nSolicitando decisão do MaestroAgent...")
         if not self.state.action_plan_data:
             self.logger.error("--- FALHA: Nenhum plano de ação (patches) disponível para o MaestroAgent avaliar. ---")
             return False
 
-        maestro_logs = self.maestro.choose_strategy(
+        maestro_logs = await self.maestro_agent.choose_strategy(
             action_plan_data=self.state.action_plan_data,
             memory_summary=self.memory.get_full_history_for_prompt()
         )
@@ -233,7 +235,7 @@ class HephaestusAgent:
                 self.logger.debug(f"Maestro Tentativa {i+1} (Modelo: {log_attempt.get('model', 'N/A')}): Sucesso={log_attempt.get('success')}, Resposta/Erro='{log_attempt.get('raw_response', '')}'")
             fallback_strategy = self.config.get("validation_strategies", {}).get("NO_OP_STRATEGY")
             if fallback_strategy is None:
-                return False
+                return False # Should not happen if NO_OP_STRATEGY is always in config
             self.logger.info("Usando estratégia padrão NO_OP_STRATEGY por falta de decisão válida do MaestroAgent.")
             self.state.strategy_key = "NO_OP_STRATEGY"
             return True
@@ -254,7 +256,7 @@ class HephaestusAgent:
         self.state.strategy_key = strategy_key
         return True
 
-    def _execute_validation_strategy(self) -> None:
+    async def _execute_validation_strategy(self) -> None:
         strategy_key = self.state.strategy_key
         if not strategy_key: # Should not happen if _run_maestro_phase succeeded
             self.logger.error("CRITICAL: _execute_validation_strategy called with no strategy_key set.")
@@ -302,10 +304,10 @@ class HephaestusAgent:
                         base_path=Path(current_base_path_str), # Pass as Path object
                         patches_to_apply=patches_to_apply, # type: ignore
                         use_sandbox=use_sandbox,
-                        # use_sandbox=use_sandbox, # This info is implicit in base_path
                         # config=self.config # Pass full config if steps need it
                     )
-                    step_success, reason, details = step_instance.execute()
+                    # Assuming step_instance.execute() will become async
+                    step_success, reason, details = await step_instance.execute()
 
                     if not step_success:
                         self.state.validation_result = (False, reason, details)
@@ -398,17 +400,18 @@ class HephaestusAgent:
                 self.logger.info("Sandbox cleaned.")
         return
 
-    def run(self) -> None:
+    async def run(self) -> None:
         if not self.api_key:
             self.logger.error("Erro: OPENROUTER_API_KEY não encontrada. Encerrando.")
             return
+        # initialize_git_repository é síncrono, não precisa de await
         if not initialize_git_repository(self.logger):
             self.logger.error("Falha ao inicializar o repositório Git. O agente não pode continuar sem versionamento.")
             return
-        run_cycles(self)
+        await run_cycles(self)
 
 
-if __name__ == "__main__":
+async def main(): # Renomeado e tornado async
     log_formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
     console_handler = logging.StreamHandler()
     console_handler.setFormatter(log_formatter)
@@ -461,6 +464,8 @@ if __name__ == "__main__":
         logger_instance=agent_logger,
         continuous_mode=args.continuous_mode,
         objective_stack_depth_for_testing=args.max_cycles,
-        # config=main_config # Pass the loaded config to HephaestusAgent constructor
-    ) # Config is loaded inside __init__ now.
-    agent.run()
+    )
+    await agent.run()
+
+if __name__ == "__main__":
+    asyncio.run(main())

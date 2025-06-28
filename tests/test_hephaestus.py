@@ -8,6 +8,8 @@ from unittest.mock import patch, MagicMock, call
 
 # Configuração de logger para testes, se necessário
 # Pode ser útil para depurar testes, mas geralmente não é necessário para asserções.
+import asyncio
+
 # logging.basicConfig(level=logging.DEBUG)
 # test_logger = logging.getLogger("TestHephaestusAgent")
 
@@ -73,20 +75,28 @@ def agent_instance(mock_logger, temp_config_file, mock_env_vars, tmp_path):
                     patch('agent.agents.call_llm_api', return_value=("Mocked LLM Response Agents", None)) as mock_llm_agents,
                     patch('main.run_git_command', return_value=(True, "Mocked git output")) as mock_git_main,
                     patch('agent.cycle_runner.run_git_command', return_value=(True, "Mocked git output")) as mock_git,
-                    patch('agent.cycle_runner.update_project_manifest') as mock_update_manifest,
+                    patch('agent.cycle_runner.update_project_manifest') as mock_update_manifest, # Este se tornou async
                     patch(
                         'agent.validation_steps.patch_applicator.PatchApplicatorStep.execute',
+                        # return_value precisa ser um awaitable se o mock for usado diretamente
+                        # Se o método mockado for async, o MagicMock já retorna um awaitable.
+                        # Vamos assumir que o execute se tornou async.
                         return_value=(True, 'PATCH_APPLICATION_SUCCESS', '')
-                    ) as mock_apply_patches,
+                    ) as mock_apply_patches, # execute é async
                     patch(
                         'agent.validation_steps.syntax_validator.SyntaxValidator.execute',
                         return_value=(True, 'SYNTAX_VALIDATION_SUCCESS', '')
-                    ) as mock_validate_syntax,
+                    ) as mock_validate_syntax, # execute é async
                     patch(
                         'agent.validation_steps.pytest_validator.PytestValidator.execute',
                         return_value=(True, 'PYTEST_SUCCESS', '')
-                    ) as mock_run_pytest
+                    ) as mock_run_pytest # execute é async
                 ):
+                    # Para mocks de funções/métodos async, o `return_value` de um MagicMock
+                    # já é um CoroutineMock se o original for async.
+                    # Se precisarmos que o mock em si seja uma função async, usamos side_effect.
+                    # Aqui, como estamos mockando o método já existente que se tornou async,
+                    # o MagicMock deve lidar com isso. Se não, precisaremos de AsyncMock.
 
                     # Garantir que não existe .git para forçar o caminho de inicialização
                     git_dir = tmp_path / ".git"
@@ -122,10 +132,14 @@ def agent_instance(mock_logger, temp_config_file, mock_env_vars, tmp_path):
 
     # Restaurar o diretório de trabalho original
     os.chdir(original_cwd)
+    # Adicionar um yield para garantir que o chdir aconteça no teardown da fixture
+    yield agent
+    os.chdir(original_cwd) # Garantir que volte mesmo se o teste falhar antes do yield
 
 
 # Teste para a lógica de detecção de loop degenerativo
-def test_degenerative_loop_detection(agent_instance, mock_logger):
+@pytest.mark.asyncio
+async def test_degenerative_loop_detection(agent_instance, mock_logger):
     agent = agent_instance # Get the actual agent instance
     # Configurar a memória para simular falhas repetidas
     repeated_objective = "Objetivo Repetitivo com Falha"
@@ -140,8 +154,14 @@ def test_degenerative_loop_detection(agent_instance, mock_logger):
     agent.objective_stack_depth_for_testing = 1 # Executar um ciclo
 
     # Mockear _generate_manifest para evitar erros, já que o objetivo não será processado
-    with patch.object(agent, '_generate_manifest', return_value=True):
-        agent.run()
+    # Como _generate_manifest agora é async, o mock precisa retornar um awaitable
+    # Se _generate_manifest for mockado com MagicMock, ele já retornará um awaitable.
+    # Se for um mock específico, pode precisar de `return_value=asyncio.Future()` e `set_result(True)`.
+    # Por simplicidade, vamos assumir que o patch com MagicMock lida com isso.
+    # No entanto, se o mock é de um método async, o `return_value` do MagicMock
+    # já é um CoroutineMock, então `return_value=True` deve funcionar.
+    with patch.object(agent, '_generate_manifest', return_value=True) as mock_gen_manifest_initial:
+        await agent.run() # agent.run() agora é async
 
     # Verificar se o log de erro NÃO foi chamado e o objetivo foi processado (ou tentado)
     # Isso é um pouco implícito. Se o loop não foi detectado, o ciclo tentaria rodar.
@@ -161,8 +181,8 @@ def test_degenerative_loop_detection(agent_instance, mock_logger):
     # Resetar mocks de log para verificar chamadas específicas desta execução
     mock_logger.reset_mock()
 
-    with patch.object(agent, '_generate_manifest', return_value=True) as mock_gen_manifest:
-        agent.run()
+    with patch.object(agent, '_generate_manifest', return_value=True) as mock_gen_manifest_loop:
+        await agent.run() # agent.run() agora é async
 
     # Verificar se o log de erro FOI chamado
     expected_error_msg = f"Loop degenerativo detectado para o objetivo: \"{repeated_objective}\". Ocorreram 3 falhas consecutivas."
@@ -175,10 +195,11 @@ def test_degenerative_loop_detection(agent_instance, mock_logger):
     )
     # Verificar se o objetivo problemático não está mais na pilha e não foi processado
     assert not agent.objective_stack
-    mock_gen_manifest.assert_not_called() # Não deve nem começar a processar o objetivo
+    mock_gen_manifest_loop.assert_not_called() # Não deve nem começar a processar o objetivo
 
 
-def test_degenerative_loop_break_success_interspersed(agent_instance, mock_logger):
+@pytest.mark.asyncio
+async def test_degenerative_loop_break_success_interspersed(agent_instance, mock_logger):
     agent = agent_instance # Get the actual agent instance
     """Testa se um sucesso entre falhas reseta a contagem do loop degenerativo."""
     objective = "Objetivo com Sucesso Intercalado"
@@ -193,11 +214,16 @@ def test_degenerative_loop_break_success_interspersed(agent_instance, mock_logge
     agent.objective_stack_depth_for_testing = 1
 
     # Mockar as fases do ciclo para que ele "execute" o objetivo
-    agent._mocks["llm_brain"].return_value = ("{\"analysis\": \"mock analysis\", \"patches_to_apply\": []}", None) # Arquiteto
-    agent._mocks["llm_agents"].return_value = ("{\"strategy_key\": \"NO_OP_STRATEGY\"}", None) # Maestro
+    # Para funções async mockadas, o return_value de MagicMock já é um awaitable.
+    # Se as funções `call_llm_api` fossem diretamente mockadas aqui e elas são async,
+    # o `return_value` já seria um CoroutineMock.
+    # No nosso caso, estamos mockando `agent.brain.call_llm_api` e `agent.agents.call_llm_api` na fixture,
+    # e essas são as funções que se tornaram async. Os mocks já devem retornar awaitables.
+    agent._mocks["llm_brain"].return_value = ("{\"analysis\": \"mock analysis\", \"patches_to_apply\": []}", None)
+    agent._mocks["llm_agents"].return_value = ("{\"strategy_key\": \"NO_OP_STRATEGY\"}", None)
 
-    with patch.object(agent, '_generate_manifest', return_value=True) as mock_gen_manifest:
-        agent.run()
+    with patch.object(agent, '_generate_manifest', return_value=True) as mock_gen_manifest_interspersed:
+        await agent.run() # agent.run() agora é async
 
     # O loop degenerativo NÃO deve ser detectado
     loop_detected_error_call_pattern = f"Loop degenerativo detectado para o objetivo: \"{objective}\"."
@@ -205,7 +231,7 @@ def test_degenerative_loop_break_success_interspersed(agent_instance, mock_logge
         assert loop_detected_error_call_pattern not in log_call[0][0]
 
     # O objetivo deve ter sido processado (manifesto gerado)
-    mock_gen_manifest.assert_called_once()
+    mock_gen_manifest_interspersed.assert_called_once()
     # E o objetivo de sucesso deve ter sido adicionado à memória (isso já foi feito no setup do teste,
     # mas a run() também adicionará se a estratégia for bem sucedida)
     # O importante é que o ciclo rodou.
@@ -217,5 +243,7 @@ def test_degenerative_loop_break_success_interspersed(agent_instance, mock_logge
 # Considere testes mais focados (unitários) para os componentes individuais (Architect, Maestro, etc.)
 # em seus próprios arquivos de teste.
 
-def test_dummy(): # Manter ou remover se não for mais necessário
-    assert True
+# test_dummy não é mais necessário se tivermos testes async reais.
+# Removido ou comentado se não houver outros testes síncronos.
+# def test_dummy():
+#     assert True
