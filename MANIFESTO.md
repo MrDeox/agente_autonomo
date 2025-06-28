@@ -8,9 +8,19 @@
 4. **Arquitetura Modular**: Componentes devem ser independentes e substituíveis, com interfaces bem definidas.
 5. **Transparência Operacional**: Todas as decisões e ações devem ser registradas e justificáveis.
 
-## Arquitetura Inicial
+## Arquitetura e Estado Atual
 
-### Componentes Principais
+### Visão Geral da Implementação Atual
+O núcleo do sistema Hephaestus reside no diretório `agent/`. É lá que a lógica para o ciclo de operação, a tomada de decisão ("cérebro" ou `brain.py`), e a aplicação de modificações no código (`patch_applicator.py`) estão implementadas. Um componente chave que demonstra a intenção de criar um sistema de autoaperfeiçoamento é o `self_improvement_validator.py`.
+
+O projeto já possui uma base sólida com:
+*   Um ciclo de execução principal (`cycle_runner.py`).
+*   Um cérebro centralizado para o agente (`brain.py`).
+*   Mecanismos para aplicar patches de código (`patch_applicator.py`).
+*   Um sistema de validação de sintaxe e testes (`SyntaxValidator`, `PytestValidator`).
+*   A capacidade de se autoavaliar e propor melhorias, parcialmente implementada através do `SelfImprovementValidator` e dos mecanismos de geração de objetivos.
+
+### Componentes Principais (Arquitetura Conceitual)
 
 - **Brain**: Coordenação central, tomada de decisões e interface com modelos LLM
 - **Memory**: Armazenamento persistente do estado e histórico do agente
@@ -44,13 +54,15 @@
 - **Git**: Controle de versão
 - **Filesystem**: Leitura/escrita de arquivos do projeto
 
-## Roadmap Inicial
+## Roadmap Inicial (Histórico)
+
+Esta seção descreve o roadmap inicial que guiou as primeiras fases do projeto. Para o roadmap atual e futuro, consulte o arquivo `ROADMAP.md`.
 
 1. Implementação do núcleo funcional (Brain + Memory)
 2. Integração com ferramentas básicas (Git, pytest)
-3. Capacidade de auto-documentação
-4. Mecanismos de auto-validação
-5. Evolução arquitetural baseada em objetivos
+3. Capacidade de auto-documentação (parcialmente alcançada com `AGENTS.md`)
+4. Mecanismos de auto-validação (base implementada)
+5. Evolução arquitetural baseada em objetivos (em andamento)
 
 ## Convenções
 
