@@ -9,7 +9,8 @@ validation_steps = {
     "PatchApplicatorStep": PatchApplicatorStep,
     "PytestValidator": PytestValidator,
     "SyntaxValidator": SyntaxValidator,
-    "PytestNewFileValidator": PytestNewFileValidator
+    "PytestNewFileValidator": PytestNewFileValidator,
+    "validate_syntax": SyntaxValidator
 }
 
 def get_validation_step(name: str) -> ValidationStep:

@@ -8,6 +8,8 @@ agente_autonomo/
     AGENTS.md
     HEPHAESTUS_MEMORY.json
     main.py
+    ROADMAP.md
+    ANALISE_GERAL.md
     hephaestus_config.json
     requirements.txt
     MANIFESTO.md
@@ -17,13 +19,29 @@ agente_autonomo/
         deep_validator.py
         brain.py
         __init__.py
+        git_utils.py
         code_validator.py
         agents.py
         patch_applicator.py
+        cycle_runner.py
         memory.py
         tool_executor.py
         project_scanner.py
         state.py
+        validation_steps/
+            pytest_validator.py
+            self_improvement_validator.py
+            __init__.py
+            base.py
+            patch_applicator.py
+            syntax_validator.py
+            pytest_new_file_validator.py
+        scanner/
+        utils/
+            __init__.py
+            llm_client.py
+    hephaestus_agent/
+        scanner/
 
 ## 2. RESUMO DAS INTERFACES (APIs Internas)
 
@@ -34,8 +52,6 @@ agente_autonomo/
 ### Arquivo: `agent/deep_validator.py`
 - **Função:** `analyze_complexity(code_string: str)`
   - *Analyzes the cyclomatic complexity and other metrics of the given Python code string using Radon.*
-- **Função:** `detect_code_duplication(code_string: str, min_lines: int=5)`
-  - *Detects duplicated code blocks in the given Python code string.*
 - **Função:** `calculate_quality_score(complexity_report: dict, duplication_report: list)`
   - *Calculates a quality score based on complexity, duplication, and other code metrics.*
 - **Função:** `_get_code_lines(code_string: str, strip_comments_blanks: bool=True)`
@@ -46,14 +62,18 @@ agente_autonomo/
   - *Detects duplicated code blocks in the given Python code string.*
 
 ### Arquivo: `agent/brain.py`
-- **Função:** `generate_next_objective(api_key: str, model: str, current_manifest: str, logger: Any, project_root_dir: str, base_url: str='https://openrouter.ai/api/v1', memory_summary: Optional[str]=None)`
-  - *Gera o próximo objetivo evolutivo usando um modelo leve e análise de código.*
-- **Função:** `generate_capacitation_objective(api_key: str, model: str, engineer_analysis: str, base_url: str='https://openrouter.ai/api/v1', memory_summary: Optional[str]=None, logger: Optional[Any]=None)`
-  - *Gera um objetivo para criar novas capacidades necessárias.*
-- **Função:** `generate_commit_message(api_key: str, model: str, analysis_summary: str, objective: str, logger: Any, base_url: str='https://openrouter.ai/api/v1')`
-  - *Gera uma mensagem de commit concisa e informativa usando um LLM.*
+- **Função:** `generate_next_objective(api_key: str, model: str, current_manifest: str, logger: logging.Logger, project_root_dir: str, config: Optional[Dict[str, Any]]=None, base_url: str='https://openrouter.ai/api/v1', memory_summary: Optional[str]=None)`
+  - *Generates the next evolutionary objective using a lightweight model and code analysis.*
+- **Função:** `generate_capacitation_objective(api_key: str, model: str, engineer_analysis: str, base_url: str='https://openrouter.ai/api/v1', memory_summary: Optional[str]=None, logger: Optional[logging.Logger]=None)`
+  - *Generates an objective to create necessary new capabilities.*
+- **Função:** `generate_commit_message(api_key: str, model: str, analysis_summary: str, objective: str, logger: logging.Logger, base_url: str='https://openrouter.ai/api/v1')`
+  - *Generates a concise and informative commit message using an LLM.*
 
 ### Arquivo: `agent/__init__.py`
+
+### Arquivo: `agent/git_utils.py`
+- **Função:** `initialize_git_repository(logger: logging.Logger)`
+  - *Ensure a git repository exists and is configured.*
 
 ### Arquivo: `agent/code_validator.py`
 - **Função:** `perform_deep_validation(file_path: Path, logger: logging.Logger)`
@@ -63,18 +83,25 @@ agente_autonomo/
 - **Função:** `validate_json_syntax(file_path: str | Path, logger: logging.Logger)`
   - *Valida se um arquivo contém JSON válido.*
 
-- **Função:** `parse_json_response(raw_str: str, logger: Any)`
+### Arquivo: `agent/agents.py`
+- **Função:** `parse_json_response(raw_str: str, logger: logging.Logger)`
   - *Analisa uma string bruta que se espera conter JSON, limpando-a e decodificando-a.*
 - **Classe:** `ArchitectAgent`
 - **Classe:** `MaestroAgent`
 
-### Arquivo: `agent/utils/llm_client.py`
-- **Função:** `call_llm_api(api_key: str, model: str, prompt: str, temperature: float, base_url: str, logger: Any)`
-  - *Função auxiliar para fazer chamadas à API LLM.*
-
 ### Arquivo: `agent/patch_applicator.py`
+- **Função:** `_handle_insert(full_path: Path, lines: list[str], instruction: dict, logger: logging.Logger)`
+  - *Apply an INSERT patch and return ``(success, updated_lines)``.*
+- **Função:** `_handle_replace(full_path: Path, lines: list[str], instruction: dict, logger: logging.Logger)`
+  - *Apply a REPLACE patch.*
+- **Função:** `_handle_delete_block(full_path: Path, lines: list[str], instruction: dict, logger: logging.Logger)`
+  - *Apply a DELETE_BLOCK patch.*
 - **Função:** `apply_patches(instructions: list[dict], logger: logging.Logger, base_path: str='.')`
   - *Aplica uma lista de instruções de patch aos arquivos.*
+
+### Arquivo: `agent/cycle_runner.py`
+- **Função:** `run_cycles(agent: 'HephaestusAgent')`
+  - *Execute the main evolution loop for the given agent.*
 
 ### Arquivo: `agent/memory.py`
 - **Classe:** `Memory`
@@ -89,6 +116,8 @@ agente_autonomo/
   - *Executa o main.py de um diretório isolado monitorando tempo e memória.*
 - **Função:** `run_git_command(command: list[str])`
   - *Executa um comando Git e retorna o status e a saída.*
+- **Função:** `web_search(query: str)`
+  - *Realiza uma pesquisa na web usando a API DuckDuckGo e retorna os resultados.*
 
 ### Arquivo: `agent/project_scanner.py`
 - **Função:** `_extract_elements(code_string: str)`
@@ -100,5 +129,37 @@ agente_autonomo/
 ### Arquivo: `agent/state.py`
 - **Classe:** `AgentState`
   - *Representa o estado interno do agente Hephaestus durante um ciclo de processamento.*
+
+### Arquivo: `agent/validation_steps/pytest_validator.py`
+- **Classe:** `PytestValidator(ValidationStep)`
+  - *Runs pytest as a validation step.*
+
+### Arquivo: `agent/validation_steps/self_improvement_validator.py`
+- **Classe:** `SelfImprovementValidator`
+
+### Arquivo: `agent/validation_steps/__init__.py`
+- **Função:** `get_validation_step(name: str)`
+
+### Arquivo: `agent/validation_steps/base.py`
+- **Classe:** `ValidationStep(ABC)`
+  - *Abstract base class for a validation step.*
+
+### Arquivo: `agent/validation_steps/patch_applicator.py`
+- **Classe:** `PatchApplicatorStep(ValidationStep)`
+  - *Applies patches to the specified base path.*
+
+### Arquivo: `agent/validation_steps/syntax_validator.py`
+- **Classe:** `SyntaxValidator(ValidationStep)`
+  - *Validates the syntax of Python and JSON files.*
+
+### Arquivo: `agent/validation_steps/pytest_new_file_validator.py`
+- **Classe:** `PytestNewFileValidator(ValidationStep)`
+  - *A validation step that runs pytest specifically on newly created test files.*
+
+### Arquivo: `agent/utils/__init__.py`
+
+### Arquivo: `agent/utils/llm_client.py`
+- **Função:** `call_llm_api(api_key: str, model: str, prompt: str, temperature: float, base_url: str, logger: logging.Logger)`
+  - *Helper function to make calls to the LLM API.*
 
 ## 3. CONTEÚDO COMPLETO DOS ARQUIVOS ALVO

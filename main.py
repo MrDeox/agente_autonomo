@@ -301,6 +301,7 @@ class HephaestusAgent:
                         logger=self.logger,
                         base_path=Path(current_base_path_str), # Pass as Path object
                         patches_to_apply=patches_to_apply, # type: ignore
+                        use_sandbox=use_sandbox,
                         # use_sandbox=use_sandbox, # This info is implicit in base_path
                         # config=self.config # Pass full config if steps need it
                     )
