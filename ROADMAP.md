@@ -2,9 +2,15 @@
 
 Este documento delineia os upgrades planejados para o agente Hephaestus, em ordem de prioridade. O objetivo é seguir este roadmap para impulsionar o ciclo de autoaperfeiçoamento recursivo do agente.
 
+## Contexto: Status do Objetivo de "Recursive Self-Improvement"
+
+O projeto Hephaestus está bem encaminhado para alcançar o objetivo de autoaperfeiçoamento recursivo. A estrutura fundamental que permite ao agente analisar a si mesmo, sugerir melhorias e aplicá-las já está presente. Contudo, há um vasto campo para crescimento e sofisticação, especialmente no que tange à inteligência e autonomia desse processo. O roadmap a seguir visa aprimorar continuamente essas capacidades.
+
 ## Tier S: Game-Changers (Maior Impacto)
 
 - [x] **1. Geração Automática de Testes:**
+  -   **Status:** Concluído.
+  -   **Descrição:** Dar ao agente a capacidade de identificar módulos sem testes e escrever novos arquivos de teste (`test_*.py`) para eles. Isso remove o principal gargalo para refatorações seguras e acelera a robustez do agente.
   -   **Status:** Concluído.
   -   **Descrição:** Dar ao agente a capacidade de identificar módulos sem testes e escrever novos arquivos de teste (`test_*.py`) para eles. Isso remove o principal gargalo para refatorações seguras e acelera a robustez do agente.
   -   **Implementação:**
@@ -15,11 +21,11 @@ Este documento delineia os upgrades planejados para o agente Hephaestus, em orde
       -   [x] Criado o validador `PytestNewFileValidator` (em `agent/validation_steps/pytest_new_file_validator.py`) que executa `pytest` especificamente no novo arquivo de teste gerado.
       -   [x] Adicionados testes unitários para `PytestNewFileValidator`.
 
-- [] **2. Acesso a Conhecimento Externo (Web Search):**
+- [ ] **2. Acesso a Conhecimento Externo (Web Search):**
   -   **Status:** Não iniciado.
   -   **Descrição:** Implementar uma nova ferramenta `web_search` que permita ao agente pesquisar na internet para resolver erros ou aprender sobre novas bibliotecas. Isso quebra a "bolha" do agente, permitindo que ele resolva problemas para os quais não foi explicitamente programado.
 
-- [] **3. Consciência da Performance em Runtime:**
+- [ ] **3. Consciência da Performance em Runtime:**
   -   **Status:** Não iniciado.
   -   **Descrição:** Fazer com que o agente meça seu próprio tempo de execução e uso de memória. Isso adiciona um novo eixo de otimização (eficiência) e permite que ele detecte e corrija regressões de performance.
 
