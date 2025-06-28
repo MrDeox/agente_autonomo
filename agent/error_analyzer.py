@@ -12,7 +12,7 @@ class ErrorAnalysisAgent:
         self.logger = logger
         self.base_url = base_url
 
-    def analyze_error(
+    async def analyze_error( # Changed to async
         self,
         failed_objective: str,
         error_reason: str,
@@ -95,7 +95,7 @@ class ErrorAnalysisAgent:
         prompt = "\n".join(prompt_parts)
         self.logger.debug(f"ErrorAnalysisAgent: Prompt for LLM:\n{prompt}")
 
-        raw_response, error = call_llm_api(
+        raw_response, error = await call_llm_api( # Changed to await
             self.api_key, self.model, prompt, temperature=0.3, base_url=self.base_url, logger=self.logger
         )
 
@@ -157,8 +157,11 @@ class ErrorAnalysisAgent:
                 "details": f"Failed to parse LLM JSON response. Original response: {raw_response[:500]}...",
             }
 
+import os # For example usage, to fetch API key from env
+import asyncio # For running async test functions
+
 # Example Usage (for testing purposes, normally called by CycleRunner)
-if __name__ == '__main__':
+async def main_test(): # Renamed and made async
     logging.basicConfig(level=logging.DEBUG, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
     logger = logging.getLogger("ErrorAnalysisAgentTest")
 
@@ -170,7 +173,7 @@ if __name__ == '__main__':
 
     analyzer = ErrorAnalysisAgent(api_key=mock_api_key, model=mock_model, logger=logger)
 
-    syntax_error_analysis = analyzer.analyze_error(
+    syntax_error_analysis = await analyzer.analyze_error( # await here
         failed_objective="Implement feature X by modifying file Y.py",
         error_reason="SYNTAX_VALIDATION_FAILED",
         error_context="SyntaxError: invalid syntax on line 42 of Y.py",
@@ -179,7 +182,7 @@ if __name__ == '__main__':
     )
     logger.info(f"Syntax Error Analysis Result: {json.dumps(syntax_error_analysis, indent=2)}")
 
-    test_failure_analysis = analyzer.analyze_error(
+    test_failure_analysis = await analyzer.analyze_error( # await here
         failed_objective="Refactor module Z to improve performance.",
         error_reason="PYTEST_FAILURE",
         error_context="AssertionError: assert False == True",
@@ -188,7 +191,7 @@ if __name__ == '__main__':
     )
     logger.info(f"Test Failure Analysis Result: {json.dumps(test_failure_analysis, indent=2)}")
 
-    logic_error_analysis = analyzer.analyze_error(
+    logic_error_analysis = await analyzer.analyze_error( # await here
         failed_objective="Integrate API A with service B.",
         error_reason="REGRESSION_DETECTED_BY_MANUAL_CHECK",
         error_context="After applying patches, service B returns 500 error when called with data from API A. Expected 200 OK.",
@@ -196,19 +199,12 @@ if __name__ == '__main__':
     )
     logger.info(f"Logic Error Analysis Result: {json.dumps(logic_error_analysis, indent=2)}")
 
-    unknown_error_analysis = analyzer.analyze_error(
+    unknown_error_analysis = await analyzer.analyze_error( # await here
         failed_objective="Deploy application to staging.",
         error_reason="UNEXPECTED_TOOL_FAILURE",
         error_context="Tool 'deploy_script.sh' exited with code 127. No further logs."
     )
     logger.info(f"Unknown Error Analysis Result: {json.dumps(unknown_error_analysis, indent=2)}")
-import os # For example usage, to fetch API key from env
-# The os import was missing for the __main__ block. Adding it to the create_file_with_block content.
-# The __main__ block also uses json.dumps, so json import is necessary.
-# And re for the fallback.
-# All these are now at the top of the file content for `create_file_with_block`.
-# The plan step is to "Define `ErrorAnalysisAgent`". This includes:
-# 1. Create `agent/error_analyzer.py`
-# 2. Implement the `ErrorAnalysisAgent` class.
-# The code provided does this.
-# I'll also create/update `agent/__init__.py` to make the new agent accessible.
+
+if __name__ == '__main__':
+    asyncio.run(main_test())

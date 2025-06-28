@@ -1,231 +1,121 @@
 import pytest
-import subprocess
-from unittest.mock import MagicMock, patch, mock_open
+import asyncio # Para testes async
+from unittest.mock import MagicMock, patch # mock_open não é necessário com aiofiles
 from pathlib import Path
+import os # Para os.path.exists (via asyncio.to_thread)
 
-# Import the class to be tested
+# Importar a classe a ser testada
 from agent.validation_steps.pytest_new_file_validator import PytestNewFileValidator
+# Importar a função mockada (run_pytest é async)
+from agent.tool_executor import run_pytest as async_run_pytest
 
-# Mock logger fixture (can be moved to a conftest.py if used more widely)
+
 @pytest.fixture
 def mock_logger():
     logger = MagicMock()
-    logger.info = MagicMock()
-    logger.debug = MagicMock()
-    logger.warning = MagicMock()
-    logger.error = MagicMock()
+    # Configurar todos os métodos de log para serem MagicMock também
+    for level in ['info', 'debug', 'warning', 'error', 'critical']:
+        setattr(logger, level, MagicMock())
     return logger
 
 @pytest.fixture
 def validator_instance(mock_logger, tmp_path):
-    # tmp_path is a pytest fixture providing a temporary directory unique to the test invocation
     return PytestNewFileValidator(
         logger=mock_logger,
-        base_path=str(tmp_path), # Use temporary path as base for tests
-        patches_to_apply=[],    # Will be overridden in specific tests
-        use_sandbox=True        # Assuming sandbox usage for these tests
+        base_path=str(tmp_path),
+        patches_to_apply=[],
+        use_sandbox=True
     )
 
-def create_mock_subprocess_run(returncode=0, stdout="Pytest passed", stderr=""):
-    mock_process = MagicMock(spec=subprocess.CompletedProcess)
-    mock_process.returncode = returncode
-    mock_process.stdout = stdout
-    mock_process.stderr = stderr
-    return mock_process
+# Mock para a função async run_pytest
+async def mock_async_run_pytest_function(test_dir, cwd, success_status=True, details_message="Pytest async passed"):
+    # Simula o comportamento de run_pytest
+    return success_status, details_message
 
-# --- Test Cases ---
-
-def test_pytest_new_file_validator_success(validator_instance, mock_logger, tmp_path):
-    """Test successful validation when pytest passes for the new file."""
-    test_file_path = "tests/new_module/test_new_feature.py"
-    test_file_content = "import pytest\ndef test_example():\n    assert True\n"
-
+@pytest.mark.asyncio
+# Mockear a função run_pytest importada no módulo do validador
+@patch('agent.validation_steps.pytest_new_file_validator.run_pytest')
+@patch('asyncio.to_thread') # Para mockar a chamada os.path.exists
+async def test_pytest_new_file_validator_success(mock_asyncio_to_thread, mock_run_pytest_patched, validator_instance, tmp_path):
+    test_file_path_str = "tests/new_module/test_new_feature.py"
     validator_instance.patches_to_apply = [{
-        "file_path": test_file_path,
-        "operation": "REPLACE",
-        "block_to_replace": None,
-        "content": test_file_content
+        "file_path": test_file_path_str, "operation": "REPLACE",
+        "block_to_replace": None, "content": "..."
     }]
 
-    # Mock subprocess.run to simulate pytest passing
-    with patch("subprocess.run", return_value=create_mock_subprocess_run(returncode=0, stdout="1 test passed")) as mock_run:
-        # Mock Path.exists to simulate file already written by a previous step (or validator writes it)
-        with patch.object(Path, 'exists') as mock_exists:
-            mock_exists.return_value = False # Force validator to attempt to write the file
+    mock_asyncio_to_thread.return_value = True # Simula que o arquivo existe
+    mock_run_pytest_patched.return_value = (True, f"Pytest passed for {test_file_path_str}.\n1 test passed")
 
-            # Mock open to prevent actual file I/O for this specific test if validator writes
-            with patch("builtins.open", mock_open()) as mock_file_open:
-                with patch.object(Path, 'unlink') as mock_unlink: # Mock unlink
-                    success, reason, message = validator_instance.execute()
+    success, reason, message = await validator_instance.execute()
 
-                    assert success is True
-                    assert reason == "PYTEST_PASSED"
-                    assert f"Pytest passed for {test_file_path}" in message
-                    mock_run.assert_called_once()
-                    # Check if pytest was called on the correct file
-                    args, kwargs = mock_run.call_args
-                    assert str(Path(tmp_path) / test_file_path) in args[0]
-                    # Check if the temporary file was written and then unlinked
-                    mock_file_open.assert_called_once_with(Path(tmp_path) / test_file_path, "w", encoding="utf-8")
-                    mock_unlink.assert_called_once()
+    assert success is True
+    assert reason == "PYTEST_NEW_FILE_PASSED"
+    assert f"Pytest passed for {test_file_path_str}" in message
+
+    # Verificar se run_pytest foi chamado corretamente
+    # O primeiro argumento para run_pytest é test_dir, o segundo é cwd
+    mock_run_pytest_patched.assert_called_once_with(test_dir=test_file_path_str, cwd=str(tmp_path))
+    # Verificar se asyncio.to_thread foi chamado para Path.exists
+    # A forma de verificar a chamada a `asyncio.to_thread(target_file_path.exists)`
+    # pode ser um pouco mais complexa se você precisar verificar o argumento `target_file_path`.
+    # Por agora, vamos apenas verificar se foi chamado.
+    mock_asyncio_to_thread.assert_called_once()
 
 
-def test_pytest_new_file_validator_pytest_fails(validator_instance, mock_logger, tmp_path):
-    """Test validation failure when pytest fails for the new file."""
-    test_file_path = "tests/failing_module/test_failing_feature.py"
-    test_file_content = "import pytest\ndef test_example():\n    assert False\n"
-
+@pytest.mark.asyncio
+@patch('agent.validation_steps.pytest_new_file_validator.run_pytest')
+@patch('asyncio.to_thread')
+async def test_pytest_new_file_validator_pytest_fails(mock_asyncio_to_thread, mock_run_pytest_patched, validator_instance, tmp_path):
+    test_file_path_str = "tests/failing/test_failing_feature.py"
     validator_instance.patches_to_apply = [{
-        "file_path": test_file_path,
-        "operation": "REPLACE",
-        "block_to_replace": None,
-        "content": test_file_content
+        "file_path": test_file_path_str, "operation": "REPLACE",
+        "block_to_replace": None, "content": "assert False"
     }]
 
-    with patch("subprocess.run", return_value=create_mock_subprocess_run(returncode=1, stdout="1 test failed", stderr="AssertionError")) as mock_run:
-        with patch.object(Path, 'exists', return_value=False): # Force write attempt
-            with patch("builtins.open", mock_open()):
-                 with patch.object(Path, 'unlink') as mock_unlink:
-                    success, reason, message = validator_instance.execute()
+    mock_asyncio_to_thread.return_value = True # Arquivo existe
+    mock_run_pytest_patched.return_value = (False, "Pytest failed: AssertionError")
 
-                    assert success is False
-                    assert reason == "PYTEST_FAILED"
-                    assert f"Pytest failed for {test_file_path}" in message
-                    assert "AssertionError" in message # Check if stderr is in the message
-                    mock_run.assert_called_once()
-                    mock_unlink.assert_called_once()
+    success, reason, message = await validator_instance.execute()
 
-def test_pytest_new_file_validator_no_tests_collected(validator_instance, mock_logger, tmp_path):
-    """Test validation failure when pytest collects no tests (exit code 5)."""
-    test_file_path = "tests/empty_module/test_empty_feature.py"
-    test_file_content = "# No tests here\n"
+    assert success is False
+    assert reason == "PYTEST_NEW_FILE_FAILED"
+    assert "Pytest failed: AssertionError" in message
+    mock_run_pytest_patched.assert_called_once_with(test_dir=test_file_path_str, cwd=str(tmp_path))
 
+@pytest.mark.asyncio
+@patch('asyncio.to_thread')
+async def test_pytest_new_file_validator_file_not_found(mock_asyncio_to_thread, validator_instance):
+    test_file_path_str = "tests/non_existent/test_not_found.py"
     validator_instance.patches_to_apply = [{
-        "file_path": test_file_path,
-        "operation": "REPLACE",
-        "block_to_replace": None,
-        "content": test_file_content
+        "file_path": test_file_path_str, "operation": "REPLACE",
+        "block_to_replace": None, "content": "..."
     }]
+    mock_asyncio_to_thread.return_value = False # Arquivo NÃO existe
 
-    # Pytest exit code 5 for no tests collected
-    with patch("subprocess.run", return_value=create_mock_subprocess_run(returncode=5, stdout="collected 0 items", stderr="")) as mock_run:
-        with patch.object(Path, 'exists', return_value=False):
-            with patch("builtins.open", mock_open()):
-                with patch.object(Path, 'unlink') as mock_unlink:
-                    success, reason, message = validator_instance.execute()
+    success, reason, message = await validator_instance.execute()
 
-                    assert success is False
-                    assert reason == "PYTEST_FAILED" # Still PYTEST_FAILED, but check message for exit code 5
-                    assert f"Pytest failed for {test_file_path} (exit code 5)" in message
-                    mock_run.assert_called_once()
-                    mock_unlink.assert_called_once()
+    assert success is False
+    assert reason == "TEST_FILE_NOT_FOUND"
+    assert f"Test file {test_file_path_str} not found" in message
 
-def test_pytest_new_file_validator_subprocess_timeout(validator_instance, mock_logger, tmp_path):
-    """Test validation failure on pytest timeout."""
-    test_file_path = "tests/hanging_module/test_hanging_feature.py"
-    validator_instance.patches_to_apply = [{"file_path": test_file_path, "operation": "REPLACE", "block_to_replace": None, "content": "import time\ndef test_hang(): time.sleep(100)"}]
-
-    with patch("subprocess.run", side_effect=subprocess.TimeoutExpired(cmd="pytest", timeout=60)) as mock_run:
-        with patch.object(Path, 'exists', return_value=False):
-            with patch("builtins.open", mock_open()):
-                with patch.object(Path, 'unlink') as mock_unlink:
-                    success, reason, message = validator_instance.execute()
-
-                    assert success is False
-                    assert reason == "PYTEST_TIMEOUT"
-                    assert f"Pytest timed out for {test_file_path}" in message
-                    mock_run.assert_called_once()
-                    mock_unlink.assert_called_once()
-
-def test_pytest_new_file_validator_subprocess_exception(validator_instance, mock_logger, tmp_path):
-    """Test validation failure on other subprocess execution error."""
-    test_file_path = "tests/error_module/test_error_feature.py"
-    validator_instance.patches_to_apply = [{"file_path": test_file_path, "operation": "REPLACE", "block_to_replace": None, "content": "content"}]
-
-    with patch("subprocess.run", side_effect=Exception("Some Subprocess Error")) as mock_run:
-        with patch.object(Path, 'exists', return_value=False):
-            with patch("builtins.open", mock_open()):
-                with patch.object(Path, 'unlink') as mock_unlink:
-                    success, reason, message = validator_instance.execute()
-
-                    assert success is False
-                    assert reason == "PYTEST_EXECUTION_ERROR"
-                    assert "Some Subprocess Error" in message
-                    mock_run.assert_called_once()
-                    mock_unlink.assert_called_once()
-
-def test_pytest_new_file_validator_no_new_test_file_patch(validator_instance, mock_logger):
-    """Test failure when no suitable patch for a new test file is provided."""
-    validator_instance.patches_to_apply = [{
-        "file_path": "src/module.py", # Not a test file path
-        "operation": "REPLACE",
-        "block_to_replace": None,
-        "content": "class A: pass"
-    }]
-    success, reason, message = validator_instance.execute()
+@pytest.mark.asyncio
+async def test_pytest_new_file_validator_no_new_test_file_patch(validator_instance):
+    validator_instance.patches_to_apply = [{"file_path": "src/module.py", "operation": "REPLACE", "content": "..."}]
+    success, reason, message = await validator_instance.execute()
     assert success is False
     assert reason == "NO_NEW_TEST_FILE_PATCH"
 
-def test_pytest_new_file_validator_patch_missing_filepath(validator_instance, mock_logger):
-    """Test failure when the patch is missing the file_path."""
-    validator_instance.patches_to_apply = [{
-        # "file_path": "tests/module/test_feature.py", # Missing
-        "operation": "REPLACE",
-        "block_to_replace": None,
-        "content": "import pytest"
-    }]
-    success, reason, message = validator_instance.execute()
+@pytest.mark.asyncio
+async def test_pytest_new_file_validator_patch_missing_filepath(validator_instance):
+    validator_instance.patches_to_apply = [{"operation": "REPLACE", "content": "..."}]
+    # O validador procura por file_path, então se estiver ausente, não deve encontrar patch.
+    success, reason, message = await validator_instance.execute()
     assert success is False
-    assert reason == "NO_NEW_TEST_FILE_PATCH"
+    assert reason == "NO_NEW_TEST_FILE_PATCH" # Ou um erro mais específico se a lógica mudar
 
-def test_pytest_new_file_validator_temp_write_error(validator_instance, mock_logger, tmp_path):
-    """Test failure when temporarily writing the new test file fails."""
-    test_file_path = "tests/new_module/test_new_feature.py"
-    validator_instance.patches_to_apply = [{"file_path": test_file_path, "operation": "REPLACE", "block_to_replace": None, "content": "content"}]
-
-    with patch.object(Path, 'exists', return_value=False): # Ensure it tries to write
-        # Make open raise an exception
-        with patch("builtins.open", mock_open()) as mock_file_open:
-            mock_file_open.side_effect = IOError("Disk full")
-            success, reason, message = validator_instance.execute()
-
-            assert success is False
-            assert reason == "TEMP_WRITE_ERROR"
-            assert "Disk full" in message
-            # unlink should not be called if write failed before pytest run
-            Path(tmp_path, test_file_path).unlink(missing_ok=True) # manual cleanup if needed
-
-def test_pytest_new_file_validator_file_already_exists(validator_instance, mock_logger, tmp_path):
-    """Test successful validation when pytest passes and file already exists (not written by validator)."""
-    test_file_path_str = "tests/existing_test/test_already_here.py"
-    abs_test_file_path = tmp_path / test_file_path_str
-    abs_test_file_path.parent.mkdir(parents=True, exist_ok=True)
-    abs_test_file_path.write_text("import pytest\ndef test_existing(): assert 1 == 1")
-
-    validator_instance.patches_to_apply = [{
-        "file_path": test_file_path_str,
-        "operation": "REPLACE",
-        "block_to_replace": None,
-        "content": "ignored content as file exists"
-    }]
-
-    with patch("subprocess.run", return_value=create_mock_subprocess_run(returncode=0, stdout="1 test passed")) as mock_run:
-        # Mock Path.exists to simulate file already being there
-        with patch.object(Path, 'exists') as mock_path_exists:
-            # This is a bit tricky. The exists check is on `target_file_path` which is `tmp_path / test_file_path_str`
-            # We need it to return True for this specific path.
-            mock_path_exists.return_value = True
-
-            # mock_open should NOT be called if Path.exists is True
-            with patch("builtins.open", mock_open()) as mock_file_open:
-                # mock_unlink should NOT be called if validator didn't write the file
-                with patch.object(Path, 'unlink') as mock_unlink:
-                    success, reason, message = validator_instance.execute()
-
-                    assert success is True
-                    assert reason == "PYTEST_PASSED"
-                    mock_run.assert_called_once()
-                    mock_file_open.assert_not_called() # Crucial: validator should not overwrite
-                    mock_unlink.assert_not_called() # Crucial: validator should not delete pre-existing file
-
-    abs_test_file_path.unlink() # Clean up the manually created file
+# O PytestNewFileValidator não escreve mais arquivos temporariamente.
+# Ele assume que um PatchApplicatorStep anterior (que será async) já escreveu o arquivo.
+# Portanto, os testes relacionados a `TEMP_WRITE_ERROR` e a lógica de unlink interna
+# não são mais diretamente aplicáveis da mesma forma.
+# O teste `test_pytest_new_file_validator_file_already_exists` agora é o comportamento padrão:
+# o validador espera que o arquivo exista.

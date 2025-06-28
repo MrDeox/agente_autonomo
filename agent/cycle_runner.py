@@ -2,40 +2,33 @@ from __future__ import annotations
 
 import csv
 import json
-import time
-import asyncio # Added for PoC
+import asyncio
+import csv
+import json
+import aiofiles # Adicionado
 from datetime import datetime
 from typing import TYPE_CHECKING
 
 from agent.project_scanner import update_project_manifest
 from agent.brain import (
-    generate_next_objective, # This would need to become async
-    generate_capacitation_objective, # This would need to become async
-    generate_commit_message, # This would need to become async
+    generate_next_objective,
+    generate_capacitation_objective,
+    generate_commit_message,
 )
-from agent.tool_executor import run_pytest, check_file_existence, run_git_command # These would need to become async for a full solution
+from agent.tool_executor import run_pytest, check_file_existence, run_git_command
 from agent.error_analyzer import ErrorAnalysisAgent
 
 if TYPE_CHECKING:  # pragma: no cover - for type checking only
     from main import HephaestusAgent
 
 
-# For a full async implementation, run_cycles itself would become async
-# async def run_cycles(agent: "HephaestusAgent") -> None:
-# However, for this PoC, we'll keep it sync and use asyncio.run() for specific calls.
-
-def run_cycles(agent: "HephaestusAgent") -> None:
+async def run_cycles(agent: "HephaestusAgent") -> None:
     """Execute the main evolution loop for the given agent."""
     if not agent.objective_stack:
         agent.logger.info("Gerando objetivo inicial...")
         initial_objective_model = agent.config.get("models", {}).get("objective_generator", agent.light_model)
 
-        # In a full async implementation, this would be:
-        # initial_objective = await generate_next_objective(...)
-        # For PoC, if generate_next_objective were async, we'd do:
-        # initial_objective = asyncio.run(generate_next_objective(...))
-        # But since generate_next_objective is not yet converted in this PoC scope, we keep it sync.
-        initial_objective = generate_next_objective(
+        initial_objective = await generate_next_objective(
             api_key=agent.api_key,
             model=initial_objective_model,
             current_manifest="",
@@ -68,7 +61,7 @@ def run_cycles(agent: "HephaestusAgent") -> None:
             if agent.continuous_mode:
                 agent.logger.info(f"\n{'='*20} MODO CONTÍNUO {'='*20}\nPilha de objetivos vazia. Gerando novo objetivo...")
                 continuous_objective_model = agent.config.get("models", {}).get("objective_generator", agent.light_model)
-                new_objective = generate_next_objective(
+                new_objective = await generate_next_objective(
                     api_key=agent.api_key,
                     model=continuous_objective_model,
                     current_manifest=agent.state.manifesto_content if agent.state.manifesto_content else "",
@@ -82,7 +75,7 @@ def run_cycles(agent: "HephaestusAgent") -> None:
 
                 continuous_delay = agent.config.get("continuous_mode_delay_seconds", 5)
                 agent.logger.info(f"Aguardando {continuous_delay} segundos antes do próximo ciclo contínuo...")
-                time.sleep(continuous_delay)
+                await asyncio.sleep(continuous_delay)
             else:
                 agent.logger.info("Pilha de objetivos vazia e modo contínuo desativado. Encerrando agente.")
                 break
@@ -125,39 +118,11 @@ def run_cycles(agent: "HephaestusAgent") -> None:
             agent._reset_cycle_state()
             agent.state.current_objective = current_objective
 
-            if not agent._generate_manifest(): # This could be async if file I/O is async
+            if not await agent._generate_manifest():
                 agent.logger.error("Falha crítica ao gerar manifesto. Encerrando ciclo.")
                 break
 
-            # --- PoC Change: Calling architect_phase with asyncio.run ---
-            # In a full async implementation, agent._run_architect_phase itself would be async
-            # and would be awaited here if run_cycles were async.
-            # For PoC, we assume _run_architect_phase is modified to call the async plan_action
-            # and needs to be run via asyncio.run() from this synchronous context.
-            # This is a simplified demonstration. The HephaestusAgent class's _run_architect_phase
-            # would need internal changes to call `asyncio.run(self.architect_agent.plan_action(...))`
-            # or `await self.architect_agent.plan_action(...)` if _run_architect_phase itself becomes async.
-
-            # Let's simulate the call pattern assuming agent._run_architect_phase() handles the asyncio.run() internally for PoC
-            # Or, more directly for this PoC, let's modify how it's called IF _run_architect_phase was made async:
-            # success_architect = asyncio.run(agent._run_architect_phase())
-            # However, _run_architect_phase is part of the HephaestusAgent class, which is not being modified here.
-            # So, the change should be *inside* _run_architect_phase in HephaestusAgent.
-            # For this file, the call remains agent._run_architect_phase().
-            # The actual `asyncio.run` would be inside `HephaestusAgent._run_architect_phase`
-            # when it calls `self.architect_agent.plan_action`.
-
-            # To make the PoC work without modifying HephaestusAgent here,
-            # we'd conceptually assume _run_architect_phase in HephaestusAgent now looks like:
-            #
-            # def _run_architect_phase(self) -> bool:
-            #     # ... other sync code ...
-            #     action_plan_data, error = asyncio.run(self.architect_agent.plan_action(objective, manifest_content))
-            #     # ... rest of the logic ...
-            #
-            # No change to the direct call here in cycle_runner.py is needed for this PoC structure,
-            # as the async execution is encapsulated within the called method.
-            if not agent._run_architect_phase():
+            if not await agent._run_architect_phase():
                 agent.logger.warning(
                     "Falha na fase do Arquiteto. Pulando para o próximo objetivo se houver."
                 )
@@ -195,7 +160,7 @@ def run_cycles(agent: "HephaestusAgent") -> None:
                     continue
             else:
                 # Normal flow: run Maestro phase
-                if not agent._run_maestro_phase():
+                if not await agent._run_maestro_phase():
                     agent.logger.warning("Falha na fase do Maestro. Pulando para o próximo objetivo se houver.")
                     agent.memory.add_failed_objective(current_objective, "MAESTRO_PHASE_FAILED", "MaestroAgent could not decide on a strategy.")
                     if not agent.objective_stack and not agent.continuous_mode:
@@ -207,7 +172,7 @@ def run_cycles(agent: "HephaestusAgent") -> None:
                 agent.objective_stack.append(current_objective)
                 architect_analysis = agent.state.get_architect_analysis()
                 capacitation_objective_model = agent.config.get("models", {}).get("capacitation_generator", agent.light_model)
-                capacitation_objective = generate_capacitation_objective(
+                capacitation_objective = await generate_capacitation_objective(
                     api_key=agent.api_key,
                     model=capacitation_objective_model,
                     engineer_analysis=architect_analysis or "Analysis not available",
@@ -218,7 +183,7 @@ def run_cycles(agent: "HephaestusAgent") -> None:
                 agent.objective_stack.append(capacitation_objective)
                 continue
 
-            agent._execute_validation_strategy()
+            await agent._execute_validation_strategy()
             success, reason, context = agent.state.validation_result
 
             if success:
@@ -234,12 +199,14 @@ def run_cycles(agent: "HephaestusAgent") -> None:
 
                     if sanity_check_tool_name == "run_pytest":
                         agent.logger.info(f"Executando sanidade ({sanity_check_tool_name}) no projeto real.")
-                        sanity_check_success, sanity_check_details = run_pytest(test_dir='tests/', cwd=".")
+                        # TODO: Esta chamada precisará ser await se run_pytest for async
+                        sanity_check_success, sanity_check_details = await run_pytest(test_dir='tests/', cwd=".")
                     elif sanity_check_tool_name == "check_file_existence":
                         agent.logger.info(f"Executando sanidade ({sanity_check_tool_name}) no projeto real.")
                         files_to_check = list(agent.state.applied_files_report.keys()) if agent.state.applied_files_report else []
                         if files_to_check:
-                            sanity_check_success, sanity_check_details = check_file_existence(files_to_check)
+                            # TODO: Esta chamada precisará ser await se check_file_existence for async
+                            sanity_check_success, sanity_check_details = await check_file_existence(files_to_check)
                         else:
                             sanity_check_success = True
                             sanity_check_details = "Nenhum arquivo aplicado para verificar na sanidade."
@@ -256,8 +223,9 @@ def run_cycles(agent: "HephaestusAgent") -> None:
                         )
                         agent.logger.info("Tentando reverter o último commit devido à falha na sanidade...")
                         revert_cmd = ['git', 'reset', '--hard']
-                        run_git_command(['git', 'checkout', '--', '.'])
-                        rollback_success, rollback_output = run_git_command(revert_cmd)
+                        # TODO: Estas chamadas precisarão ser await se run_git_command for async
+                        await run_git_command(['git', 'checkout', '--', '.'])
+                        rollback_success, rollback_output = await run_git_command(revert_cmd)
 
                         if rollback_success:
                             agent.logger.info(
@@ -277,22 +245,22 @@ def run_cycles(agent: "HephaestusAgent") -> None:
                         agent.logger.info(f"SANIDADE PÓS-APLICAÇÃO ({sanity_check_tool_name}): SUCESSO!")
                         if sanity_check_tool_name != "skip_sanity_check":
                             agent.logger.info("Ressincronizando manifesto e iniciando auto-commit...")
-                            update_project_manifest(root_dir=".", target_files=[])
-                            with open("AGENTS.md", "r", encoding="utf-8") as f:
-                                agent.state.manifesto_content = f.read()
+                            await update_project_manifest(root_dir=".", target_files=[])
+                            async with aiofiles.open("AGENTS.md", "r", encoding="utf-8") as f: # Changed to aiofiles
+                                agent.state.manifesto_content = await f.read()
 
                             analysis_summary_for_commit = agent.state.get_architect_analysis() or "N/A"
                             commit_model_for_msg = agent.config.get("models", {}).get("commit_message_generator", agent.light_model)
-                            commit_message = generate_commit_message(
+                            commit_message = await generate_commit_message(
                                 agent.api_key,
                                 commit_model_for_msg,
                                 analysis_summary_for_commit,
                                 agent.state.current_objective or "N/A",
                                 agent.logger,
                             )
-
-                            run_git_command(['git', 'add', '.'])
-                            commit_success_git, commit_output_git = run_git_command(['git', 'commit', '-m', commit_message])
+                            # TODO: Estas chamadas precisarão ser await se run_git_command for async
+                            await run_git_command(['git', 'add', '.'])
+                            commit_success_git, commit_output_git = await run_git_command(['git', 'commit', '-m', commit_message])
                             if not commit_success_git:
                                 agent.logger.error(
                                     f"FALHA CRÍTICA no git commit: {commit_output_git}. Alterações podem não ter sido salvas permanentemente."
@@ -305,7 +273,7 @@ def run_cycles(agent: "HephaestusAgent") -> None:
                         if success and agent.objective_stack_depth_for_testing is None:
                             agent.logger.info("Gerando próximo objetivo evolutivo...")
                             obj_gen_model = agent.config.get("models", {}).get("objective_generator", agent.light_model)
-                            next_obj = generate_next_objective(
+                            next_obj = await generate_next_objective(
                                 api_key=agent.api_key,
                                 model=obj_gen_model,
                                 current_manifest=agent.state.manifesto_content or "",
@@ -340,7 +308,7 @@ def run_cycles(agent: "HephaestusAgent") -> None:
                                 details=f"Strategy '{agent.state.strategy_key}' completed. Status: {reason}.",
                             )
                         obj_gen_model = agent.config.get("models", {}).get("objective_generator", agent.light_model)
-                        next_obj = generate_next_objective(
+                        next_obj = await generate_next_objective(
                             api_key=agent.api_key,
                             model=obj_gen_model,
                             current_manifest=agent.state.manifesto_content or "",
@@ -396,7 +364,8 @@ def run_cycles(agent: "HephaestusAgent") -> None:
 
                     # TODO: Consider passing failed_code_snippet and test_output if available/relevant
                     # For now, error_context might contain some of this.
-                    analysis_result = error_analyzer.analyze_error(
+                    # TODO: Esta chamada precisará ser await se analyze_error for async
+                    analysis_result = await error_analyzer.analyze_error(
                         failed_objective=current_objective,
                         error_reason=reason,
                         error_context=context,
@@ -497,4 +466,4 @@ def run_cycles(agent: "HephaestusAgent") -> None:
                 agent.logger.error(f"Erro inesperado ao tentar escrever no log de evolução: {e}", exc_info=True)
 
             agent.logger.info(f"{'='*20} FIM DO CICLO DE EVOLUÇÃO {'='*20}")
-            time.sleep(agent.config.get("cycle_delay_seconds", 1))
+            await asyncio.sleep(agent.config.get("cycle_delay_seconds", 1))

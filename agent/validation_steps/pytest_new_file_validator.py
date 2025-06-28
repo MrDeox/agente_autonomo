@@ -1,8 +1,9 @@
 import logging
-import subprocess
+import asyncio # Changed from subprocess to asyncio
 from typing import Tuple, List, Dict, Any
 from pathlib import Path
 from agent.validation_steps.base import ValidationStep
+from agent.tool_executor import run_pytest # Import the async version
 
 class PytestNewFileValidator(ValidationStep):
     """
@@ -13,7 +14,7 @@ class PytestNewFileValidator(ValidationStep):
     def __init__(self, logger: logging.Logger, base_path: str, patches_to_apply: List[Dict[str, Any]], use_sandbox: bool):
         super().__init__(logger, base_path, patches_to_apply, use_sandbox)
 
-    def execute(self) -> Tuple[bool, str, str]:
+    async def execute(self) -> Tuple[bool, str, str]:
         """
         Executes pytest on the new test file specified in patches_to_apply.
 
@@ -54,62 +55,29 @@ class PytestNewFileValidator(ValidationStep):
 
         # We need to ensure the file is actually written before pytest can run on it.
         # This validator should run AFTER a step that applies the patch to a temporary/sandbox location.
-        # For simplicity in this step, we'll check if the file exists.
-        # In a full flow, a 'sandbox_patch_applicator' step would precede this.
+        # The PatchApplicatorStep, when made async, will handle writing files using aiofiles.
+        # This validator assumes the file exists at target_file_path.
 
-        # Let's assume the file content from the patch needs to be written temporarily if not already handled.
-        # This is a simplified approach. A dedicated sandbox applicator step is better.
-        temp_file_written = False
-        if not target_file_path.exists():
-            try:
-                self.logger.info(f"Test file {target_file_path} does not exist. Attempting to write from patch content for validation.")
-                target_file_path.parent.mkdir(parents=True, exist_ok=True)
-                with open(target_file_path, "w", encoding="utf-8") as f:
-                    f.write(patch_detail.get("content", ""))
-                temp_file_written = True
-                self.logger.info(f"Temporarily wrote content of {new_file_path_str} for pytest validation.")
-            except Exception as e:
-                self.logger.error(f"Error temporarily writing new test file {new_file_path_str} for validation: {e}")
-                return False, "TEMP_WRITE_ERROR", f"Could not write temporary file for validation: {e}"
+        target_file_path = Path(self.base_path) / new_file_path_str
 
-        self.logger.info(f"Running pytest on new file: {target_file_path}")
-        try:
-            # Ensure a conftest.py is picked up if it exists in the root or tests directory
-            # Running pytest from the project root (self.base_path)
-            process = subprocess.run(
-                ["pytest", str(target_file_path)],
-                cwd=self.base_path, # Run pytest from the project root
-                capture_output=True,
-                text=True,
-                timeout=60  # 60-second timeout
+        # Check if the file exists (using asyncio.to_thread for os.path.exists)
+        if not await asyncio.to_thread(target_file_path.exists):
+            self.logger.error(f"New test file {target_file_path} does not exist. It should have been created by a previous step.")
+            return False, "TEST_FILE_NOT_FOUND", f"Test file {new_file_path_str} not found in {self.base_path}."
+
+        self.logger.info(f"Running pytest on new file: {target_file_path} (within CWD: {self.base_path})")
+
+        # run_pytest now takes the specific file to test as an argument to pytest,
+        # and cwd is the base_path.
+        # The `test_dir` argument to `run_pytest` should be the specific file path relative to `cwd`.
+        success, details = await run_pytest(test_dir=str(new_file_path_str), cwd=self.base_path)
+
+        if not success:
+            self.logger.error(
+                f"Pytest failed for new file {new_file_path_str}. Details:\n{details}"
             )
+            # The reason_code will be PYTEST_FAILURE_IN_SANDBOX or PYTEST_FAILURE from run_pytest
+            return False, "PYTEST_NEW_FILE_FAILED", details
 
-            stdout = process.stdout.strip()
-            stderr = process.stderr.strip()
-
-            if process.returncode == 0:
-                self.logger.info(f"Pytest passed for new file {new_file_path_str}.\nSTDOUT:\n{stdout}")
-                if temp_file_written: target_file_path.unlink(missing_ok=True)
-                return True, "PYTEST_PASSED", f"Pytest passed for {new_file_path_str}.\n{stdout}"
-            else:
-                # Pytest exit codes:
-                # 0: All tests passed
-                # 1: Tests were collected and run but some tests failed
-                # 2: Test execution was interrupted by the user
-                # 3: Internal error happened while executing tests
-                # 4: pytest command line usage error
-                # 5: No tests were collected
-                # We consider exit code 5 (no tests collected) as a failure here,
-                # because we expect the generated file to have runnable placeholder tests.
-                self.logger.error(f"Pytest failed for new file {new_file_path_str}. Return code: {process.returncode}\nSTDOUT:\n{stdout}\nSTDERR:\n{stderr}")
-                if temp_file_written: target_file_path.unlink(missing_ok=True)
-                return False, "PYTEST_FAILED", f"Pytest failed for {new_file_path_str} (exit code {process.returncode}).\nSTDOUT:\n{stdout}\nSTDERR:\n{stderr}"
-
-        except subprocess.TimeoutExpired:
-            self.logger.error(f"Pytest timed out for new file {new_file_path_str}.")
-            if temp_file_written: target_file_path.unlink(missing_ok=True)
-            return False, "PYTEST_TIMEOUT", f"Pytest timed out for {new_file_path_str}."
-        except Exception as e:
-            self.logger.error(f"Error running pytest for new file {new_file_path_str}: {e}", exc_info=True)
-            if temp_file_written: target_file_path.unlink(missing_ok=True)
-            return False, "PYTEST_EXECUTION_ERROR", f"Error running pytest on {new_file_path_str}: {e}"
+        self.logger.info(f"Pytest passed for new file {new_file_path_str}.")
+        return True, "PYTEST_NEW_FILE_PASSED", f"Pytest passed for {new_file_path_str}.\n{details}"

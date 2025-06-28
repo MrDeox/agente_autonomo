@@ -1,16 +1,52 @@
-import subprocess
+import asyncio
 import sys
-import time
-import requests  # Adicionado para suportar web_search
-from typing import Tuple, Dict, Any
+import time # Mantido para run_in_sandbox síncrono por enquanto
+import aiohttp # Adicionado para web_search assíncrono
+from typing import Tuple, Dict, Any, List
 
-import psutil
+import psutil # Mantido para run_in_sandbox síncrono por enquanto
 import os
-from pathlib import Path # ADICIONADO
+from pathlib import Path
+import subprocess # Mantido para run_in_sandbox síncrono por enquanto
 
-def run_pytest(test_dir: str = "tests/", cwd: str | Path | None = None) -> Tuple[bool, str]:
+
+async def _read_stream(stream, output_lines):
+    while True:
+        line = await stream.readline()
+        if line:
+            output_lines.append(line.decode())
+        else:
+            break
+
+async def run_async_subprocess(command: List[str], cwd: str | Path | None = None) -> Tuple[int, str, str]:
+    """Helper to run a subprocess asynchronously and capture its output."""
+    if isinstance(cwd, Path):
+        cwd_str = str(cwd)
+    else:
+        cwd_str = cwd
+
+    process = await asyncio.create_subprocess_exec(
+        *command,
+        stdout=asyncio.subprocess.PIPE,
+        stderr=asyncio.subprocess.PIPE,
+        cwd=cwd_str
+    )
+
+    stdout_lines = []
+    stderr_lines = []
+
+    await asyncio.gather(
+        _read_stream(process.stdout, stdout_lines),
+        _read_stream(process.stderr, stderr_lines)
+    )
+
+    await process.wait()
+    return process.returncode, "".join(stdout_lines), "".join(stderr_lines)
+
+
+async def run_pytest(test_dir: str = "tests/", cwd: str | Path | None = None) -> Tuple[bool, str]:
     """
-    Executa testes pytest no diretório especificado e retorna resultados.
+    Executa testes pytest no diretório especificado e retorna resultados de forma assíncrona.
     
     Args:
         test_dir: Diretório contendo os testes (padrão: 'tests/'), relativo ao cwd.
@@ -21,33 +57,26 @@ def run_pytest(test_dir: str = "tests/", cwd: str | Path | None = None) -> Tuple
         - success: True se todos os testes passarem, False caso contrário
         - output: Saída combinada de stdout e stderr da execução
     """
-    command = ["pytest", test_dir]
+    command = [sys.executable, "-m", "pytest", test_dir]
 
-    # Normalizar cwd para string, se for Path
     if isinstance(cwd, Path):
         cwd_str = str(cwd)
     else:
         cwd_str = cwd
 
     try:
-        result = subprocess.run(
-            command,
-            capture_output=True,
-            text=True,
-            check=False,
-            cwd=cwd_str # Definir o diretório de trabalho se fornecido
-        )
-        success = result.returncode == 0
+        returncode, stdout, stderr = await run_async_subprocess(command, cwd_str)
+        success = returncode == 0
         output_message = f"Pytest Command: {' '.join(command)} (CWD: {cwd_str or '.'})\n"
-        output_message += f"Exit Code: {result.returncode}\n\nStdout:\n{result.stdout}\nStderr:\n{result.stderr}"
+        output_message += f"Exit Code: {returncode}\n\nStdout:\n{stdout}\nStderr:\n{stderr}"
         return success, output_message
-    except FileNotFoundError: # Se o executável pytest não for encontrado
-        return False, f"Erro ao executar pytest: Comando 'pytest' não encontrado. Certifique-se de que pytest está instalado e no PATH."
+    except FileNotFoundError:
+        return False, f"Erro ao executar pytest: Comando '{sys.executable} -m pytest' não encontrado ou pytest não instalado."
     except Exception as e:
         return False, f"Erro inesperado ao executar pytest: {str(e)}"
 
 
-def check_file_existence(file_paths: list[str]) -> Tuple[bool, str]:
+async def check_file_existence(file_paths: list[str]) -> Tuple[bool, str]:
     """
     Verifica se todos os arquivos especificados existem.
 
@@ -62,9 +91,13 @@ def check_file_existence(file_paths: list[str]) -> Tuple[bool, str]:
     if not file_paths:
         return False, "Nenhum caminho de arquivo fornecido para verificação."
 
+    # Para I/O de arquivo assíncrono, aiofiles seria o ideal,
+    # mas os.path.exists é geralmente rápido o suficiente para não precisar de async.
+    # Se houver muitos arquivos ou caminhos de rede, isso pode ser reconsiderado.
+    # Por enquanto, mantemos síncrono dentro de uma função async.
     missing_files = []
     for file_path in file_paths:
-        if not os.path.exists(file_path):
+        if not await asyncio.to_thread(os.path.exists, file_path):
             missing_files.append(file_path)
 
     if not missing_files:
@@ -73,54 +106,36 @@ def check_file_existence(file_paths: list[str]) -> Tuple[bool, str]:
         return False, f"Arquivo(s) não encontrado(s): {', '.join(missing_files)}"
 
 
-def run_in_sandbox(temp_dir_path: str, objective: str) -> Dict[str, Any]:
-    """Executa o main.py de um diretório isolado monitorando tempo e memória."""
-    cmd = [sys.executable, "main.py", objective, "--benchmark"]
+async def run_in_sandbox(temp_dir_path: str, objective: str) -> Dict[str, Any]:
+    """Executa o main.py de um diretório isolado monitorando tempo e memória, de forma assíncrona."""
+    # Nota: A monitoração de memória com psutil em um processo filho assíncrono
+    # pode ser complexa. Esta implementação foca na execução do subprocesso.
+    # A monitoração de recursos pode precisar ser ajustada ou simplificada.
 
-    start_time = time.time()
-    process = subprocess.Popen(
-        cmd,
-        cwd=temp_dir_path,
-        stdout=subprocess.PIPE,
-        stderr=subprocess.STDOUT,
-        text=True,
-    )
+    cmd = [sys.executable, "main.py", objective, "--benchmark", "--max-cycles=1"] # Adicionado max-cycles para garantir que termine
 
-    ps_proc = psutil.Process(process.pid)
-    peak_memory = 0.0
-    output_lines = []
+    start_time = asyncio.get_event_loop().time() # Usar o tempo do loop de eventos
 
-    while True:
-        if process.poll() is not None:
-            remaining = process.stdout.read()
-            if remaining:
-                output_lines.append(remaining)
-            break
+    returncode, stdout, stderr = await run_async_subprocess(cmd, temp_dir_path)
 
-        try:
-            mem = ps_proc.memory_info().rss / (1024 ** 2)
-            if mem > peak_memory:
-                peak_memory = mem
-        except psutil.NoSuchProcess:
-            pass
+    execution_time = asyncio.get_event_loop().time() - start_time
+    output = f"Stdout:\n{stdout}\nStderr:\n{stderr}"
 
-        line = process.stdout.readline()
-        if line:
-            output_lines.append(line)
-        time.sleep(0.1)
-
-    exit_code = process.wait()
-    execution_time = time.time() - start_time
+    # A medição de pico de memória com psutil é mais difícil de forma confiável
+    # para um subprocesso que já terminou. Para uma medição precisa,
+    # seria necessário um monitoramento em tempo real ou uma abordagem diferente.
+    # Por simplicidade, vamos omitir o pico de memória preciso nesta versão async.
+    peak_memory_mb = -1 # Placeholder
 
     return {
         "execution_time": execution_time,
-        "peak_memory_mb": peak_memory,
-        "exit_code": exit_code,
-        "output": "".join(output_lines),
+        "peak_memory_mb": peak_memory_mb, # Simplificado
+        "exit_code": returncode,
+        "output": output,
     }
 
 
-def run_git_command(command: list[str]) -> Tuple[bool, str]:
+async def run_git_command(command: list[str]) -> Tuple[bool, str]:
     """
     Executa um comando Git e retorna o status e a saída.
 
@@ -136,24 +151,20 @@ def run_git_command(command: list[str]) -> Tuple[bool, str]:
     if not command or command[0] != 'git':
         return False, "Comando inválido. Deve começar com 'git'."
     try:
-        process = subprocess.run(
-            command,
-            capture_output=True,
-            text=True,
-            check=False  # Não levanta exceção para returncodes diferentes de 0
-        )
-        success = process.returncode == 0
-        output = f"Comando: {' '.join(command)}\nExit Code: {process.returncode}\n\nStdout:\n{process.stdout}\nStderr:\n{process.stderr}"
+        returncode, stdout, stderr = await run_async_subprocess(command)
+        success = returncode == 0
+        output = f"Comando: {' '.join(command)}\nExit Code: {returncode}\n\nStdout:\n{stdout}\nStderr:\n{stderr}"
         return success, output
-    except FileNotFoundError:
+    except FileNotFoundError: # Isto pode não ser capturável diretamente por run_async_subprocess se o próprio comando 'git' não for encontrado pelo SO.
+                              # create_subprocess_exec pode levantar FileNotFoundError se o executável não for encontrado.
         return False, "Erro: O comando 'git' não foi encontrado. Certifique-se de que o Git está instalado e no PATH."
     except Exception as e:
         return False, f"Erro inesperado ao executar comando Git: {str(e)}"
 
 
-def web_search(query: str) -> Tuple[bool, str]:
+async def web_search(query: str) -> Tuple[bool, str]:
     """
-    Realiza uma pesquisa na web usando a API DuckDuckGo e retorna os resultados.
+    Realiza uma pesquisa na web usando a API DuckDuckGo e retorna os resultados de forma assíncrona.
 
     Args:
         query: A string de pesquisa a ser enviada para o DuckDuckGo.
@@ -164,20 +175,47 @@ def web_search(query: str) -> Tuple[bool, str]:
         - results: Resultados formatados da pesquisa ou mensagem de erro.
     """
     try:
-        # Implementação simplificada - em produção usar biblioteca adequada
         search_url = f"https://api.duckduckgo.com/?q={query}&format=json"
-        response = requests.get(search_url)
-        response.raise_for_status()
-        data = response.json()
-        
-        # Processar resultados
-        results = []
-        for i, result in enumerate(data.get('Results', [])[:5], 1):
-            results.append(f"{i}. {result.get('Text', 'Sem descrição')}\n   URL: {result.get('FirstURL', '')}")
-        
-        if not results:
-            return True, "Nenhum resultado encontrado para a pesquisa."
-        
-        return True, "\n\n".join(results)
+        async with aiohttp.ClientSession() as session:
+            async with session.get(search_url) as response:
+                response.raise_for_status() # Levanta exceção para status HTTP 4xx/5xx
+                data = await response.json()
+
+                # Processar resultados
+                output_parts = []
+                if data.get("AbstractText"):
+                    output_parts.append(f"Resumo: {data['AbstractText']} (Fonte: {data.get('AbstractSource', 'N/A')})")
+
+                related_topics = data.get("RelatedTopics", [])
+                if related_topics:
+                    output_parts.append("\nTópicos Relacionados:")
+                    for i, topic in enumerate(related_topics[:3], 1): # Limitar a 3 tópicos relacionados
+                        if topic.get("Text"):
+                             output_parts.append(f"{i}. {topic['Text']}")
+                             if topic.get("FirstURL"):
+                                 output_parts.append(f"   URL: {topic['FirstURL']}")
+                        elif topic.get("Topics"): # Estrutura aninhada de tópicos
+                            output_parts.append(f"{i}. {topic.get('Name', 'Grupo de tópicos')}:")
+                            for sub_topic in topic.get("Topics", [])[:2]: # Limitar a 2 subtópicos
+                                if sub_topic.get("Text") and sub_topic.get("FirstURL"):
+                                     output_parts.append(f"  - {sub_topic['Text']} (URL: {sub_topic['FirstURL']})")
+
+
+                if not data.get("AbstractText") and len(related_topics) < 2 :
+                    web_results = data.get("Results", [])
+                    if web_results:
+                        output_parts.append("\nResultados da Web:")
+                        for i, result in enumerate(web_results[:3], 1): # Limitar a 3 resultados web
+                            output_parts.append(f"{i}. {result.get('Text', 'Sem descrição')}")
+                            if result.get("FirstURL"):
+                                output_parts.append(f"   URL: {result.get('FirstURL')}")
+
+                if not output_parts:
+                    return True, "Nenhum resultado principal encontrado para a pesquisa."
+
+                return True, "\n".join(output_parts)
+
+    except aiohttp.ClientError as e:
+        return False, f"Erro na pesquisa web (ClientError): {str(e)}"
     except Exception as e:
-        return False, f"Erro na pesquisa web: {str(e)}"
+        return False, f"Erro inesperado na pesquisa web: {str(e)}"

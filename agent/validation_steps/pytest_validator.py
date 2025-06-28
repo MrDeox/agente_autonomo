@@ -11,9 +11,9 @@ class PytestValidator(ValidationStep):
     def __init__(self, logger: logging.Logger, base_path: str, patches_to_apply: List[Dict[str, Any]], use_sandbox: bool):
         super().__init__(logger, base_path, patches_to_apply, use_sandbox)
 
-    def execute(self) -> Tuple[bool, str, str]:
+    async def execute(self) -> Tuple[bool, str, str]:
         self.logger.info(f"Executing Pytest in: {self.base_path}...")
-        success, details = run_pytest(test_dir='tests/', cwd=self.base_path)
+        success, details = await run_pytest(test_dir='tests/', cwd=self.base_path)
 
         if not success:
             self.logger.warning(

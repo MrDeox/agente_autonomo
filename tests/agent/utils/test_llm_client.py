@@ -1,214 +1,205 @@
-import unittest
-from unittest.mock import patch, MagicMock
-import requests
+import pytest
+from unittest.mock import patch, MagicMock, AsyncMock
+import aiohttp
 import logging
+import json
+import asyncio
 
-# Import the function to be tested
+# Importar a função a ser testada (agora é async)
 from agent.utils.llm_client import call_llm_api
 
-class TestCallLlmApi(unittest.TestCase):
+# --- Fixtures ---
+@pytest.fixture
+def logger_fixture_llm_client(): # Nome da fixture atualizado para evitar conflitos
+    logger = logging.getLogger("TestCallLlmApiAsync")
+    logger.setLevel(logging.DEBUG)
+    return logger
 
-    def setUp(self):
-        # Basic logger setup for tests, if needed
-        self.logger = logging.getLogger(__name__)
-        self.logger.setLevel(logging.DEBUG) # Or any level
-        # You might want to add a handler if you want to see logs during tests,
-        # e.g., logging.StreamHandler(sys.stdout)
+@pytest.fixture
+def common_params_llm_client(logger_fixture_llm_client): # Nome da fixture atualizado
+    return {
+        "api_key": "test_api_key_llm",
+        "model": "test_model_llm",
+        "prompt": "test_prompt_llm",
+        "temperature": 0.5,
+        "base_url": "https://api.example.com/v1",
+        "logger": logger_fixture_llm_client # Usando o logger da fixture
+    }
 
-        # Common test parameters
-        self.api_key = "test_api_key"
-        self.model = "test_model"
-        self.prompt = "test_prompt"
-        self.temperature = 0.5
-        self.base_url = "https://api.example.com/v1"
+# --- Testes ---
+@pytest.mark.asyncio
+@patch('aiohttp.ClientSession.post', new_callable=AsyncMock)
+async def test_call_llm_api_success(mock_aio_post, common_params_llm_client):
+    mock_response = AsyncMock(spec=aiohttp.ClientResponse)
+    mock_response.status = 200
 
-    @patch('agent.utils.llm_client.requests.post')
-    def test_call_llm_api_success(self, mock_post):
-        # Configure the mock response for a successful API call
-        mock_response = MagicMock()
-        mock_response.status_code = 200
-        mock_response.json.return_value = {
-            "choices": [{
-                "message": {
-                    "content": "Test LLM response content"
-                }
-            }]
-        }
-        mock_post.return_value = mock_response
+    async def mock_json_method():
+        return {"choices": [{"message": {"content": "Test LLM response content"}}]}
+    mock_response.json = mock_json_method
+    mock_response.text = AsyncMock(return_value='Test LLM response content') # .text() também é async
+    mock_response.raise_for_status = MagicMock() # não é async
 
-        content, error = call_llm_api(
-            self.api_key, self.model, self.prompt, self.temperature, self.base_url, self.logger
-        )
+    mock_aio_post.return_value.__aenter__.return_value = mock_response
 
-        # Assertions
-        mock_post.assert_called_once()
-        args, kwargs = mock_post.call_args
-        self.assertEqual(args[0], f"{self.base_url}/chat/completions")
-        self.assertEqual(kwargs['json']['model'], self.model)
-        self.assertEqual(kwargs['json']['messages'][0]['content'], self.prompt)
-        self.assertEqual(kwargs['headers']['Authorization'], f"Bearer {self.api_key}")
+    content, error = await call_llm_api(**common_params_llm_client)
 
-        self.assertEqual(content, "Test LLM response content")
-        self.assertIsNone(error)
+    mock_aio_post.assert_called_once()
+    args_call, kwargs_call = mock_aio_post.call_args
+    assert args_call[0] == f"{common_params_llm_client['base_url']}/chat/completions"
+    assert kwargs_call['json']['model'] == common_params_llm_client['model']
+    assert kwargs_call['json']['messages'][0]['content'] == common_params_llm_client['prompt']
+    assert kwargs_call['headers']['Authorization'] == f"Bearer {common_params_llm_client['api_key']}"
 
-    @patch('agent.utils.llm_client.requests.post')
-    def test_call_llm_api_http_error(self, mock_post):
-        # Configure the mock response for an HTTP error
-        mock_response = MagicMock()
-        mock_response.status_code = 401 # Unauthorized
-        mock_response.text = "Unauthorized access"
-        mock_response.raise_for_status.side_effect = requests.exceptions.HTTPError(response=mock_response)
-        mock_post.return_value = mock_response
+    assert content == "Test LLM response content"
+    assert error is None
 
-        content, error = call_llm_api(
-            self.api_key, self.model, self.prompt, self.temperature, self.base_url, self.logger
-        )
+@pytest.mark.asyncio
+@patch('aiohttp.ClientSession.post', new_callable=AsyncMock)
+async def test_call_llm_api_http_error(mock_aio_post, common_params_llm_client):
+    mock_response = AsyncMock(spec=aiohttp.ClientResponse)
+    mock_response.status = 401
 
-        # Assertions
-        mock_post.assert_called_once()
-        self.assertIsNone(content)
-        self.assertIsNotNone(error)
-        self.assertIn("HTTP error occurred", error)
-        self.assertIn("Status: 401", error)
-        self.assertIn("Unauthorized access", error)
+    async def mock_text_method(): return "Unauthorized access"
+    mock_response.text = mock_text_method
 
-    @patch('agent.utils.llm_client.requests.post')
-    def test_call_llm_api_request_exception(self, mock_post):
-        # Configure the mock to raise a RequestException
-        mock_post.side_effect = requests.exceptions.RequestException("Network error")
+    http_error = aiohttp.ClientResponseError(
+        request_info=MagicMock(), history=(), status=401,
+        message="Unauthorized", headers={}
+    )
+    mock_response.raise_for_status.side_effect = http_error
 
-        content, error = call_llm_api(
-            self.api_key, self.model, self.prompt, self.temperature, self.base_url, self.logger
-        )
+    mock_aio_post.return_value.__aenter__.return_value = mock_response
 
-        # Assertions
-        mock_post.assert_called_once()
-        self.assertIsNone(content)
-        self.assertIsNotNone(error)
-        self.assertIn("Request failed: Network error", error)
+    content, error = await call_llm_api(**common_params_llm_client)
 
-    @patch('agent.utils.llm_client.requests.post')
-    def test_call_llm_api_missing_choices(self, mock_post):
-        mock_response = MagicMock()
-        mock_response.status_code = 200
-        mock_response.json.return_value = {"error": "No choices here"} # Missing 'choices'
-        mock_post.return_value = mock_response
-
-        content, error = call_llm_api(
-            self.api_key, self.model, self.prompt, self.temperature, self.base_url, self.logger
-        )
-        self.assertIsNone(content)
-        self.assertIsNotNone(error)
-        self.assertIn("API response missing 'choices' key", error)
-
-    @patch('agent.utils.llm_client.requests.post')
-    def test_call_llm_api_empty_choices(self, mock_post):
-        mock_response = MagicMock()
-        mock_response.status_code = 200
-        mock_response.json.return_value = {"choices": []} # Empty 'choices'
-        mock_post.return_value = mock_response
-
-        content, error = call_llm_api(
-            self.api_key, self.model, self.prompt, self.temperature, self.base_url, self.logger
-        )
-        self.assertIsNone(content)
-        self.assertIsNotNone(error)
-        self.assertIn("API response missing 'choices' key or 'choices' is empty", error) # Adjusted to match error message
-
-    @patch('agent.utils.llm_client.requests.post')
-    def test_call_llm_api_missing_message_in_choice(self, mock_post):
-        mock_response = MagicMock()
-        mock_response.status_code = 200
-        mock_response.json.return_value = {"choices": [{"no_message_here": "..."}]}
-        mock_post.return_value = mock_response
-
-        content, error = call_llm_api(
-            self.api_key, self.model, self.prompt, self.temperature, self.base_url, self.logger
-        )
-        self.assertIsNone(content)
-        self.assertIsNotNone(error)
-        self.assertIn("API response 'choices'[0] missing 'message' key", error)
+    mock_aio_post.assert_called_once()
+    assert content is None
+    assert error is not None
+    assert "HTTP error occurred" in error
+    assert "Status: 401" in error
+    # A mensagem de erro de ClientResponseError é usada.
+    # Se call_llm_api for atualizado para ler response.text() no except, esta asserção mudaria.
+    assert "Message: Unauthorized" in error
+    # Para incluir o corpo, a função call_llm_api precisaria ser ajustada para ler response.text() no bloco de exceção.
+    # Exemplo de como seria se o corpo fosse incluído:
+    # assert "Body: Unauthorized access" in error
 
 
-    @patch('agent.utils.llm_client.requests.post')
-    def test_call_llm_api_missing_content_in_message(self, mock_post):
-        mock_response = MagicMock()
-        mock_response.status_code = 200
-        mock_response.json.return_value = {"choices": [{"message": {"no_content_here": "..."}}]}
-        mock_post.return_value = mock_response
+@pytest.mark.asyncio
+@patch('aiohttp.ClientSession.post', new_callable=AsyncMock)
+async def test_call_llm_api_client_connector_error(mock_aio_post, common_params_llm_client):
+    mock_aio_post.side_effect = aiohttp.ClientConnectorError(MagicMock(), OSError("Network error"))
 
-        content, error = call_llm_api(
-            self.api_key, self.model, self.prompt, self.temperature, self.base_url, self.logger
-        )
-        self.assertIsNone(content)
-        self.assertIsNotNone(error)
-        self.assertIn("API response 'message' missing 'content' key", error)
+    content, error = await call_llm_api(**common_params_llm_client)
 
-    @patch('agent.utils.llm_client.requests.post')
-    def test_call_llm_api_key_error(self, mock_post):
-        # Simulate a malformed JSON response that would cause a KeyError
-        mock_response = MagicMock()
-        mock_response.status_code = 200
-        # This malformed structure will cause a KeyError when trying to access response_json["choices"][0]["message"]["content"]
-        # if the initial checks for "choices" or "message" were less strict.
-        # Given the current strict checks, this specific KeyError might be hard to trigger without
-        # also triggering one of the earlier "missing key" errors.
-        # Let's assume a case where 'choices' exists, 'message' exists, but 'content' is accessed before check.
-        # The current implementation checks for 'content' presence, so this exact path is unlikely.
-        # However, a KeyError could occur if `response.json()` itself fails or returns non-dict.
-        # For this test, let's assume a more direct KeyError during JSON parsing if that's possible
-        # or a key error deeper if the structure is unexpected.
+    mock_aio_post.assert_called_once()
+    assert content is None
+    assert error is not None
+    assert "Request failed (ClientConnectorError)" in error
 
-        # To test the KeyError catch specifically, let's imagine the json structure is slightly off
-        # in a way not caught by previous checks but leading to an issue.
-        # Example: 'choices' is not a list, or 'message' is not a dict.
-        mock_response.json.return_value = {
-            "choices": [{ # Valid choice
-                "message": "this_is_not_a_dict" # Invalid message structure
-            }]
-        }
-        mock_post.return_value = mock_response
+@pytest.mark.asyncio
+@patch('aiohttp.ClientSession.post', new_callable=AsyncMock)
+async def test_call_llm_api_timeout_error(mock_aio_post, common_params_llm_client):
+    mock_aio_post.side_effect = asyncio.TimeoutError("Request timed out")
 
-        content, error = call_llm_api(
-            self.api_key, self.model, self.prompt, self.temperature, self.base_url, self.logger
-        )
-        self.assertIsNone(content)
-        self.assertIsNotNone(error)
-        self.assertIn("AttributeError", error) # Expect AttributeError due to calling .get on a string
+    content, error = await call_llm_api(**common_params_llm_client)
 
-        # Test case for actual KeyError if a deeply nested key is expected but missing,
-        # assuming outer structures are dicts.
-        # This scenario is now less likely due to comprehensive checks for 'choices', 'message', 'content'.
-        # However, if the API returned a valid structure but with an unexpected internal key missing
-        # that the code might later try to access (not the case in current call_llm_api),
-        # a KeyError could happen.
-        # For the current structure of call_llm_api, most "missing key" issues are explicitly handled.
-        # A true KeyError might occur if `response.json()` itself fails and that's caught by the generic Exception,
-        # or if `response_json` was not a dict.
+    mock_aio_post.assert_called_once()
+    assert content is None
+    assert error is not None
+    assert "Request timed out" in error
 
-        # Let's simulate a case where 'choices' is a list, but its elements are not dicts
-        mock_response.json.return_value = {"choices": ["not_a_dict_item"]}
-        mock_post.return_value = mock_response
-        content, error = call_llm_api(
-            self.api_key, self.model, self.prompt, self.temperature, self.base_url, self.logger
-        )
-        self.assertIsNone(content)
-        self.assertIsNotNone(error)
-        # This would lead to: response_json["choices"][0].get("message") -> 'str' object has no attribute 'get'
-        self.assertIn("AttributeError", error) # Error when trying .get("message") on a string
+@pytest.mark.asyncio
+@patch('aiohttp.ClientSession.post', new_callable=AsyncMock)
+async def test_call_llm_api_missing_choices(mock_aio_post, common_params_llm_client):
+    mock_response = AsyncMock(spec=aiohttp.ClientResponse)
+    mock_response.status = 200
+    async def mock_json_method(): return {"error": "No choices here"}
+    mock_response.json = mock_json_method
+    mock_response.raise_for_status = MagicMock()
+    mock_aio_post.return_value.__aenter__.return_value = mock_response
 
-        # To truly test the KeyError for a missing key from a dict:
-        # Let's assume a hypothetical scenario where the code expects response_json["choices"][0]["message"]["details"]["text"]
-        # and "details" is missing.
-        # The current code only goes as far as "content".
-        # The existing KeyError catch is more of a fallback.
-        # The current structure is well-guarded against KeyErrors for the paths it accesses.
-        # The most plausible KeyError would be if `response_json` itself wasn't a dict,
-        # or if `response_json['choices']` was attempted on a non-dict `response_json`.
-        # But `response.json()` usually ensures a dict or list at the top level or raises error.
-        # So, the current KeyError catch is a very broad fallback.
-        # The test for "API response missing 'choices' key" already covers cases where 'choices' isn't there.
+    content, error = await call_llm_api(**common_params_llm_client)
+    assert content is None
+    assert error is not None
+    assert "API response missing 'choices' key or 'choices' is empty" in error
+
+@pytest.mark.asyncio
+@patch('aiohttp.ClientSession.post', new_callable=AsyncMock)
+async def test_call_llm_api_empty_choices(mock_aio_post, common_params_llm_client):
+    mock_response = AsyncMock(spec=aiohttp.ClientResponse)
+    mock_response.status = 200
+    async def mock_json_method(): return {"choices": []}
+    mock_response.json = mock_json_method
+    mock_response.raise_for_status = MagicMock()
+    mock_aio_post.return_value.__aenter__.return_value = mock_response
+
+    content, error = await call_llm_api(**common_params_llm_client)
+    assert content is None
+    assert error is not None
+    assert "API response missing 'choices' key or 'choices' is empty" in error
+
+@pytest.mark.asyncio
+@patch('aiohttp.ClientSession.post', new_callable=AsyncMock)
+async def test_call_llm_api_missing_message_in_choice(mock_aio_post, common_params_llm_client):
+    mock_response = AsyncMock(spec=aiohttp.ClientResponse)
+    mock_response.status = 200
+    async def mock_json_method(): return {"choices": [{"no_message_here": "..."}]}
+    mock_response.json = mock_json_method
+    mock_response.raise_for_status = MagicMock()
+    mock_aio_post.return_value.__aenter__.return_value = mock_response
+
+    content, error = await call_llm_api(**common_params_llm_client)
+    assert content is None
+    assert error is not None
+    assert "API response 'choices'[0] missing 'message' key" in error
+
+@pytest.mark.asyncio
+@patch('aiohttp.ClientSession.post', new_callable=AsyncMock)
+async def test_call_llm_api_missing_content_in_message(mock_aio_post, common_params_llm_client):
+    mock_response = AsyncMock(spec=aiohttp.ClientResponse)
+    mock_response.status = 200
+    async def mock_json_method(): return {"choices": [{"message": {"no_content_here": "..."}}]}
+    mock_response.json = mock_json_method
+    mock_response.raise_for_status = MagicMock()
+    mock_aio_post.return_value.__aenter__.return_value = mock_response
+
+    content, error = await call_llm_api(**common_params_llm_client)
+    assert content is None
+    assert error is not None
+    assert "API response 'message' missing 'content' key" in error
+
+@pytest.mark.asyncio
+@patch('aiohttp.ClientSession.post', new_callable=AsyncMock)
+async def test_call_llm_api_unexpected_json_structure_attr_error(mock_aio_post, common_params_llm_client):
+    mock_response = AsyncMock(spec=aiohttp.ClientResponse)
+    mock_response.status = 200
+    # 'message' é uma string, não um dict, causará AttributeError em .get('content')
+    async def mock_json_method(): return {"choices": [{"message": "not_a_dict"}]}
+    mock_response.json = mock_json_method
+    mock_response.raise_for_status = MagicMock()
+    mock_aio_post.return_value.__aenter__.return_value = mock_response
+
+    content, error = await call_llm_api(**common_params_llm_client)
+    assert content is None
+    assert error is not None
+    assert "Error parsing LLM response (AttributeError)" in error
 
 
-if __name__ == '__main__':
-    unittest.main()
+@pytest.mark.asyncio
+@patch('aiohttp.ClientSession.post', new_callable=AsyncMock)
+async def test_call_llm_api_key_error_in_parsing(mock_aio_post, common_params_llm_client):
+    mock_response = AsyncMock(spec=aiohttp.ClientResponse)
+    mock_response.status = 200
+    # 'content' está ausente dentro de 'message', o que deve ser pego pelo get com fallback,
+    # mas se a lógica fosse diferente e acessasse diretamente, um KeyError poderia ocorrer.
+    # A lógica atual com .get() deve retornar None para content, levando ao erro "missing 'content' key".
+    async def mock_json_method(): return {"choices": [{"message": {"unexpected_key": "..."}}]}
+    mock_response.json = mock_json_method
+    mock_response.raise_for_status = MagicMock()
+    mock_aio_post.return_value.__aenter__.return_value = mock_response
+
+    content, error = await call_llm_api(**common_params_llm_client)
+    assert content is None
+    assert error is not None
+    assert "API response 'message' missing 'content' key" in error

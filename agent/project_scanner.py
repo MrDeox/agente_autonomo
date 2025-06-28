@@ -1,6 +1,8 @@
 import os
 import fnmatch
 import pathlib
+import asyncio
+import aiofiles
 import ast
 from typing import List, Optional, Tuple, Dict, Set, Any # Adicionado Any
 
@@ -62,7 +64,7 @@ def _extract_skeleton(code_string: str) -> str:
     
     return "\n".join(skeleton_lines)
 
-def update_project_manifest(
+async def update_project_manifest(
     root_dir: str,
     target_files: List[str],
     output_path: str = "AGENTS.md",
@@ -86,11 +88,17 @@ def update_project_manifest(
     target_content_cache: Dict[str, Tuple[Optional[str], Optional[Exception]]] = {}
     api_summary_cache: Dict[str, List[Tuple]] = {}
     
-    with open(output_path, 'w', encoding='utf-8') as manifest:
-        manifest.write("# MANIFESTO DO PROJETO HEPHAESTUS\n\n")
+    async with aiofiles.open(output_path, 'w', encoding='utf-8') as manifest:
+        await manifest.write("# MANIFESTO DO PROJETO HEPHAESTUS\n\n")
         
-        manifest.write("## 1. ESTRUTURA DE ARQUIVOS (OTIMIZADA)\n")
+        await manifest.write("## 1. ESTRUTURA DE ARQUIVOS (OTIMIZADA)\n")
         
+        # os.walk não é diretamente assíncrono. Para uma verdadeira implementação async,
+        # precisaríamos de uma alternativa como aioscan ou implementar a travessia manualmente.
+        # Por simplicidade nesta etapa e dado que a estrutura de arquivos não muda frequentemente
+        # de forma a exigir async extremo aqui, vamos manter os.walk, mas as operações de arquivo
+        # dentro do loop serão async. Isso significa que o loop em si ainda é bloqueante.
+        # Uma refatoração mais profunda poderia abordar isso.
         for root, dirs, files in os.walk(root_path, topdown=True):
             current_path_obj = pathlib.Path(root)
 
@@ -149,7 +157,7 @@ def update_project_manifest(
                     level_parts = current_path_obj.parts
 
             indent = ' ' * 4 * len(level_parts)
-            manifest.write(f"{indent}{current_dir_name}/\n")
+            await manifest.write(f"{indent}{current_dir_name}/\n")
             
             # Pular o processamento de ARQUIVOS DENTRO DESTE DIRETÓRIO (root)
             # se ele não tiver mais subdiretórios para visitar (dirs ficou vazio após filtro)
@@ -179,7 +187,7 @@ def update_project_manifest(
                 if is_test_file:
                     continue
 
-                manifest.write(f"{sub_indent}{f_name}\n")
+                await manifest.write(f"{sub_indent}{f_name}\n")
 
                 file_path_obj = current_path_obj / f_name
                 # rel_path_str deve ser relativo ao root_path original do scan
@@ -188,8 +196,8 @@ def update_project_manifest(
                 # Processar arquivos alvo para conteúdo completo
                 if rel_path_str in target_files_set:
                     try:
-                        with open(file_path_obj, 'r', encoding='utf-8') as f_obj:
-                            content = f_obj.read()
+                        async with aiofiles.open(file_path_obj, 'r', encoding='utf-8') as f_obj:
+                            content = await f_obj.read()
                         target_content_cache[rel_path_str] = (content, None)
                     except Exception as e:
                         target_content_cache[rel_path_str] = (None, e)
@@ -201,58 +209,60 @@ def update_project_manifest(
                         content, error = target_content_cache[rel_path_str]
                         if error:
                             api_summary_cache[rel_path_str] = [('error', None, None, f"Erro na leitura do arquivo: {str(error)}")]
-                        else:
+                        elif content is not None: # Ensure content is not None before processing
                             api_summary_cache[rel_path_str] = _extract_elements(content)
+                        else: # Handle case where content is None but no error was recorded
+                            api_summary_cache[rel_path_str] = [('error', None, None, "Conteúdo do arquivo nulo para análise de API")]
                     else:
                         try:
-                            with open(file_path_obj, 'r', encoding='utf-8') as f_obj:
-                                content = f_obj.read()
+                            async with aiofiles.open(file_path_obj, 'r', encoding='utf-8') as f_obj:
+                                content = await f_obj.read()
                             api_summary_cache[rel_path_str] = _extract_elements(content)
                         except Exception as e:
                             api_summary_cache[rel_path_str] = [('error', None, None, f"Erro na leitura do arquivo: {str(e)}")]
         
-        manifest.write("\n## 2. RESUMO DAS INTERFACES (APIs Internas)\n")
+        await manifest.write("\n## 2. RESUMO DAS INTERFACES (APIs Internas)\n")
         
         for rel_path_str, elements in api_summary_cache.items():
-            manifest.write(f"\n### Arquivo: `{rel_path_str}`\n")
+            await manifest.write(f"\n### Arquivo: `{rel_path_str}`\n")
             
             if elements and elements[0][0] == 'error':
-                manifest.write(f"  - [ERRO] {elements[0][3]}\n")
+                await manifest.write(f"  - [ERRO] {elements[0][3]}\n")
             else:
                 for el_type, name, details, docstring in elements:
                     if el_type == 'class':
                         class_sig = f"{name}({details})" if details else name
-                        manifest.write(f"- **Classe:** `{class_sig}`\n")
+                        await manifest.write(f"- **Classe:** `{class_sig}`\n")
                         if docstring:
                             first_line = docstring.strip().split('\n')[0]
-                            manifest.write(f"  - *{first_line}*\n")
+                            await manifest.write(f"  - *{first_line}*\n")
                     
                     elif el_type == 'function':
-                        manifest.write(f"- **Função:** `{name}({details})`\n")
+                        await manifest.write(f"- **Função:** `{name}({details})`\n")
                         if docstring:
                             first_line = docstring.strip().split('\n')[0]
-                            manifest.write(f"  - *{first_line}*\n")
+                            await manifest.write(f"  - *{first_line}*\n")
         
-        manifest.write("\n## 3. CONTEÚDO COMPLETO DOS ARQUIVOS ALVO\n")
+        await manifest.write("\n## 3. CONTEÚDO COMPLETO DOS ARQUIVOS ALVO\n")
         
         for rel_path_str in target_files:
-            manifest.write(f"\n### Arquivo: `{rel_path_str}`\n\n```\n")
+            await manifest.write(f"\n### Arquivo: `{rel_path_str}`\n\n```\n")
             
             if rel_path_str in target_content_cache:
                 content, error = target_content_cache[rel_path_str]
                 if error:
-                    manifest.write(f"# ERRO: {str(error)}\n")
+                    await manifest.write(f"# ERRO: {str(error)}\n")
                 elif content is None:
-                    manifest.write("# ERRO: Conteúdo não disponível\n")
+                    await manifest.write("# ERRO: Conteúdo não disponível\n")
                 else:
-                    manifest.write(content + "\n")
+                    await manifest.write(content + "\n")
             else:
-                manifest.write("# ARQUIVO NÃO ENCONTRADO OU NÃO PROCESSADO\n") # Mensagem mais genérica
+                await manifest.write("# ARQUIVO NÃO ENCONTRADO OU NÃO PROCESSADO\n") # Mensagem mais genérica
             
-            manifest.write("```\n")
+            await manifest.write("```\n")
 
 
-def analyze_code_metrics(
+async def analyze_code_metrics( # Changed to async
     root_dir: str,
     excluded_dir_patterns: Optional[List[str]] = None,
     file_loc_threshold: int = 300,
@@ -328,8 +338,8 @@ def analyze_code_metrics(
         file_path_obj = root_path / relative_path_str
 
         try:
-            with open(file_path_obj, 'r', encoding='utf-8') as f:
-                code_content = f.read()
+            async with aiofiles.open(file_path_obj, 'r', encoding='utf-8') as f:
+                code_content = await f.read()
 
             # AST para funções e classes
             try:

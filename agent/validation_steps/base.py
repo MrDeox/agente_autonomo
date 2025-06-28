@@ -14,9 +14,9 @@ class ValidationStep(ABC):
         self.use_sandbox = use_sandbox
 
     @abstractmethod
-    def execute(self) -> Tuple[bool, str, str]:
+    async def execute(self) -> Tuple[bool, str, str]: # Changed to async
         """
-        Executes the validation step.
+        Executes the validation step asynchronously.
 
         Returns:
             A tuple containing:

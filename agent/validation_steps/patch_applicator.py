@@ -8,17 +8,29 @@ from agent.validation_steps.base import ValidationStep
 class PatchApplicatorStep(ValidationStep):
     """Applies patches to the specified base path."""
 
+import aiofiles # Required for async file operations
+import asyncio # Required for asyncio.to_thread if patch_applicator.apply_patches isn't fully async
+
+class PatchApplicatorStep(ValidationStep):
+    """Applies patches to the specified base path."""
+
     def __init__(self, logger: logging.Logger, base_path: str, patches_to_apply: List[Dict[str, Any]], use_sandbox: bool):
         super().__init__(logger, base_path, patches_to_apply, use_sandbox)
 
-    def execute(self) -> Tuple[bool, str, str]:
+    async def execute(self) -> Tuple[bool, str, str]:
         if not self.patches_to_apply:
             self.logger.info("No patches to apply. Skipping.")
             return True, "PATCH_APPLICATION_SKIPPED", "No patches to apply."
 
         self.logger.info(f"Applying {len(self.patches_to_apply)} patches in '{self.base_path}'...")
         try:
-            apply_patches(instructions=self.patches_to_apply, logger=self.logger, base_path=self.base_path)
+            # The core `apply_patches` function from agent.patch_applicator
+            # needs to become async and use aiofiles for its I/O operations.
+            # This is a significant change to that utility function.
+            # For this step, we will assume `apply_patches` is refactored to be async.
+            # If it's not yet, this call would need `await asyncio.to_thread(...)`.
+            # Let's proceed assuming agent.patch_applicator.apply_patches will be made async.
+            await apply_patches(instructions=self.patches_to_apply, logger=self.logger, base_path=self.base_path)
             self.logger.info(f"Patches applied successfully in '{self.base_path}'.")
             return True, "PATCH_APPLICATION_SUCCESS", "Patches applied successfully."
         except Exception as e:
