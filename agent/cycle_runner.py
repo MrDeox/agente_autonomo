@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import csv
 import json
 import time
 from datetime import datetime
@@ -457,4 +458,3 @@ def run_cycles(agent: "HephaestusAgent") -> None:
 
             agent.logger.info(f"{'='*20} FIM DO CICLO DE EVOLUÇÃO {'='*20}")
             time.sleep(agent.config.get("cycle_delay_seconds", 1))
-

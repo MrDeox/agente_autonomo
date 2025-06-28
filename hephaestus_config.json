@@ -45,12 +45,10 @@
       "sanity_check_step": "run_pytest"
     },
     "CREATE_NEW_TEST_FILE_STRATEGY": {
-      "steps": ["validate_syntax", "run_pytest_new_file_validation", "apply_patches_to_disk"],
-      "sanity_check_step": "run_pytest_new_file_validation"
+      "steps": ["validate_syntax", "run_pytest_new_file_validation", "apply_patches_to_disk"],      "sanity_check_step": "run_pytest_new_file_validation"
     },
     "AUTO_CORRECTION_STRATEGY": {
-      "steps": ["validate_syntax", "apply_patches_to_disk", "run_pytest_validation"],
-      "sanity_check_step": "run_pytest"
+      "steps": ["validate_syntax", "apply_patches_to_disk", "run_pytest_validation"],      "sanity_check_step": "run_pytest"
     }
   }
 }
