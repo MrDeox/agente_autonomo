@@ -3,27 +3,38 @@ from __future__ import annotations
 import csv
 import json
 import time
+import asyncio # Added for PoC
 from datetime import datetime
 from typing import TYPE_CHECKING
 
 from agent.project_scanner import update_project_manifest
 from agent.brain import (
-    generate_next_objective,
-    generate_capacitation_objective,
-    generate_commit_message,
+    generate_next_objective, # This would need to become async
+    generate_capacitation_objective, # This would need to become async
+    generate_commit_message, # This would need to become async
 )
-from agent.tool_executor import run_pytest, check_file_existence, run_git_command
-from agent.error_analyzer import ErrorAnalysisAgent # Import ErrorAnalysisAgent
+from agent.tool_executor import run_pytest, check_file_existence, run_git_command # These would need to become async for a full solution
+from agent.error_analyzer import ErrorAnalysisAgent
 
 if TYPE_CHECKING:  # pragma: no cover - for type checking only
     from main import HephaestusAgent
 
+
+# For a full async implementation, run_cycles itself would become async
+# async def run_cycles(agent: "HephaestusAgent") -> None:
+# However, for this PoC, we'll keep it sync and use asyncio.run() for specific calls.
 
 def run_cycles(agent: "HephaestusAgent") -> None:
     """Execute the main evolution loop for the given agent."""
     if not agent.objective_stack:
         agent.logger.info("Gerando objetivo inicial...")
         initial_objective_model = agent.config.get("models", {}).get("objective_generator", agent.light_model)
+
+        # In a full async implementation, this would be:
+        # initial_objective = await generate_next_objective(...)
+        # For PoC, if generate_next_objective were async, we'd do:
+        # initial_objective = asyncio.run(generate_next_objective(...))
+        # But since generate_next_objective is not yet converted in this PoC scope, we keep it sync.
         initial_objective = generate_next_objective(
             api_key=agent.api_key,
             model=initial_objective_model,
@@ -114,9 +125,38 @@ def run_cycles(agent: "HephaestusAgent") -> None:
             agent._reset_cycle_state()
             agent.state.current_objective = current_objective
 
-            if not agent._generate_manifest():
+            if not agent._generate_manifest(): # This could be async if file I/O is async
                 agent.logger.error("Falha crítica ao gerar manifesto. Encerrando ciclo.")
                 break
+
+            # --- PoC Change: Calling architect_phase with asyncio.run ---
+            # In a full async implementation, agent._run_architect_phase itself would be async
+            # and would be awaited here if run_cycles were async.
+            # For PoC, we assume _run_architect_phase is modified to call the async plan_action
+            # and needs to be run via asyncio.run() from this synchronous context.
+            # This is a simplified demonstration. The HephaestusAgent class's _run_architect_phase
+            # would need internal changes to call `asyncio.run(self.architect_agent.plan_action(...))`
+            # or `await self.architect_agent.plan_action(...)` if _run_architect_phase itself becomes async.
+
+            # Let's simulate the call pattern assuming agent._run_architect_phase() handles the asyncio.run() internally for PoC
+            # Or, more directly for this PoC, let's modify how it's called IF _run_architect_phase was made async:
+            # success_architect = asyncio.run(agent._run_architect_phase())
+            # However, _run_architect_phase is part of the HephaestusAgent class, which is not being modified here.
+            # So, the change should be *inside* _run_architect_phase in HephaestusAgent.
+            # For this file, the call remains agent._run_architect_phase().
+            # The actual `asyncio.run` would be inside `HephaestusAgent._run_architect_phase`
+            # when it calls `self.architect_agent.plan_action`.
+
+            # To make the PoC work without modifying HephaestusAgent here,
+            # we'd conceptually assume _run_architect_phase in HephaestusAgent now looks like:
+            #
+            # def _run_architect_phase(self) -> bool:
+            #     # ... other sync code ...
+            #     action_plan_data, error = asyncio.run(self.architect_agent.plan_action(objective, manifest_content))
+            #     # ... rest of the logic ...
+            #
+            # No change to the direct call here in cycle_runner.py is needed for this PoC structure,
+            # as the async execution is encapsulated within the called method.
             if not agent._run_architect_phase():
                 agent.logger.warning(
                     "Falha na fase do Arquiteto. Pulando para o próximo objetivo se houver."

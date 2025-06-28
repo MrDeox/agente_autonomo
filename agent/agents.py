@@ -1,8 +1,8 @@
 import json
 import logging
-# import requests # No longer needed here, call_llm_api is imported from utils
-import traceback # Keep if parse_json_response uses it, otherwise remove
+import traceback
 from typing import Optional, Dict, Any, List, Tuple
+import asyncio # Added for PoC
 
 from agent.utils.llm_client import call_llm_api
 
@@ -89,13 +89,14 @@ class ArchitectAgent:
     def __init__(self, api_key: str, model: str, logger: logging.Logger, base_url: str = "https://openrouter.ai/api/v1"):
         self.api_key = api_key
         self.model = model
-        self.logger = logger # Type hint changed to logging.Logger
+        self.logger = logger
         self.base_url = base_url
 
-    def plan_action(self, objective: str, manifest: str) -> Tuple[Optional[Dict[str, Any]], Optional[str]]:
+    async def plan_action(self, objective: str, manifest: str) -> Tuple[Optional[Dict[str, Any]], Optional[str]]: # Changed to async
         """
         Encapsulates the logic of get_action_plan.
         Generates a JSON patch plan based on the objective and manifest.
+        Now ASYNCHRONOUS.
         """
         prompt = f"""
 You are the Software Architect of the Hephaestus agent. Your task is to take the high-level objective and, based on the project manifest, create a JSON patch plan to modify the files.
@@ -168,8 +169,16 @@ Your response MUST be a valid JSON object and nothing else.
 - For "REPLACE" of an entire file or creation of a new file, use "block_to_replace": null.
 - Ensure the generated JSON is strictly valid.
 """
-        self.logger.info(f"ArchitectAgent: Gerando plano de patches com o modelo: {self.model}...")
-        raw_response, error = call_llm_api(self.api_key, self.model, prompt, 0.4, self.base_url, self.logger) # Use imported function
+        self.logger.info(f"ArchitectAgent: Gerando plano de patches com o modelo: {self.model} (async)...")
+        # Use await for the async call_llm_api
+        raw_response, error = await call_llm_api(
+            api_key=self.api_key,
+            model=self.model,
+            prompt=prompt,
+            temperature=0.4,
+            base_url=self.base_url,
+            logger=self.logger
+        )
 
         if error:
             self.logger.error(f"ArchitectAgent: Erro ao chamar LLM para plano de patches: {error}")
@@ -208,7 +217,6 @@ Your response MUST be a valid JSON object and nothing else.
                 return None, err_msg
             if patch["operation"] in ["INSERT", "REPLACE"] and "content" not in patch:
                 err_msg = f"ArchitectAgent: patch {patch['operation']} no índice {i} para '{patch['file_path']}' não tem 'content'."
-                err_msg = f"ArchitectAgent: Patch {patch['operation']} no índice {i} para '{patch['file_path']}' não tem 'content'."
                 self.logger.error(err_msg)
                 return None, err_msg
             if patch["operation"] == "DELETE_BLOCK" and "block_to_delete" not in patch:
@@ -228,13 +236,14 @@ class MaestroAgent:
         self.api_key = api_key
         self.model_list = model_list
         self.config = config
-        self.logger = logger # Type hint changed to logging.Logger
+        self.logger = logger
         self.base_url = base_url
 
-    def choose_strategy(self, action_plan_data: Dict[str, Any], memory_summary: Optional[str] = None) -> List[Dict[str, Any]]:
+    async def choose_strategy(self, action_plan_data: Dict[str, Any], memory_summary: Optional[str] = None) -> List[Dict[str, Any]]: # Changed to async
         """
         Encapsulates the logic of get_maestro_decision.
         Consults the LLM to decide which validation strategy to adopt.
+        Now ASYNCHRONOUS.
         """
         attempt_logs = []
         available_strategies = self.config.get("validation_strategies", {})
@@ -266,7 +275,7 @@ Considere esse histórico em sua decisão. Evite repetir estratégias que falhar
 """
 
         for model in self.model_list:
-            self.logger.info(f"MaestroAgent: Tentando decisão com o modelo: {model}...")
+            self.logger.info(f"MaestroAgent: Tentando decisão com o modelo: {model} (async)...")
 
             prompt = f"""
 [IDENTITY]
@@ -299,15 +308,22 @@ Example: {{"strategy_key": "CAPACITATION_REQUIRED"}}
                 "parsed_json": None,
                 "success": False,
             }
-
-            content, error_api = call_llm_api(self.api_key, model, prompt, 0.2, self.base_url, self.logger) # Use imported function
+            # Use await for the async call_llm_api
+            content, error_api = await call_llm_api(
+                api_key=self.api_key,
+                model=model,
+                prompt=prompt,
+                temperature=0.2,
+                base_url=self.base_url,
+                logger=self.logger
+            )
 
             if error_api:
                 attempt_log["raw_response"] = f"Erro da API (modelo {model}): {error_api}"
                 attempt_logs.append(attempt_log)
                 continue
 
-            if not content:  # Content can be an empty string from LLM, treat as invalid for this case
+            if not content:
                 attempt_log["raw_response"] = f"Resposta vazia do LLM (modelo {model})"
                 attempt_logs.append(attempt_log)
                 continue
@@ -316,34 +332,29 @@ Example: {{"strategy_key": "CAPACITATION_REQUIRED"}}
             parsed_json, error_parsing = parse_json_response(content, self.logger)
 
             if error_parsing:
-                attempt_log["raw_response"] = f"Erro ao fazer parse (modelo {model}): {error_parsing}. Content: {content[:200]}"
                 attempt_log["raw_response"] = f"Erro ao fazer parse (modelo {model}): {error_parsing}. Conteúdo: {content[:200]}"
                 attempt_logs.append(attempt_log)
                 continue
 
-            if not parsed_json:  # Should ideally be caught by error_parsing, but as a safeguard
+            if not parsed_json:
                 attempt_log["raw_response"] = f"JSON convertido para None sem erro explícito (modelo {model}). Conteúdo: {content[:200]}"
                 attempt_logs.append(attempt_log)
                 continue
 
             if not isinstance(parsed_json, dict) or "strategy_key" not in parsed_json:
-                error_msg = f"JSON com formato inválido ou faltando 'strategy_key' (modelo {model})"
                 error_msg = f"JSON com formato inválido ou faltando 'strategy_key' (modelo {model}). Recebido: {parsed_json}"
                 if self.logger: self.logger.warning(f"MaestroAgent: {error_msg}")
                 attempt_log["raw_response"] = f"{error_msg}. Original: {content[:200]}"
                 attempt_logs.append(attempt_log)
                 continue
 
-            # Further validation: is the strategy_key valid?
             chosen_strategy = parsed_json.get("strategy_key")
             if chosen_strategy not in available_strategies and chosen_strategy not in ["CAPACITATION_REQUIRED", "WEB_SEARCH_REQUIRED"]:
-                error_msg = f"'strategy_key' escolhido ('{chosen_strategy}') não é válido ou CAPACITATION_REQUIRED (modelo {model}). Válidos: {available_keys}, CAPACITATION_REQUIRED"
                 error_msg = (
                     f"Estratégia escolhida ('{chosen_strategy}') não é válida ou CAPACITATION_REQUIRED (modelo {model}). Válidas: {available_keys}, CAPACITATION_REQUIRED"
                 )
                 if self.logger: self.logger.warning(f"MaestroAgent: {error_msg}")
                 attempt_log["raw_response"] = f"{error_msg}. Original: {content[:200]}"
-                # Do not mark as success, let it try next model or fail
                 attempt_logs.append(attempt_log)
                 continue
 
@@ -351,6 +362,6 @@ Example: {{"strategy_key": "CAPACITATION_REQUIRED"}}
             attempt_log["parsed_json"] = parsed_json
             attempt_log["success"] = True
             attempt_logs.append(attempt_log)
-            break # Success, no need to try other models
+            break
 
         return attempt_logs
