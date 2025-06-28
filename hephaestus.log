@@ -1,19 +1,19 @@
-2025-06-27 21:35:08,354 - HephaestusAgent - INFO - Carregando memória de HEPHAESTUS_MEMORY.json...
-2025-06-27 21:35:08,354 - HephaestusAgent - INFO - Memória carregada. 0 objetivos concluídos, 0 falharam.
-2025-06-27 21:35:08,354 - HephaestusAgent - INFO - ArchitectAgent inicializado com modelo: deepseek/deepseek-r1-0528:free
-2025-06-27 21:35:08,354 - HephaestusAgent - INFO - MaestroAgent inicializado com modelos: ['deepseek/deepseek-chat-v3-0324:free', 'deepseek/deepseek-r1-0528:free']
-2025-06-27 21:35:08,354 - HephaestusAgent - INFO - Repositório Git já existe.
-2025-06-27 21:35:08,357 - HephaestusAgent - INFO - Gerando objetivo inicial...
-2025-06-27 21:35:08,357 - HephaestusAgent - INFO - Generating next objective...
-2025-06-27 21:35:08,357 - HephaestusAgent - INFO - Analyzing code metrics in: .
-2025-06-27 21:35:08,484 - HephaestusAgent - DEBUG - Code analysis summary:
+2025-06-27 22:39:14,722 - HephaestusAgent - INFO - Carregando memória de HEPHAESTUS_MEMORY.json...
+2025-06-27 22:39:14,722 - HephaestusAgent - INFO - Memória carregada. 0 objetivos concluídos, 0 falharam.
+2025-06-27 22:39:14,722 - HephaestusAgent - INFO - ArchitectAgent inicializado com modelo: deepseek/deepseek-r1-0528:free
+2025-06-27 22:39:14,722 - HephaestusAgent - INFO - MaestroAgent inicializado com modelos: ['deepseek/deepseek-chat-v3-0324:free', 'deepseek/deepseek-r1-0528:free']
+2025-06-27 22:39:14,722 - HephaestusAgent - INFO - Repositório Git já existe.
+2025-06-27 22:39:14,724 - HephaestusAgent - INFO - Gerando objetivo inicial...
+2025-06-27 22:39:14,724 - HephaestusAgent - INFO - Generating next objective...
+2025-06-27 22:39:14,724 - HephaestusAgent - INFO - Analyzing code metrics in: .
+2025-06-27 22:39:14,872 - HephaestusAgent - DEBUG - Code analysis summary:
 Large Files (potential candidates for modularization):
   - main.py (LOC: 466)
   - agent/deep_validator.py (LOC: 363)
   - agent/brain.py (LOC: 395)
-  - agent/agents.py (LOC: 356)
+  - agent/agents.py (LOC: 367)
   - agent/patch_applicator.py (LOC: 697)
-  - agent/cycle_runner.py (LOC: 387)
+  - agent/cycle_runner.py (LOC: 500)
   - agent/project_scanner.py (LOC: 462)
 
 Large Functions (potential candidates for refactoring/splitting):
@@ -28,10 +28,10 @@ Large Functions (potential candidates for refactoring/splitting):
   - agent/patch_applicator.py -> _handle_replace() (LOC: 71)
   - agent/patch_applicator.py -> _handle_delete_block() (LOC: 78)
   - agent/patch_applicator.py -> apply_patches() (LOC: 285)
-  - agent/cycle_runner.py -> run_cycles() (LOC: 367)
+  - agent/cycle_runner.py -> run_cycles() (LOC: 474)
   - agent/project_scanner.py -> update_project_manifest() (LOC: 188)
   - agent/project_scanner.py -> analyze_code_metrics() (LOC: 208)
-  - agent/utils/llm_client.py -> call_llm_api() (LOC: 77)
+  - agent/utils/llm_client.py -> call_llm_api() (LOC: 112)
 
 Complex Functions (high CC, potential candidates for refactoring/simplification):
   - agent/deep_validator.py -> analyze_complexity() (CC: 15)
@@ -45,10 +45,10 @@ Complex Functions (high CC, potential candidates for refactoring/simplification)
   - agent/patch_applicator.py -> _handle_replace() (CC: 15)
   - agent/patch_applicator.py -> _handle_delete_block() (CC: 21)
   - agent/patch_applicator.py -> apply_patches() (CC: 65)
-  - agent/cycle_runner.py -> run_cycles() (CC: 77)
+  - agent/cycle_runner.py -> run_cycles() (CC: 85)
   - agent/project_scanner.py -> update_project_manifest() (CC: 45)
   - agent/project_scanner.py -> analyze_code_metrics() (CC: 47)
-  - agent/utils/llm_client.py -> call_llm_api() (CC: 17)
+  - agent/utils/llm_client.py -> call_llm_api() (CC: 29)
 
 Modules without Corresponding Test Files (consider creating tests):
   - main.py
@@ -56,6 +56,7 @@ Modules without Corresponding Test Files (consider creating tests):
   - agent/brain.py
   - agent/git_utils.py
   - agent/code_validator.py
+  - agent/error_correction.py
   - agent/agents.py
   - agent/patch_applicator.py
   - agent/cycle_runner.py
@@ -63,6 +64,7 @@ Modules without Corresponding Test Files (consider creating tests):
   - agent/tool_executor.py
   - agent/project_scanner.py
   - agent/state.py
+  - agent/error_analyzer.py
   - agent/validation_steps/pytest_validator.py
   - agent/validation_steps/self_improvement_validator.py
   - agent/validation_steps/__init__.py
@@ -71,7 +73,7 @@ Modules without Corresponding Test Files (consider creating tests):
   - agent/validation_steps/syntax_validator.py
   - agent/validation_steps/pytest_new_file_validator.py
   - agent/utils/llm_client.py
-2025-06-27 21:35:08,484 - HephaestusAgent - DEBUG - Prompt for generate_next_objective:
+2025-06-27 22:39:14,872 - HephaestusAgent - DEBUG - Prompt for generate_next_objective:
 
 [Main Context]
 You are the 'Planejador Estratégico Avançado' do agente autônomo Hephaestus. Sua principal responsabilidade é identificar e propor o próximo objetivo de desenvolvimento mais impactante para a evolução do agente ou do projeto em análise.
@@ -94,9 +96,9 @@ Large Files (potential candidates for modularization):
   - main.py (LOC: 466)
   - agent/deep_validator.py (LOC: 363)
   - agent/brain.py (LOC: 395)
-  - agent/agents.py (LOC: 356)
+  - agent/agents.py (LOC: 367)
   - agent/patch_applicator.py (LOC: 697)
-  - agent/cycle_runner.py (LOC: 387)
+  - agent/cycle_runner.py (LOC: 500)
   - agent/project_scanner.py (LOC: 462)
 
 Large Functions (potential candidates for refactoring/splitting):
@@ -111,10 +113,10 @@ Large Functions (potential candidates for refactoring/splitting):
   - agent/patch_applicator.py -> _handle_replace() (LOC: 71)
   - agent/patch_applicator.py -> _handle_delete_block() (LOC: 78)
   - agent/patch_applicator.py -> apply_patches() (LOC: 285)
-  - agent/cycle_runner.py -> run_cycles() (LOC: 367)
+  - agent/cycle_runner.py -> run_cycles() (LOC: 474)
   - agent/project_scanner.py -> update_project_manifest() (LOC: 188)
   - agent/project_scanner.py -> analyze_code_metrics() (LOC: 208)
-  - agent/utils/llm_client.py -> call_llm_api() (LOC: 77)
+  - agent/utils/llm_client.py -> call_llm_api() (LOC: 112)
 
 Complex Functions (high CC, potential candidates for refactoring/simplification):
   - agent/deep_validator.py -> analyze_complexity() (CC: 15)
@@ -128,10 +130,10 @@ Complex Functions (high CC, potential candidates for refactoring/simplification)
   - agent/patch_applicator.py -> _handle_replace() (CC: 15)
   - agent/patch_applicator.py -> _handle_delete_block() (CC: 21)
   - agent/patch_applicator.py -> apply_patches() (CC: 65)
-  - agent/cycle_runner.py -> run_cycles() (CC: 77)
+  - agent/cycle_runner.py -> run_cycles() (CC: 85)
   - agent/project_scanner.py -> update_project_manifest() (CC: 45)
   - agent/project_scanner.py -> analyze_code_metrics() (CC: 47)
-  - agent/utils/llm_client.py -> call_llm_api() (CC: 17)
+  - agent/utils/llm_client.py -> call_llm_api() (CC: 29)
 
 Modules without Corresponding Test Files (consider creating tests):
   - main.py
@@ -139,6 +141,7 @@ Modules without Corresponding Test Files (consider creating tests):
   - agent/brain.py
   - agent/git_utils.py
   - agent/code_validator.py
+  - agent/error_correction.py
   - agent/agents.py
   - agent/patch_applicator.py
   - agent/cycle_runner.py
@@ -146,6 +149,7 @@ Modules without Corresponding Test Files (consider creating tests):
   - agent/tool_executor.py
   - agent/project_scanner.py
   - agent/state.py
+  - agent/error_analyzer.py
   - agent/validation_steps/pytest_validator.py
   - agent/validation_steps/self_improvement_validator.py
   - agent/validation_steps/__init__.py
@@ -183,78 +187,3 @@ N/A (Manifesto non-existent or empty)
 Based on ALL the information provided (metrics, manifest, history), generate ONLY a single text string containing the NEXT STRATEGIC OBJECTIVE. The objective should be the most impactful and logical for the project's evolution at this moment.
 Be concise, but specific enough to be actionable.
 
-2025-06-27 21:35:08,488 - urllib3.connectionpool - DEBUG - Starting new HTTPS connection (1): openrouter.ai:443
-2025-06-27 21:35:12,781 - urllib3.connectionpool - DEBUG - https://openrouter.ai:443 "POST /api/v1/chat/completions HTTP/1.1" 200 None
-2025-06-27 21:36:50,313 - HephaestusAgent - DEBUG - LLM API Response: {
-  "id": "gen-1751070909-vAP2ceqXRnzKbKdgGK8x",
-  "provider": "Chutes",
-  "model": "deepseek/deepseek-r1-0528:free",
-  "object": "chat.completion",
-  "created": 1751070909,
-  "choices": [
-    {
-      "logprobs": null,
-      "finish_reason": "stop",
-      "native_finish_reason": "stop",
-      "index": 0,
-      "message": {
-        "role": "assistant",
-        "content": "Based on the analysis of code metrics and the absence of a project manifest, the most critical and impactful next objective is:\n\n**Create a new test file `tests/agent/test_patch_applicator.py` with comprehensive unit tests for the `apply_patches()` function (LOC: 285, CC: 65) in `agent/patch_applicator.py`, covering edge cases and failure modes.**\n\n### Rationale:\n1. **Critical Risk Mitigation**:  \n   `apply_patches()` is the **most complex function** (CC:65) and **2nd-longest function** (285 LOC) in the entire project. It handles critical code-modification logic but has zero tests, making it a high-risk component for defects.\n\n2. **Strategic Foundation**:  \n   Tests for this function will enable safe future refactoring of `patch_applicator.py` (697 LOC \u2013 largest module) and its other complex functions like `_handle_delete_block()` (CC:21).\n\n3. **Immediate Impact**:  \n   Addresses the most severe combination of risk factors (high complexity + zero test coverage) while directly supporting the project's structural quality goals.\n\n4. **Actionability**:  \n   Clear scope (single function + test file creation) with measurable outcomes.",
-        "refusal": null,
-        "reasoning": "We are given code metrics and analysis, but no project manifest and no recent history.\n The code metrics highlight several large files, large functions, complex functions, and modules without tests.\n\n Priorities (from the instructions):\n   - Refactor very large modules or very long/complex functions.\n   - Create tests for critical/complex modules or functions that lack them.\n\n Among the large files, `agent/patch_applicator.py` is the largest (LOC: 697) and also has some of the most complex functions (e.g., `apply_patches` with CC:65 and LOC:285). Moreover, it is listed as a module without tests.\n\n Additionally, the function `apply_patches` in `agent/patch_applicator.py` is both very long (285 LOC) and highly complex (CC:65). This function is critical because it applies patches to the codebase, and any error here could lead to incorrect code changes.\n\n Given the critical nature of the patch applicator and the high complexity and size, it is a prime candidate for refactoring and testing.\n\n However, note that the module currently has no tests. Writing tests for such a complex function without refactoring might be very difficult. Therefore, a two-step approach might be needed: first refactor to make the code more testable, then write tests.\n\n But the instructions ask for a single next objective. We must choose the most impactful.\n\n Considering the risk of such a complex and critical module having no tests, the immediate priority should be to create tests. However, the complexity of the function might make writing tests challenging. Therefore, we might need to break down the function to make it testable.\n\n Alternatively, we can propose an objective that combines both: refactor the complex function to reduce its complexity and then write tests. But the instructions say to propose one objective.\n\n Let's look at the examples:\n\n   * \"Refactor the module ...\"\n   * \"Create unit tests for ...\"\n\n We can also propose a refactoring of a specific function and then note that tests should be written, but the objective must be one concrete action.\n\n Another candidate: `agent/cycle_runner.py` -> `run_cycles` (LOC:367, CC:77) is the most complex function in the list (CC:77) and also in a module without tests. This function is the core of the agent's execution cycle. Its complexity is extremely high, which is a risk.\n\n However, the `patch_applicator` is directly responsible for code changes and thus might be more critical for correctness.\n\n Alternatively, we might consider that without tests, any refactoring is risky. Therefore, writing tests first (even if they are high-level) might be a safer approach.\n\n But note: the module `agent/patch_applicator.py` has multiple complex functions. The entire module lacks tests.\n\n Given the above, I propose:\n\n   **Create tests for the `agent/patch_applicator.py` module.**\n\n However, because the module is large and complex, we might break it down by writing tests for one function at a time. But the objective should be to start testing.\n\n Alternatively, we can focus on the most critical function: `apply_patches`. \n\n Example from the examples: \n   \"Create unit tests for the module `agent/tool_executor.py` ... focusing on the `web_search` function.\"\n\n We can do similarly: focus on the `apply_patches` function.\n\n But note: the module has other complex functions that also need tests.\n\n Considering the impact, I think the most strategic objective is to start writing tests for the entire module, but we must be specific.\n\n However, the instructions say: \"Be Specific and Actionable\".\n\n Therefore, I propose:\n\n   \"Create a new test file `tests/agent/test_patch_applicator.py` with unit tests for the `apply_patches` function in `agent/patch_applicator.py`, covering its main use cases and edge cases.\"\n\n This is specific and actionable. It addresses a critical gap (no tests) for the most complex function in one of the largest modules.\n\n Why not refactor first? Because without tests, refactoring is risky. We want to have tests in place to ensure that refactoring does not break functionality.\n\n However, note that the function is very complex and might be hard to test. But we have to start somewhere.\n\n Alternatively, if we are concerned that the function is too complex to test, we might break it down first. But that would be a refactoring objective.\n\n After reevaluating, I think the most logical order is:\n   1. Write tests for the existing behavior (even if the function is complex, we can write high-level tests that cover the main scenarios).\n   2. Then refactor.\n\n Therefore, the next objective should be writing tests.\n\n Another candidate: `agent/cycle_runner.py` has the highest cyclomatic complexity function (`run_cycles` with CC:77) and also lacks tests. This is the core loop of the agent. It is equally critical.\n\n But note: `patch_applicator` is about code modification and if it fails, it can break the codebase. `cycle_runner` is about the control flow and if it fails, the agent stops. Both are critical.\n\n However, the `patch_applicator` is more directly related to code quality and correctness of changes. Also, it has the largest file size and the function `apply_patches` is the second longest function in the list (285 LOC) and the second most complex (CC:65). The `run_cycles` function is the longest (367 LOC) and most complex (CC:77). \n\n Given the metrics, both are critical. But we must choose one.\n\n Let me compare:\n\n   - `patch_applicator.py`: LOC 697 (largest file), and `apply_patches` is 285 LOC and CC 65.\n   - `cycle_runner.py`: LOC 387, and `run_cycles` is 367 LOC and CC 77.\n\n The function `run_cycles` is more complex and longer. However, the entire `cycle_runner` module is smaller than `patch_applicator`.\n\n Considering the impact, I think both are top priorities. But the instructions say \"the most impactful\".\n\n Since `patch_applicator` is responsible for applying changes to the code, and without tests we risk introducing bugs in the codebase, I lean towards `patch_applicator`.\n\n However, note that the `run_cycles` function is the heart of the agent. If it fails, the agent doesn't work. So it's also critical.\n\n But without tests for `patch_applicator`, we might be applying incorrect patches and then the agent's work is flawed. So I think `patch_applicator` is slightly more critical for the correctness of the output.\n\n Therefore, I stick with the objective for `patch_applicator`.\n\n However, let me see if there is a module that is both large and without tests and has high complexity that we haven't considered. The `brain.py` module is also large (395 LOC) and has complex functions (e.g., `generate_next_objective` with CC:32 and LOC:187) and no tests. But `brain.py` is about generating objectives, which is important but not as critical as applying patches correctly or running the main cycle.\n\n Final decision:\n\n   Create tests for the `apply_patches` function in `agent/patch_applicator.py`.\n\n Objective string:\n\n   \"Create a new test file `tests/agent/test_patch_applicator.py` with unit tests for the `apply_patches` function in `agent/patch_applicator.py`, covering its main use cases and edge cases.\"\n\n But note: the module has other functions that are also complex and long (like `_handle_replace` and `_handle_delete_block`). However, the objective can start with the main function.\n\n Alternatively, we can write tests for the entire module. But the example objectives focus on specific functions when starting.\n\n Since the instructions say \"be concise\", we can write:\n\n   \"Create unit tests for the `apply_patches` function in `agent/patch_applicator.py` in a new test file `tests/agent/test_patch_applicator.py`.\"\n\n But to be more complete, we can say:\n\n   \"Create a new test file `tests/agent/test_patch_applicator.py` and write unit tests for the `apply_patches` function in `agent/patch_applicator.py`, covering its main use cases and edge cases.\"\n\n This is specific and actionable.\n\n However, note that the function is very complex (CC:65). We might not cover all edge cases at once, but we can start with the main ones.\n\n Alternatively, we might break down the testing into multiple objectives, but again, one objective at a time.\n\n Therefore, I propose this as the next strategic objective.\n"
-      }
-    }
-  ],
-  "usage": {
-    "prompt_tokens": 1954,
-    "completion_tokens": 2103,
-    "total_tokens": 4057
-  }
-}
-2025-06-27 21:36:50,313 - HephaestusAgent - INFO - Objetivo inicial: Based on the analysis of code metrics and the absence of a project manifest, the most critical and impactful next objective is:
-
-**Create a new test file `tests/agent/test_patch_applicator.py` with comprehensive unit tests for the `apply_patches()` function (LOC: 285, CC: 65) in `agent/patch_applicator.py`, covering edge cases and failure modes.**
-
-### Rationale:
-1. **Critical Risk Mitigation**:  
-   `apply_patches()` is the **most complex function** (CC:65) and **2nd-longest function** (285 LOC) in the entire project. It handles critical code-modification logic but has zero tests, making it a high-risk component for defects.
-
-2. **Strategic Foundation**:  
-   Tests for this function will enable safe future refactoring of `patch_applicator.py` (697 LOC – largest module) and its other complex functions like `_handle_delete_block()` (CC:21).
-
-3. **Immediate Impact**:  
-   Addresses the most severe combination of risk factors (high complexity + zero test coverage) while directly supporting the project's structural quality goals.
-
-4. **Actionability**:  
-   Clear scope (single function + test file creation) with measurable outcomes.
-2025-06-27 21:36:50,313 - HephaestusAgent - INFO - Iniciando HephaestusAgent. Modo Contínuo: DESATIVADO.
-2025-06-27 21:36:50,313 - HephaestusAgent - INFO - Limite máximo de ciclos de execução definido para: 5.
-2025-06-27 21:36:50,313 - HephaestusAgent - INFO - 
-
-==================== INÍCIO DO CICLO DE EVOLUÇÃO (Ciclo #1) ====================
-2025-06-27 21:36:50,314 - HephaestusAgent - INFO - OBJETIVO ATUAL: Based on the analysis of code metrics and the absence of a project manifest, the most critical and impactful next objective is:
-
-**Create a new test file `tests/agent/test_patch_applicator.py` with comprehensive unit tests for the `apply_patches()` function (LOC: 285, CC: 65) in `agent/patch_applicator.py`, covering edge cases and failure modes.**
-
-### Rationale:
-1. **Critical Risk Mitigation**:  
-   `apply_patches()` is the **most complex function** (CC:65) and **2nd-longest function** (285 LOC) in the entire project. It handles critical code-modification logic but has zero tests, making it a high-risk component for defects.
-
-2. **Strategic Foundation**:  
-   Tests for this function will enable safe future refactoring of `patch_applicator.py` (697 LOC – largest module) and its other complex functions like `_handle_delete_block()` (CC:21).
-
-3. **Immediate Impact**:  
-   Addresses the most severe combination of risk factors (high complexity + zero test coverage) while directly supporting the project's structural quality goals.
-
-4. **Actionability**:  
-   Clear scope (single function + test file creation) with measurable outcomes.
-
-2025-06-27 21:36:50,314 - HephaestusAgent - INFO - Gerando manifesto do projeto (AGENTS.md)...
-2025-06-27 21:36:50,346 - HephaestusAgent - INFO - --- MANIFESTO GERADO (Tamanho: 7713 caracteres) ---
-2025-06-27 21:36:50,346 - HephaestusAgent - INFO - 
-Solicitando plano de ação do ArchitectAgent...
-2025-06-27 21:36:50,346 - HephaestusAgent.ArchitectAgent - INFO - ArchitectAgent: Gerando plano de patches com o modelo: deepseek/deepseek-r1-0528:free...
-2025-06-27 21:36:50,347 - urllib3.connectionpool - DEBUG - Starting new HTTPS connection (1): openrouter.ai:443
-2025-06-27 21:36:56,472 - urllib3.connectionpool - DEBUG - https://openrouter.ai:443 "POST /api/v1/chat/completions HTTP/1.1" 200 None
-2025-06-27 21:39:32,008 - HephaestusAgent - INFO - Memória salva em HEPHAESTUS_MEMORY.json (0 completed, 0 failed)
-2025-06-27 21:39:32,008 - HephaestusAgent - INFO - ==================== FIM DO CICLO DE EVOLUÇÃO ====================
