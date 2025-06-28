@@ -1,1 +1,13 @@
-# Arquivo vazio para tornar o diretório agent um pacote Python
+# Agent package
+from .error_analyzer import ErrorAnalysisAgent
+from .agents import ArchitectAgent, MaestroAgent
+from .brain import generate_next_objective, generate_capacitation_objective, generate_commit_message
+from .code_validator import validate_python_code, validate_json_syntax, perform_deep_validation
+from .cycle_runner import run_cycles
+from .deep_validator import analyze_complexity, detect_code_duplication, calculate_quality_score
+from .git_utils import initialize_git_repository
+from .memory import Memory
+from .patch_applicator import apply_patches
+from .project_scanner import update_project_manifest, analyze_code_metrics
+from .state import AgentState
+from .tool_executor import run_pytest, check_file_existence, run_in_sandbox, run_git_command
