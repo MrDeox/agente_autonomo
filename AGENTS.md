@@ -28,6 +28,8 @@ agente_autonomo/
         tool_executor.py
         project_scanner.py
         state.py
+        error_analyzer.py # Added new agent
+
         validation_steps/
             pytest_validator.py
             self_improvement_validator.py
@@ -129,7 +131,19 @@ agente_autonomo/
 ### Arquivo: `agent/state.py`
 - **Classe:** `AgentState`
   - *Representa o estado interno do agente Hephaestus durante um ciclo de processamento.*
+### Arquivo: `agent/error_analyzer.py`
+- **Classe:** `ErrorAnalysisAgent`
+  - *Analisa falhas ocorridas durante a execução de um objetivo, classifica o erro e sugere ações corretivas.*
+  - **Método:** `analyze_error(failed_objective: str, error_reason: str, error_context: str, original_patches: Optional[str]=None, failed_code_snippet: Optional[str]=None, test_output: Optional[str]=None) -> Dict[str, Any]`
+    - *Recebe detalhes da falha e retorna um dicionário com a classificação do erro, tipo de sugestão (ex: REGENERATE_PATCHES, NEW_OBJECTIVE) e um prompt sugerido para a próxima ação.*
 
+### Arquivo: `hephaestus_config.json` (Estrutura e Estratégias Notáveis)
+- *Arquivo de configuração principal para o Hephaestus.*
+- **Seção:** `validation_strategies`
+  - *Define várias estratégias de validação e aplicação de patches. Cada estratégia é uma sequência de etapas (steps).*
+  - **Estratégia Notável:** `AUTO_CORRECTION_STRATEGY`
+    - *Usada programaticamente pelo `CycleRunner` quando um objetivo de correção automática está sendo processado.*
+    - *Tipicamente envolve etapas como `validate_syntax`, `apply_patches_to_disk`, e `run_pytest_validation` para verificar a correção.*
 ### Arquivo: `agent/validation_steps/pytest_validator.py`
 - **Classe:** `PytestValidator(ValidationStep)`
   - *Runs pytest as a validation step.*

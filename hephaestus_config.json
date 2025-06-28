@@ -3,7 +3,8 @@
     "architect_default": "deepseek/deepseek-r1-0528:free",
     "maestro_default": "deepseek/deepseek-r1-0528:free",
     "objective_generator": "deepseek/deepseek-r1-0528:free",
-    "capacitation_generator": "deepseek/deepseek-r1-0528:free"
+    "capacitation_generator": "deepseek/deepseek-r1-0528:free",
+    "error_analyzer": "deepseek/deepseek-chat-v3-0324:free"
   },
   "code_analysis_thresholds": {
     "file_loc": 300,
@@ -44,8 +45,10 @@
       "sanity_check_step": "run_pytest"
     },
     "CREATE_NEW_TEST_FILE_STRATEGY": {
-      "steps": ["validate_syntax", "run_pytest_new_file_validation", "apply_patches_to_disk"],
-      "sanity_check_step": "run_pytest"
+      "steps": ["validate_syntax", "run_pytest_new_file_validation", "apply_patches_to_disk"],      "sanity_check_step": "run_pytest_new_file_validation"
+    },
+    "AUTO_CORRECTION_STRATEGY": {
+      "steps": ["validate_syntax", "apply_patches_to_disk", "run_pytest_validation"],      "sanity_check_step": "run_pytest"
     }
   }
 }

@@ -13,6 +13,7 @@ from agent.brain import (
     generate_commit_message,
 )
 from agent.tool_executor import run_pytest, check_file_existence, run_git_command
+from agent.error_analyzer import ErrorAnalysisAgent # Import ErrorAnalysisAgent
 
 if TYPE_CHECKING:  # pragma: no cover - for type checking only
     from main import HephaestusAgent
@@ -124,12 +125,42 @@ def run_cycles(agent: "HephaestusAgent") -> None:
                 if not agent.objective_stack and not agent.continuous_mode:
                     break
                 continue
-            if not agent._run_maestro_phase():
-                agent.logger.warning("Falha na fase do Maestro. Pulando para o próximo objetivo se houver.")
-                agent.memory.add_failed_objective(current_objective, "MAESTRO_PHASE_FAILED", "MaestroAgent could not decide on a strategy.")
-                if not agent.objective_stack and not agent.continuous_mode:
+
+            # Check if current_objective is an auto-correction task
+            # If so, set strategy to AUTO_CORRECTION_STRATEGY and skip Maestro phase
+            is_correction_objective = False
+            correction_prefixes = [
+                "[AUTOMATIC CORRECTION TASK]",
+                "[CORRECTION TASK - SYNTAX]",
+                "[CORRECTION TASK - TEST]",
+                "[CORRECTION TASK - LOGIC]", # Added for completeness, though ErrorAnalysisAgent might suggest NEW_OBJECTIVE for pure logic
+                "[REVISED OBJECTIVE", # Broader category for revised objectives from ErrorAnalysisAgent
+                "[MODIFIED OBJECTIVE"
+            ]
+            for prefix in correction_prefixes:
+                if current_objective.startswith(prefix):
+                    is_correction_objective = True
                     break
-                continue
+
+            if is_correction_objective:
+                agent.logger.info(f"Objetivo de correção detectado: '{current_objective[:100]}...'. Usando AUTO_CORRECTION_STRATEGY.")
+                agent.state.strategy_key = "AUTO_CORRECTION_STRATEGY"
+                # Ensure AUTO_CORRECTION_STRATEGY is valid
+                if "AUTO_CORRECTION_STRATEGY" not in agent.config.get("validation_strategies", {}):
+                    agent.logger.error("CRITICAL: AUTO_CORRECTION_STRATEGY não definida no hephaestus_config.json. Falhando o ciclo.")
+                    agent.memory.add_failed_objective(current_objective, "CONFIG_ERROR", "AUTO_CORRECTION_STRATEGY missing.")
+                    # Potentially break or continue to next objective if stack not empty
+                    if not agent.objective_stack and not agent.continuous_mode:
+                        break
+                    continue
+            else:
+                # Normal flow: run Maestro phase
+                if not agent._run_maestro_phase():
+                    agent.logger.warning("Falha na fase do Maestro. Pulando para o próximo objetivo se houver.")
+                    agent.memory.add_failed_objective(current_objective, "MAESTRO_PHASE_FAILED", "MaestroAgent could not decide on a strategy.")
+                    if not agent.objective_stack and not agent.continuous_mode:
+                        break
+                    continue
 
             if agent.state.strategy_key == "CAPACITATION_REQUIRED":
                 agent.logger.info("Maestro identificou a necessidade de uma nova capacidade.")
@@ -311,31 +342,73 @@ def run_cycles(agent: "HephaestusAgent") -> None:
 
                 if reason in correctable_failure_reasons and agent.objective_stack_depth_for_testing is None:
                     agent.logger.warning(
-                        f"Falha corrigível ({reason}). Gerando objetivo de correção."
+                        f"Falha corrigível ({reason}). Iniciando ErrorAnalysisAgent."
                     )
-                    agent.objective_stack.append(current_objective)
+
+                    error_analyzer_model = agent.config.get("models", {}).get("error_analyzer", agent.light_model)
+                    error_analyzer = ErrorAnalysisAgent(
+                        api_key=agent.api_key,
+                        model=error_analyzer_model,
+                        logger=agent.logger.getChild("ErrorAnalysisAgent")
+                    )
 
                     original_patches_json = json.dumps(agent.state.get_patches_to_apply(), indent=2) if agent.state.action_plan_data else "N/A"
-                    correction_details = f"FAILURE REASON: {reason}\nFAILURE DETAILS: {context}"
-                    is_test_failure_flag = "PYTEST_FAILURE" in reason.upper() or "REGRESSION_DETECTED_BY_RUN_PYTEST" in reason.upper()
 
-                    correction_prompt = f"""[AUTOMATIC CORRECTION TASK]
-ORIGINAL OBJECTIVE THAT FAILED: {current_objective}
-{correction_details}
-ORIGINAL PATCHES INVOLVED: {original_patches_json}
-Your mission is to analyze the failure and generate NEW patches to CORRECT the problem and achieve the ORIGINAL OBJECTIVE.
-If the problem was in the patches, correct them. If it was in validation or sanity checks, adjust the patches to pass.
-"""
-                    if is_test_failure_flag:
-                        correction_prompt += "\n[CONTEXT_FLAG] TEST_FIX_IN_PROGRESS"
-
-                    agent.objective_stack.append(correction_prompt)
-                    agent.logger.info(
-                        f"Gerado novo objetivo de correção e adicionado à pilha. {'(TEST_FIX_IN_PROGRESS)' if is_test_failure_flag else ''}"
+                    # TODO: Consider passing failed_code_snippet and test_output if available/relevant
+                    # For now, error_context might contain some of this.
+                    analysis_result = error_analyzer.analyze_error(
+                        failed_objective=current_objective,
+                        error_reason=reason,
+                        error_context=context,
+                        original_patches=original_patches_json
                     )
+
+                    agent.logger.info(f"ErrorAnalysisAgent resultado: Classificação='{analysis_result['classification']}', Tipo de Sugestão='{analysis_result['suggestion_type']}'")
+                    agent.logger.debug(f"ErrorAnalysisAgent - Detalhes da Análise: {analysis_result['details']}")
+                    agent.logger.debug(f"ErrorAnalysisAgent - Prompt Sugerido: {analysis_result['suggested_prompt']}")
+
+                    correction_prompt = analysis_result.get("suggested_prompt")
+                    suggestion_type = analysis_result.get("suggestion_type")
+
+                    if correction_prompt and suggestion_type not in ["LOG_FOR_REVIEW", None]:
+                        # Re-add original objective to try again with the new correction task
+                        agent.objective_stack.append(current_objective)
+                        agent.objective_stack.append(correction_prompt)
+
+                        log_message = f"Novo objetivo de correção gerado pelo ErrorAnalysisAgent e adicionado à pilha: '{correction_prompt[:100]}...'"
+
+                        # Add TEST_FIX_IN_PROGRESS flag if ErrorAnalysisAgent classified it as such (implicitly or explicitly)
+                        # For now, we rely on the ErrorAnalysisAgent's prompt to contain necessary context.
+                        # If a more explicit flag is needed for MaestroAgent, ErrorAnalysisAgent should provide it.
+                        is_test_failure_flag = analysis_result['classification'] == "TEST_FAILURE"
+                        if is_test_failure_flag: # This flag is used by MaestroAgent in current code, let's keep it if test failure
+                             if "[CONTEXT_FLAG] TEST_FIX_IN_PROGRESS" not in correction_prompt:
+                                 # The ErrorAnalysisAgent should ideally include this in its suggested_prompt if needed.
+                                 # However, to maintain compatibility with existing Maestro logic, we can check here.
+                                 # A better approach would be for ErrorAnalysisAgent to return a specific flag or ensure its prompt is complete.
+                                 agent.logger.info("ErrorAnalysisAgent classificou como TEST_FAILURE, mas o prompt não contém TEST_FIX_IN_PROGRESS. Isso pode ser necessário para o Maestro.")
+
+
+                        agent.logger.info(log_message)
+
+                        # Future: If suggestion_type is NEW_OBJECTIVE, we might not re-add `current_objective`.
+                        # The `correction_prompt` itself would be the new high-level objective.
+                        # This depends on how ErrorAnalysisAgent is designed to formulate `suggested_prompt` for NEW_OBJECTIVE.
+                        # Current ErrorAnalysisAgent prompt implies `suggested_prompt` is always for Architect or a modified objective.
+
+                    elif suggestion_type == "LOG_FOR_REVIEW":
+                        agent.logger.error(
+                            f"ErrorAnalysisAgent recomendou LOG_FOR_REVIEW para o objetivo '{current_objective}'. Detalhes: {analysis_result.get('details')}"
+                        )
+                        # The objective already failed and was logged by memory.add_failed_objective.
+                        # No further automatic correction attempt will be made for this specific failure instance.
+                    else:
+                        agent.logger.error(
+                            f"ErrorAnalysisAgent não forneceu um prompt de correção acionável para o objetivo '{current_objective}'. Detalhes: {analysis_result.get('details')}"
+                        )
                 else:
                     agent.logger.error(
-                        f"Falha não listada como corrigível ou desconhecida ({reason}). Não será gerado objetivo de correção automático. Verifique os logs."
+                        f"Falha não listada como corrigível ({reason}) ou erro desconhecido. Não será gerado objetivo de correção automático. Verifique os logs."
                     )
         finally:
             agent.memory.save()
