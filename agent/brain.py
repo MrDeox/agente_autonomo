@@ -25,13 +25,11 @@ from agent.utils.llm_client import call_llm_api
 
 
 def generate_next_objective(
-    api_key: str,
-    model: str,
+    model_config: Dict[str, str],
     current_manifest: str,
     logger: logging.Logger, # Changed type hint from Any
     project_root_dir: str,
     config: Optional[Dict[str, Any]] = None,
-    base_url: str = "https://openrouter.ai/api/v1",
     memory_summary: Optional[str] = None
 ) -> str:
     """
@@ -180,11 +178,9 @@ Be concise, but specific enough to be actionable.
 
     # 4. Call LLM API using the centralized function
     content, error = call_llm_api(
-        api_key=api_key,
-        model=model,
+        model_config=model_config,
         prompt=prompt,
         temperature=0.3,
-        base_url=base_url,
         logger=logger
     )
 
@@ -214,10 +210,8 @@ Be concise, but specific enough to be actionable.
 
 
 def generate_capacitation_objective(
-    api_key: str,
-    model: str,
+    model_config: Dict[str, str],
     engineer_analysis: str,
-    base_url: str = "https://openrouter.ai/api/v1",
     memory_summary: Optional[str] = None,
     logger: Optional[logging.Logger] = None # Changed type hint
 ) -> str:
@@ -254,7 +248,7 @@ The objective MUST start with "[CAPACITATION TASK]". For example: "[CAPACITATION
     if logger:
         logger.debug(f"Prompt to generate capacitation objective:\n{prompt}")
 
-    content, error = call_llm_api(api_key, model, prompt, 0.3, base_url, logger) # Use imported function
+    content, error = call_llm_api(model_config, prompt, 0.3, logger) # Use imported function
 
     if error:
         log_message = f"Erro ao gerar objetivo de capacitação: {error}"
@@ -282,12 +276,10 @@ The objective MUST start with "[CAPACITATION TASK]". For example: "[CAPACITATION
 
 
 def generate_commit_message(
-    api_key: str,
-    model: str,
+    model_config: Dict[str, str],
     analysis_summary: str,
     objective: str,
     logger: logging.Logger, # Changed type hint
-    base_url: str = "https://openrouter.ai/api/v1"
 ) -> str:
     """
     Generates a concise and informative commit message using an LLM.

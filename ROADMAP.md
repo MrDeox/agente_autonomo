@@ -1,100 +1,57 @@
-# Hephaestus Agent - Roadmap de Evolução
+# Roadmap de Evolução do Hephaestus
 
-Este documento delineia os upgrades planejados para o agente Hephaestus, em ordem de prioridade. O objetivo é seguir este roadmap para impulsionar o ciclo de autoaperfeiçoamento recursivo do agente.
+Este documento delineia a visão de alto nível para a evolução do Hephaestus como um agente de **Aprimoramento Auto Recursivo (RSI)**. Ele serve como um guia estratégico, enquanto o `CAPABILITIES.md` detalha os passos táticos.
 
-## Contexto: Status do Objetivo de "Recursive Self-Improvement"
+---
 
-O projeto Hephaestus está bem encaminhado para alcançar o objetivo de autoaperfeiçoamento recursivo. A estrutura fundamental que permite ao agente analisar a si mesmo, sugerir melhorias e aplicá-las já está presente. Contudo, há um vasto campo para crescimento e sofisticação, especialmente no que tange à inteligência e autonomia desse processo. O roadmap a seguir visa aprimorar continuamente essas capacidades.
+## Fase 1: Consciência e Correção (Curto Prazo)
 
-## Tier S: Game-Changers (Maior Impacto)
+O foco desta fase é fazer com que o agente pare de executar tarefas cegamente e comece a entender seu próprio desempenho e a corrigir suas falhas de forma mais inteligente.
 
-- [x] **1. Geração Automática de Testes:**
-  -   **Status:** Concluído.
-  -   **Descrição:** Dar ao agente a capacidade de identificar módulos sem testes e escrever novos arquivos de teste (`test_*.py`) para eles. Isso remove o principal gargalo para refatorações seguras e acelera a robustez do agente.
-  -   **Status:** Concluído.
-  -   **Descrição:** Dar ao agente a capacidade de identificar módulos sem testes e escrever novos arquivos de teste (`test_*.py`) para eles. Isso remove o principal gargalo para refatorações seguras e acelera a robustez do agente.
-  -   **Implementação:**
-      -   [x] `agent/project_scanner.py` (`analyze_code_metrics`) já identificava módulos sem testes (`missing_tests`).
-      -   [x] `agent/brain.py` (`generate_next_objective`) teve seu prompt atualizado para melhor instruir o LLM a gerar objetivos de criação de testes, especificando o nome do novo arquivo de teste.
-      -   [x] `agent/agents.py` (`ArchitectAgent`) teve seu prompt atualizado para, ao receber um objetivo de criação de testes, gerar o conteúdo completo do novo arquivo de teste, incluindo imports e funções de teste placeholder.
-      -   [x] Criada a estratégia de validação `CREATE_NEW_TEST_FILE_STRATEGY` em `hephaestus_config.json`.
-      -   [x] Criado o validador `PytestNewFileValidator` (em `agent/validation_steps/pytest_new_file_validator.py`) que executa `pytest` especificamente no novo arquivo de teste gerado.
-      -   [x] Adicionados testes unitários para `PytestNewFileValidator`.
+-   [ ] **1. Análise de Performance:**
+    -   **Visão:** O agente deve ser capaz de ler seu próprio log de performance (`evolution_log.csv`) e responder a perguntas como: "Qual é a minha taxa de sucesso?", "Quais estratégias falham mais?" e "Onde estou gastando mais tempo?".
+    -   **Status:** Não iniciado.
 
-- [ ] **2. Acesso a Conhecimento Externo (Web Search):**
-  -   **Status:** Não iniciado.
-  -   **Descrição:** Implementar uma nova ferramenta `web_search` que permita ao agente pesquisar na internet para resolver erros ou aprender sobre novas bibliotecas. Isso quebra a "bolha" do agente, permitindo que ele resolva problemas para os quais não foi explicitamente programado.
+-   [ ] **2. Meta-Análise de Falhas:**
+    -   **Visão:** Quando uma tarefa falha repetidamente, o agente deve parar de tentar corrigir o código e, em vez disso, questionar o objetivo em si. Ele deve ser capaz de concluir: "Esta abordagem não está funcionando, preciso de uma nova estratégia ou de uma nova ferramenta".
+    -   **Status:** Não iniciado.
 
-- [ ] **3. Consciência da Performance em Runtime:**
-  -   **Status:** Não iniciado.
-  -   **Descrição:** Fazer com que o agente meça seu próprio tempo de execução e uso de memória. Isso adiciona um novo eixo de otimização (eficiência) e permite que ele detecte e corrija regressões de performance.
+-   [ ] **3. Refatoração Orientada a Capacidades:**
+    -   **Visão:** O agente só deve propor refatorações de código se elas estiverem diretamente ligadas a um objetivo de capacitação, como "preciso refatorar este módulo para conseguir implementar uma nova ferramenta de análise".
+    -   **Status:** Não iniciado.
 
-- [ ] **4. Memória de Longo Prazo (Banco Vetorial):**  
-  -   **Status:** Não iniciado.
-  -   **Descrição:** Adotar banco de vetores (ex: Pinecone) para armazenar embeddings de objetivos e resultados, permitindo buscas semânticas eficientes e enriquecendo o contexto dos prompts.
+---
 
-- [ ] **5. Aprendizado Reforçado:**  
-  -   **Status:** Não iniciado.
-  -   **Descrição:** Integrar RL para aprimorar escolha de estratégias, recompensando objetivos alcançados e penalizando falhas (híbrido LLM+RL).
+## Fase 2: Expansão de Habilidades (Médio Prazo)
 
-- [ ] **6. Auto-treino do Modelo:**  
-  -   **Status:** Não iniciado.
-  -   **Descrição:** Capturar dados de ciclos para treinar modelo interno otimizado, reduzindo dependência de APIs externas.
+Com a consciência básica estabelecida, o foco se volta para a expansão proativa de suas próprias habilidades e ferramentas.
 
-## Tier A: Aceleradores Estratégicos
+-   [ ] **1. Auto-Aprimoramento de Ferramentas:**
+    -   **Visão:** O agente deve ser capaz de modificar suas próprias ferramentas (`tool_executor.py`, `validation_steps/`, etc.) quando encontrar uma limitação. Se uma validação é muito fraca ou uma ferramenta não tem um parâmetro necessário, ele deve ser capaz de adicioná-lo.
+    -   **Status:** Não iniciado.
 
-- [ ] **1. Uso Avançado de Git (Feature Branches):**
-  -   **Status:** Não iniciado.
-  -   **Descrição:** Mudar o fluxo de trabalho para que cada objetivo seja desenvolvido em uma `feature branch` separada. Isso torna o processo mais limpo e seguro, eliminando a necessidade de `git reset --hard` em caso de falha.
+-   [ ] **2. Acesso e Raciocínio com Conhecimento Externo:**
+    -   **Visão:** Implementar uma ferramenta de busca na web (`web_search`) robusta, permitindo que o agente pesquise documentação de APIs, soluções para erros e novas bibliotecas para resolver problemas que estão além de seu conhecimento atual.
+    -   **Status:** Não iniciado.
 
-- [ ] **2. Análise de Logs em Runtime:**
-  -   **Status:** Não iniciado.
-  -   **Descrição:** Dar ao agente a capacidade de ler e interpretar seu próprio arquivo de log (`hephaestus.log`) para encontrar e corrigir warnings ou erros não fatais.
+-   [ ] **3. Gerenciamento de Estratégias Dinâmicas:**
+    -   **Visão:** O `MaestroAgent` deve evoluir de um simples selecionador de estratégias para um arquiteto de estratégias. Ele deve ser capaz de propor, e até mesmo codificar, novas estratégias de validação em `hephaestus_config.json` com base nos requisitos de um objetivo.
+    -   **Status:** Não iniciado.
 
-- [ ] **3. Modularização e PLUGINS:**  
-  -   **Status:** Não iniciado.
-  -   **Descrição:** Extrair funcionalidades em serviços desacoplados (microservices/plugins) para facilitar testes e escalonamento.
+---
 
-- [ ] **4. Cobertura de Testes e CI:**  
-  -   **Status:** Não iniciado.
-  -   **Descrição:** Implementar suíte de testes abrangente e pipeline CI/CD para garantir estabilidade.
+## Fase 3: Autonomia Estratégica (Longo Prazo)
 
-## Tier B: Refinamentos e Saúde a Longo Prazo
+Nesta fase, o agente transcende a execução de ciclos e começa a gerenciar seu próprio desenvolvimento de forma estratégica.
 
-- [ ] **1. Debate Multi-Agente para Soluções:**
-  -   **Status:** Não iniciado.
-  -   **Descrição:** Instanciar múltiplos `ArchitectAgent` em paralelo para gerar diferentes soluções para o mesmo problema, com um "CouncilAgent" para decidir a melhor abordagem.
+-   [ ] **1. Planejamento de Longo Prazo:**
+    -   **Visão:** O agente deve ser capaz de analisar este próprio `ROADMAP.md` e o `CAPABILITIES.md` para gerar um plano de desenvolvimento de múltiplos passos para si mesmo, em vez de operar em um ciclo de objetivo único.
+    -   **Status:** Não iniciado.
 
-- [ ] **2. Modo de Desenvolvimento Guiado por Testes (TDD):**
-  -   **Status:** Não iniciado.
-  -   **Descrição:** Implementar uma estratégia onde o agente primeiro escreve um teste que falha e, em seguida, escreve o código para fazê-lo passar.
+-   [ ] **2. Auto-Otimização de Modelos:**
+    -   **Visão:** Capturar os prompts e as respostas de maior sucesso para criar conjuntos de dados de fine-tuning. O objetivo final é treinar versões especializadas dos modelos de LLM que sejam mais eficientes e precisas para as tarefas do Hephaestus.
+    -   **Status:** Não iniciado.
 
-- [ ] **3. Planejamento Estratégico de Longo Prazo (Roadmap):**
-  -   **Status:** Não iniciado.
-  -   **Descrição:** Permitir que o agente crie um roadmap de alto nível para si mesmo, em vez de gerar um objetivo de cada vez.
-
-- [ ] **4. Gerenciamento de Dependências:**
-  -   **Status:** Não iniciado.
-  -   **Descrição:** Fazer com que o agente verifique `requirements.txt` e proponha atualizações para dependências desatualizadas.
-
-- [ ] **5. Expansão Multi-Agente:**  
-  -   **Status:** Não iniciado.
-  -   **Descrição:** Criar múltiplos agentes especialistas trabalhando em paralelo para acelerar desenvolvimento.
-
-## Tier C: Melhorias de Usabilidade e Manutenção
-
-- [ ] **1. Documentação Automática de Código:**
-  -   **Status:** Não iniciado.
-  -   **Descrição:** Capacitar o agente a gerar ou atualizar automaticamente a documentação de funções, classes e módulos, seguindo padrões como docstrings Python.
-
-- [ ] **2. Refatoração de Código Legado:**
-  -   **Status:** Não iniciado.
-  -   **Descrição:** Desenvolver a capacidade do agente de identificar e refatorar seções de código consideradas "legado" ou de baixa qualidade, melhorando a manutenibilidade.
-
-- [ ] **3. Otimização de Configurações:**
-  -   **Status:** Não iniciado.
-  -   **Descrição:** Permitir que o agente analise e proponha otimizações para arquivos de configuração (`hephaestus_config.json`, `example_config.json`), ajustando parâmetros para melhor performance ou robustez.
-
-- [ ] **4. Interface de Monitoramento:**  
-  -   **Status:** Não iniciado.
-  -   **Descrição:** Desenvolver dashboard/API para exibir estado do agente em tempo real, facilitando supervisão.
+-   [ ] **3. Arquitetura de Agentes Dinâmica:**
+    -   **Visão:** O agente deve ser capaz de propor e implementar mudanças em sua própria arquitetura de agentes, como criar um novo agente especializado (ex: `DocumentationAgent`) ou dividir as responsabilidades de um agente existente, para melhorar a eficiência do sistema.
+    -   **Status:** Não iniciado.

@@ -59,12 +59,6 @@ class HephaestusAgent:
         self.config = self.load_config()
         self.continuous_mode = continuous_mode # ADICIONADO
         self.objective_stack_depth_for_testing = objective_stack_depth_for_testing
-        self.api_key = os.getenv("OPENROUTER_API_KEY")
-        self.model_list = [
-            "deepseek/deepseek-chat-v3-0324:free",
-            "deepseek/deepseek-r1-0528:free"
-        ]
-        self.light_model = "deepseek/deepseek-chat-v3-0324:free"
         self.state: AgentState = AgentState() # Modificado para usar a dataclass
         self.objective_stack: List[str] = []  # Pilha de objetivos com tipo
         # Adicionar import List from typing se não estiver lá em cima
@@ -78,22 +72,20 @@ class HephaestusAgent:
         self.logger.info(f"Memória carregada. {len(self.memory.completed_objectives)} objetivos concluídos, {len(self.memory.failed_objectives)} falharam.")
 
         # Inicialização dos Agentes Especializados
-        architect_model = self.config.get("models", {}).get("architect_default", self.model_list[0])
+        architect_model_config = self.config.get("models", {}).get("architect_default")
         self.architect = ArchitectAgent(
-            api_key=self.api_key,
-            model=architect_model,
+            model_config=architect_model_config,
             logger=self.logger.getChild("ArchitectAgent") # Logger específico
         )
-        self.logger.info(f"ArchitectAgent inicializado com modelo: {architect_model}")
+        self.logger.info(f"ArchitectAgent inicializado com a configuração: {architect_model_config}")
 
-        maestro_model_list = self.config.get("models", {}).get("maestro_default_list", self.model_list) # Permite lista no config
+        maestro_model_config = self.config.get("models", {}).get("maestro_default")
         self.maestro = MaestroAgent(
-            api_key=self.api_key,
-            model_list=maestro_model_list,
+            model_config=maestro_model_config,
             config=self.config, # Maestro pode precisar de acesso a outras partes da config
             logger=self.logger.getChild("MaestroAgent") # Logger específico
         )
-        self.logger.info(f"MaestroAgent inicializado com modelos: {maestro_model_list}")
+        self.logger.info(f"MaestroAgent inicializado com a configuração: {maestro_model_config}")
 
         self.evolution_log_file = "evolution_log.csv" # ADICIONADO
         self._initialize_evolution_log() # ADICIONADO
@@ -205,7 +197,7 @@ class HephaestusAgent:
             action_plan_data = {"analysis": "", "patches_to_apply": []}
 
         self.state.action_plan_data = action_plan_data
-        self.logger.info(f"--- PLANO DE AÇÃO (PATCHES) GERADO PELO ARCHITECTAGENT ({self.architect.model}) ---")
+        self.logger.info(f"--- PLANO DE AÇÃO (PATCHES) GERADO PELO ARCHITECTAGENT ({self.architect.model_config}) ---")
         self.logger.debug(f"Análise do Arquiteto: {self.state.get_architect_analysis()}")
         self.logger.debug(f"Patches: {json.dumps(self.state.get_patches_to_apply(), indent=2)}")
         return True
@@ -399,9 +391,7 @@ class HephaestusAgent:
         return
 
     def run(self) -> None:
-        if not self.api_key:
-            self.logger.error("Erro: OPENROUTER_API_KEY não encontrada. Encerrando.")
-            return
+        # API keys are now checked inside the llm_client, so we can remove the check here.
         if not initialize_git_repository(self.logger):
             self.logger.error("Falha ao inicializar o repositório Git. O agente não pode continuar sem versionamento.")
             return

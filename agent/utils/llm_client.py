@@ -1,31 +1,61 @@
+import os
 import json
-import logging # Changed from 'Any' to 'logging' for proper type hinting
+import logging
 import requests
-import traceback # Kept for now, as it was in one of the versions
-from typing import Optional, Tuple, Any # 'Any' can be replaced if logger type is more specific
+import traceback
+from typing import Optional, Tuple, Dict, Any
+import google.generativeai as genai
 
-# Common function to call LLM API
-# Taken from agent/agents.py as it seemed slightly more complete (e.g., no traceback import)
-# but added back traceback for safety if it was used in specific error conditions.
-def call_llm_api(api_key: str, model: str, prompt: str, temperature: float, base_url: str, logger: logging.Logger) -> Tuple[Optional[str], Optional[str]]:
+# Configure Gemini client
+GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
+if GEMINI_API_KEY:
+    genai.configure(api_key=GEMINI_API_KEY)
+
+# Constants
+OPENROUTER_API_KEY = os.getenv("OPENROUTER_API_KEY")
+OPENROUTER_BASE_URL = "https://openrouter.ai/api/v1"
+
+def call_gemini_api(model: str, prompt: str, temperature: float, logger: logging.Logger) -> Tuple[Optional[str], Optional[str]]:
     """
-    Helper function to make calls to the LLM API.
-
-    Args:
-        api_key: The API key for authentication.
-        model: The model to use for the completion.
-        prompt: The prompt to send to the model.
-        temperature: The temperature for sampling.
-        base_url: The base URL for the API.
-        logger: Logger instance for logging.
-
-    Returns:
-        A tuple containing the content of the response (or None if an error occurred)
-        and an error message (or None if successful).
+    Calls the Google Gemini API.
     """
-    url = f"{base_url}/chat/completions"
+    if not GEMINI_API_KEY:
+        return None, "GEMINI_API_KEY environment variable not set."
+    
+    logger.info(f"Attempting to call Gemini API with model: {model}")
+    try:
+        # Model name in config is "gemini/model-name", we need to pass "model-name"
+        model_name = model.split('/')[-1]
+        gemini_model = genai.GenerativeModel(model_name)
+        response = gemini_model.generate_content(prompt, generation_config=genai.types.GenerationConfig(temperature=temperature))
+        
+        if response.text:
+            logger.debug(f"Gemini API Response: {response.text}")
+            return response.text, None
+        else:
+            # Handle cases where the response might be blocked or empty
+            error_message = "Gemini API call failed: No text in response."
+            if response.prompt_feedback:
+                error_message += f" Prompt Feedback: {response.prompt_feedback}"
+            logger.error(error_message)
+            return None, error_message
+
+    except Exception as e:
+        error_details = f"Unexpected error during Gemini API call: {str(e)}\n{traceback.format_exc()}"
+        logger.error(error_details)
+        return None, error_details
+
+def call_openrouter_api(model: str, prompt: str, temperature: float, logger: logging.Logger) -> Tuple[Optional[str], Optional[str]]:
+    """
+    Calls a generic OpenAI-compatible API (like OpenRouter).
+    """
+    if not OPENROUTER_API_KEY:
+        return None, "OPENROUTER_API_KEY environment variable not set."
+
+    logger.info(f"Attempting to call OpenRouter API with model: {model}")
+    url = f"{OPENROUTER_BASE_URL}/chat/completions"
     headers = {
-        "Authorization": f"Bearer {api_key}",
+        "Authorization": f"Bearer {OPENROUTER_API_KEY}",
         "Content-Type": "application/json"
     }
     payload = {
@@ -35,52 +65,56 @@ def call_llm_api(api_key: str, model: str, prompt: str, temperature: float, base
     }
     try:
         response = requests.post(url, json=payload, headers=headers)
-        response.raise_for_status()  # Raises an HTTPError for bad responses (4XX or 5XX)
+        response.raise_for_status()
         response_json = response.json()
 
-        if logger:
-            logger.debug(f"LLM API Response: {json.dumps(response_json, indent=2)}")
+        logger.debug(f"OpenRouter API Response: {json.dumps(response_json, indent=2)}")
 
-        if "choices" not in response_json or not response_json["choices"]:
-            err_msg = "API response missing 'choices' key or 'choices' is empty."
-            if logger:
-                logger.error(f"{err_msg} Full response: {response_json}")
+        content = response_json.get("choices", [{}])[0].get("message", {}).get("content")
+        if content is not None:
+            return content, None
+        else:
+            err_msg = "API response missing or has invalid structure."
+            logger.error(f"{err_msg} Full response: {response_json}")
             return None, f"{err_msg} Full response: {response_json}"
 
-        # Check if message and content are present
-        message = response_json["choices"][0].get("message")
-        if not message:
-            err_msg = "API response 'choices'[0] missing 'message' key."
-            if logger:
-                logger.error(f"{err_msg} Full response: {response_json}")
-            return None, f"{err_msg} Full response: {response_json}"
-
-        content = message.get("content")
-        if content is None: # content can be an empty string, which is valid
-            err_msg = "API response 'message' missing 'content' key."
-            if logger:
-                logger.error(f"{err_msg} Full response: {response_json}")
-            return None, f"{err_msg} Full response: {response_json}"
-
-        return content, None
     except requests.exceptions.HTTPError as http_err:
         error_details = f"HTTP error occurred: {http_err} - Status: {http_err.response.status_code}, Response: {http_err.response.text}"
-        if logger:
-            logger.error(error_details)
-        return None, error_details
-    except requests.exceptions.RequestException as req_err:
-        error_details = f"Request failed: {req_err}"
-        if logger:
-            logger.error(error_details)
-        return None, error_details
-    except KeyError as key_err:
-        error_details = f"KeyError: {str(key_err)} in API response. This might indicate an unexpected response structure."
-        if logger:
-            logger.error(f"{error_details} Full response: {response_json}")
+        logger.error(error_details)
         return None, error_details
     except Exception as e:
-        # Using traceback here to get more details on unexpected errors
-        error_details = f"Unexpected error during LLM API call: {str(e)}\n{traceback.format_exc()}"
-        if logger:
-            logger.error(error_details)
+        error_details = f"Unexpected error during OpenRouter API call: {str(e)}\n{traceback.format_exc()}"
+        logger.error(error_details)
         return None, error_details
+
+def call_llm_with_fallback(model_config: Dict[str, str], prompt: str, temperature: float, logger: logging.Logger) -> Tuple[Optional[str], Optional[str]]:
+    """
+    Orchestrates LLM calls with a primary and fallback model.
+    """
+    primary_model = model_config.get("primary")
+    fallback_model = model_config.get("fallback")
+
+    # Try primary model first
+    if primary_model:
+        logger.info(f"Calling primary model: {primary_model}")
+        content, error = None, None
+        if primary_model.startswith("gemini/"):
+            content, error = call_gemini_api(primary_model, prompt, temperature, logger)
+        else: # Assuming other primary models are OpenAI compatible
+            content, error = call_openrouter_api(primary_model, prompt, temperature, logger)
+
+        if content is not None:
+            return content, None
+        
+        logger.warning(f"Primary model '{primary_model}' failed. Error: {error}. Trying fallback.")
+
+    # If primary fails or is not defined, try fallback
+    if fallback_model:
+        logger.info(f"Calling fallback model: {fallback_model}")
+        # Assuming all fallbacks are OpenAI compatible for now
+        return call_openrouter_api(fallback_model, prompt, temperature, logger)
+
+    return None, "Both primary and fallback models failed or are not configured."
+
+# For backward compatibility, you can alias the old function name
+call_llm_api = call_llm_with_fallback

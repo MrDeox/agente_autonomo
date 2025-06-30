@@ -6,11 +6,9 @@ from typing import Optional, Dict, Any, Tuple
 from agent.utils.llm_client import call_llm_api
 
 class ErrorAnalysisAgent:
-    def __init__(self, api_key: str, model: str, logger: logging.Logger, base_url: str = "https://openrouter.ai/api/v1"):
-        self.api_key = api_key
-        self.model = model
+    def __init__(self, model_config: Dict[str, str], logger: logging.Logger):
+        self.model_config = model_config
         self.logger = logger
-        self.base_url = base_url
 
     def analyze_error(
         self,
@@ -96,7 +94,7 @@ class ErrorAnalysisAgent:
         self.logger.debug(f"ErrorAnalysisAgent: Prompt for LLM:\n{prompt}")
 
         raw_response, error = call_llm_api(
-            self.api_key, self.model, prompt, temperature=0.3, base_url=self.base_url, logger=self.logger
+            self.model_config, prompt, temperature=0.3, logger=self.logger
         )
 
         if error:
@@ -162,13 +160,14 @@ if __name__ == '__main__':
     logging.basicConfig(level=logging.DEBUG, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
     logger = logging.getLogger("ErrorAnalysisAgentTest")
 
-    mock_api_key = os.getenv("OPENROUTER_API_KEY", "test_api_key_not_set")
-    mock_model = "deepseek/deepseek-chat-v3-0324:free" # A real free model
+    # This test block needs to be updated to reflect the new model_config structure
+    # For now, we'll just create a dummy config for testing.
+    mock_model_config = {
+        "primary": "gemini/gemini-2.5-pro",
+        "fallback": "deepseek/deepseek-chat-v3-0324:free"
+    }
 
-    if mock_api_key == "test_api_key_not_set":
-        logger.warning("OPENROUTER_API_KEY not set. LLM calls in test will likely fail or use fallbacks.")
-
-    analyzer = ErrorAnalysisAgent(api_key=mock_api_key, model=mock_model, logger=logger)
+    analyzer = ErrorAnalysisAgent(model_config=mock_model_config, logger=logger)
 
     syntax_error_analysis = analyzer.analyze_error(
         failed_objective="Implement feature X by modifying file Y.py",

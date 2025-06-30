@@ -1,166 +1,87 @@
-# Hephaestus Agent
+# Hephaestus: Um Agente de Aprimoramento Auto Recursivo (RSI)
 
-Autonomous AI agent for software development.
+**Hephaestus não é apenas um desenvolvedor de software autônomo; é um sistema projetado para melhorar a si mesmo.**
 
-*For more detailed documentation in Portuguese, please see the `MANIFESTO.md` and other `.md` files in this repository.*
+O objetivo principal deste projeto é explorar e construir um agente de IA capaz de **Aprimoramento Auto Recursivo (RSI)**. Isso significa que a principal diretriz do Hephaestus é analisar seu próprio código, identificar suas próprias limitações e gerar objetivos para aprimorar suas capacidades, arquitetura e eficiência.
+
+---
+
+## Visão do Projeto: O Foco em RSI
+
+Em vez de simplesmente completar tarefas de desenvolvimento de software, o Hephaestus opera sob a seguinte hierarquia de prioridades:
+
+1.  **Aprimorar Capacidades Fundamentais:** O agente busca ativamente expandir o que ele pode fazer. Isso é guiado pelo `CAPABILITIES.md`.
+2.  **Melhorar a Eficiência e a Taxa de Sucesso:** Analisando seu histórico de performance (`evolution_log.csv`), o agente identifica por que falha e como pode ter mais sucesso no futuro.
+3.  **Refatorar com Propósito:** A refatoração do código não é feita apenas para melhorar métricas, mas para habilitar futuras capacidades ou corrigir falhas de performance.
+4.  **Executar Tarefas de Desenvolvimento:** A modificação de código para tarefas externas é um resultado secundário e uma forma de testar as capacidades recém-adquiridas.
 
 ## Quick Start
 
-1.  **Clone the repository:**
-    Clone your local or remote repository. For example:
+1.  **Clone o repositório:**
     ```bash
     git clone [URL_DO_SEU_REPOSITORIO]
     cd hephaestus-agent
     ```
-2.  **Install dependencies:**
+2.  **Instale as dependências:**
     ```bash
     pip install -r requirements.txt
     ```
-3.  **Set up your API Key:**
-    Set the `OPENROUTER_API_KEY` environment variable. You can add it to a `.env` file in the project root:
+3.  **Configure suas Chaves de API:**
+    Crie um arquivo `.env` na raiz do projeto e adicione suas chaves. O agente usará o Gemini como primário e o OpenRouter como fallback.
     ```
-    OPENROUTER_API_KEY="your_openrouter_api_key_here"
+    GEMINI_API_KEY="sua_chave_gemini_aqui"
+    OPENROUTER_API_KEY="sua_chave_openrouter_aqui"
     ```
-    Or export it in your terminal session:
-    ```bash
-    export OPENROUTER_API_KEY="your_openrouter_api_key_here"
-    ```
-4.  **Configure the Agent (Optional):**
-    Review and optionally adjust `hephaestus_config.json` for model selection, validation strategies, and other runtime settings. For example, to focus on a specific objective, you might set an initial objective (though typically objectives are self-generated based on documents like `MANIFESTO.md` or `ROADMAP.md` in more advanced use).
+    Ou exporte-as em seu terminal.
 
-5.  **Run the agent:**
+4.  **Revise a Configuração (Opcional):**
+    Ajuste `hephaestus_config.json` para selecionar modelos, estratégias de validação e outros parâmetros.
+
+5.  **Execute o agente:**
     ```bash
     python main.py
     ```
-    The agent will start its operational cycle, analyzing the project, potentially generating a new objective if none is set, and attempting to achieve it.
+    O agente iniciará seu ciclo de auto-aprimoramento.
 
-## Illustrative Usage Example
+## Como Funciona? O Ciclo de Auto-Aprimoramento
 
-Let's imagine you want Hephaestus to add a new utility function to `agent/utils/llm_client.py`.
+O Hephaestus opera em um ciclo contínuo, que agora é focado em RSI:
 
-**1. Defining an Objective (Conceptual):**
+1.  **Geração de Objetivo Estratégico:** O agente primeiro analisa o `CAPABILITIES.md` e seu `ROADMAP.md` para decidir qual capacidade aprimorar. Ele também revisa seu log de performance (`evolution_log.csv`) para encontrar padrões de falha a serem corrigidos. As métricas de código são usadas como um fator de desempate ou suporte.
+2.  **Planejamento Arquitetônico:** O `ArchitectAgent` cria um plano de modificação de código (patches) para alcançar o objetivo estratégico.
+3.  **Decisão Estratégica:** O `MaestroAgent` analisa o plano e escolhe a melhor forma de validar as alterações. Se o plano for muito arriscado ou exigir uma capacidade que o agente não possui, ele pode solicitar um novo objetivo de "capacitação".
+4.  **Execução e Validação:** As alterações são aplicadas em um ambiente seguro (sandbox) e validadas usando testes e verificação de sintaxe.
+5.  **Meta-Análise de Falha:** Se o ciclo falhar, o `ErrorAnalysisAgent` é ativado. Sua nova função é questionar não apenas o código, mas também o objetivo e a estratégia. Ele pode sugerir uma abordagem completamente nova ou um objetivo para entender a causa raiz da falha.
+6.  **Aplicação e Versionamento:** Se a validação for bem-sucedida, as alterações são aplicadas à base de código principal e um commit é feito automaticamente.
 
-While Hephaestus often generates its own objectives, you could conceptually guide it or have an initial objective in mind. For this example, let's say the objective is:
+## Estrutura do Projeto
 
-*"Create a new utility function in `agent/utils/llm_client.py` called `estimate_token_count` that takes a string and returns an estimated token count (e.g., by words / 0.75). Add a basic test for this function in a new test file `tests/agent/utils/test_llm_client_extra.py`."*
+-   **`agent/`**: Contém a lógica central do agente.
+    -   `brain.py`: Lógica de geração de objetivos e mensagens de commit.
+    -   `agents.py`: Define os agentes especializados (`Architect`, `Maestro`).
+    -   `cycle_runner.py`: Orquestra o ciclo de auto-aprimoramento.
+    -   `error_analyzer.py`: Analisa falhas e realiza meta-análise.
+    -   `utils/llm_client.py`: Gerencia a comunicação com as APIs de LLM (Gemini, OpenRouter).
+-   **`tests/`**: Testes unitários para o agente.
+-   **Documentos de Estratégia:**
+    -   `README.md`: (Este arquivo) Visão geral do projeto.
+    -   `CAPABILITIES.md`: O manifesto de capacidades atuais e desejadas que guia o RSI.
+    -   `ROADMAP.md`: O roadmap de desenvolvimento de alto nível.
+    -   `MANIFESTO.md`: Os princípios de design do projeto.
+    -   `AGENTS.md`: Documentação da arquitetura interna.
+-   **Configuração e Logs:**
+    -   `main.py`: Ponto de entrada para executar o agente.
+    -   `hephaestus_config.json`: Configuração principal (modelos, estratégias).
+    -   `hephaestus.log`: Log detalhado de execução.
+    -   `evolution_log.csv`: Log de alto nível sobre a performance de cada ciclo.
 
-**2. Agent's Approach (Simplified):**
-
--   **Analysis:** Hephaestus would analyze `agent/utils/llm_client.py` and the `tests/` directory.
--   **Planning:** It would determine the changes needed:
-    -   Add the `estimate_token_count` function to `llm_client.py`.
-    -   Create `tests/agent/utils/test_llm_client_extra.py`.
-    -   Write one or more test cases for `estimate_token_count` within the new test file.
--   **Code Generation:** The `ArchitectAgent` would generate the Python code for the new function and the new test file.
--   **Validation:**
-    -   `SyntaxValidator` would check the new code for syntax errors.
-    -   `PytestNewFileValidator` (or a similar strategy) would run `pytest` on the newly created test file to ensure the new tests pass and cover the new function.
--   **Patch Application:** If validation is successful, the changes are written to disk.
--   **Committing (if git integration is fully active for this):** A commit message would be generated and the changes committed.
-
-**3. Configuration (`hephaestus_config.json`):**
-
-No specific changes to `hephaestus_config.json` would necessarily be required for this specific task if default models and strategies are suitable. The agent would use a strategy like `CREATE_NEW_TEST_FILE_STRATEGY` or similar when it detects a new test file creation task.
-
-**4. Running the Agent:**
-
-```bash
-python main.py
-```
-
-The agent would then proceed through its cycles, logging its progress in `hephaestus.log`. You would monitor this log to see its actions and any potential errors.
-
-This is a simplified illustration. The agent's actual internal reasoning, patch generation, and validation steps can be quite detailed.
-
-## Features
-
-- Autonomous code generation and modification
-- Project analysis and documentation
-- Self-improvement capabilities
-- Internet search via `web_search` helper
-
-## Configuration
-
-See `hephaestus_config.json` for available options.
-
-## Web Search Helper
-
-The `web_search` helper provides quick internet lookup using DuckDuckGo's instant answer API. No API key is required, but DuckDuckGo imposes request rate limits. Excessive queries may lead to temporary blocking, so keep usage moderate.
-
-```python
-from agent.tool_executor import web_search
-
-success, results = web_search("python unit testing")
-if success:
-    print(results)
-```
-
-## Testing
-
-Install dependencies and run the test suite with [pytest](https://docs.pytest.org/):
+## Testes
 
 ```bash
 pip install -r requirements.txt
 pytest
 ```
 
-Ensure the `OPENROUTER_API_KEY` variable is set when executing tests, as many
-tests rely on its presence.
+## Contribuições
 
-## Troubleshooting
-
-Check `hephaestus.log` for detailed execution logs.
-
-## Project Structure Overview
-
-The project is primarily organized into two main directories:
-
-- **`agent/`**: Contains the core logic of the Hephaestus agent.
-    - `brain.py`: Decision-making and LLM interactions.
-    - `cycle_runner.py`: Manages the agent's operational cycles.
-    - `tool_executor.py`: Executes tools like `pytest` and `web_search`.
-    - `project_scanner.py`: Analyzes the project structure and code.
-    - `patch_applicator.py`: Applies code modifications.
-    - `validation_steps/`: Various steps for validating changes (syntax, tests, etc.).
-    - `utils/`: Utility functions, including LLM client.
-- **`tests/`**: Contains all tests for the agent, mirroring the `agent/` structure.
-
-Key files in the root directory:
-- `main.py`: Entry point to run the agent.
-- `hephaestus_config.json`: Main configuration for the agent.
-- `AGENTS.md`: A summary of the project's code structure and internal APIs (mostly in Portuguese).
-- `MANIFESTO.md`: The project's principles and high-level architecture (in Portuguese).
-- `ROADMAP.md`: The development roadmap for new features (in Portuguese).
-
-## Contributing
-
-Contributions are welcome! We are working on a `CONTRIBUTING.md` file with detailed guidelines. In the meantime:
-
-1.  **Fork the Repository:** If you are working with a remote Git server, fork the main repository first. For local development, you can skip this step.
-2.  **Clone Your Fork/Repository:**
-    Clone your fork or your primary local repository to your development machine.
-    ```bash
-    git clone [URL_DO_SEU_FORK_OU_REPOSITORIO_PRINCIPAL]
-    cd hephaestus-agent
-    ```
-3.  **Create a Feature Branch:**
-    ```bash
-    git checkout -b my-new-feature
-    ```
-4.  **Make Your Changes:** Implement your feature or bug fix.
-5.  **Test Your Changes:** Ensure all tests pass.
-    ```bash
-    pytest
-    ```
-    Add new tests for new functionality.
-6.  **Commit Your Changes:**
-    ```bash
-    git commit -am 'Add some amazing feature'
-    ```
-7.  **Push to Your Branch:**
-    ```bash
-    git push origin my-new-feature
-    ```
-8.  **Submit a Pull Request:** Go to the original repository on GitHub and click 'New pull request'.
-
-Please ensure your code adheres to general Python best practices and that new functionality is accompanied by tests.
+Contribuições são bem-vindas. Por favor, siga o guia em `CONTRIBUTING.md`.

@@ -23,10 +23,9 @@ def run_cycles(agent: "HephaestusAgent") -> None:
     """Execute the main evolution loop for the given agent."""
     if not agent.objective_stack:
         agent.logger.info("Gerando objetivo inicial...")
-        initial_objective_model = agent.config.get("models", {}).get("objective_generator", agent.light_model)
+        model_config = agent.config.get("models", {}).get("objective_generator")
         initial_objective = generate_next_objective(
-            api_key=agent.api_key,
-            model=initial_objective_model,
+            model_config=model_config,
             current_manifest="",
             logger=agent.logger,
             project_root_dir=".",
@@ -56,10 +55,9 @@ def run_cycles(agent: "HephaestusAgent") -> None:
         if not agent.objective_stack:
             if agent.continuous_mode:
                 agent.logger.info(f"\n{'='*20} MODO CONTÍNUO {'='*20}\nPilha de objetivos vazia. Gerando novo objetivo...")
-                continuous_objective_model = agent.config.get("models", {}).get("objective_generator", agent.light_model)
+                model_config = agent.config.get("models", {}).get("objective_generator")
                 new_objective = generate_next_objective(
-                    api_key=agent.api_key,
-                    model=continuous_objective_model,
+                    model_config=model_config,
                     current_manifest=agent.state.manifesto_content if agent.state.manifesto_content else "",
                     logger=agent.logger,
                     project_root_dir=".",
@@ -166,10 +164,9 @@ def run_cycles(agent: "HephaestusAgent") -> None:
                 agent.logger.info("Maestro identificou a necessidade de uma nova capacidade.")
                 agent.objective_stack.append(current_objective)
                 architect_analysis = agent.state.get_architect_analysis()
-                capacitation_objective_model = agent.config.get("models", {}).get("capacitation_generator", agent.light_model)
+                model_config = agent.config.get("models", {}).get("capacitation_generator")
                 capacitation_objective = generate_capacitation_objective(
-                    api_key=agent.api_key,
-                    model=capacitation_objective_model,
+                    model_config=model_config,
                     engineer_analysis=architect_analysis or "Analysis not available",
                     logger=agent.logger,
                     memory_summary=agent.memory.get_full_history_for_prompt(),
@@ -242,10 +239,9 @@ def run_cycles(agent: "HephaestusAgent") -> None:
                                 agent.state.manifesto_content = f.read()
 
                             analysis_summary_for_commit = agent.state.get_architect_analysis() or "N/A"
-                            commit_model_for_msg = agent.config.get("models", {}).get("commit_message_generator", agent.light_model)
+                            model_config = agent.config.get("models", {}).get("commit_message_generator", agent.config.get("models", {}).get("architect_default"))
                             commit_message = generate_commit_message(
-                                agent.api_key,
-                                commit_model_for_msg,
+                                model_config,
                                 analysis_summary_for_commit,
                                 agent.state.current_objective or "N/A",
                                 agent.logger,
@@ -299,10 +295,9 @@ def run_cycles(agent: "HephaestusAgent") -> None:
                                 strategy=agent.state.strategy_key or "N/A",
                                 details=f"Strategy '{agent.state.strategy_key}' completed. Status: {reason}.",
                             )
-                        obj_gen_model = agent.config.get("models", {}).get("objective_generator", agent.light_model)
+                        model_config = agent.config.get("models", {}).get("objective_generator")
                         next_obj = generate_next_objective(
-                            api_key=agent.api_key,
-                            model=obj_gen_model,
+                            model_config=model_config,
                             current_manifest=agent.state.manifesto_content or "",
                             logger=agent.logger,
                             project_root_dir=".",
@@ -345,10 +340,9 @@ def run_cycles(agent: "HephaestusAgent") -> None:
                         f"Falha corrigível ({reason}). Iniciando ErrorAnalysisAgent."
                     )
 
-                    error_analyzer_model = agent.config.get("models", {}).get("error_analyzer", agent.light_model)
+                    model_config = agent.config.get("models", {}).get("error_analyzer")
                     error_analyzer = ErrorAnalysisAgent(
-                        api_key=agent.api_key,
-                        model=error_analyzer_model,
+                        model_config=model_config,
                         logger=agent.logger.getChild("ErrorAnalysisAgent")
                     )
 

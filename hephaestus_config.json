@@ -1,10 +1,25 @@
 {
   "models": {
-    "architect_default": "deepseek/deepseek-r1-0528:free",
-    "maestro_default": "deepseek/deepseek-r1-0528:free",
-    "objective_generator": "deepseek/deepseek-r1-0528:free",
-    "capacitation_generator": "deepseek/deepseek-r1-0528:free",
-    "error_analyzer": "deepseek/deepseek-chat-v3-0324:free"
+    "architect_default": {
+      "primary": "gemini/gemini-2.5-pro",
+      "fallback": "deepseek/deepseek-r1-0528:free"
+    },
+    "maestro_default": {
+      "primary": "gemini/gemini-2.5-pro",
+      "fallback": "deepseek/deepseek-r1-0528:free"
+    },
+    "objective_generator": {
+      "primary": "gemini/gemini-2.5-pro",
+      "fallback": "deepseek/deepseek-r1-0528:free"
+    },
+    "capacitation_generator": {
+      "primary": "gemini/gemini-2.5-pro",
+      "fallback": "deepseek/deepseek-r1-0528:free"
+    },
+    "error_analyzer": {
+      "primary": "gemini/gemini-2.5-pro",
+      "fallback": "deepseek/deepseek-chat-v3-0324:free"
+    }
   },
   "code_analysis_thresholds": {
     "file_loc": 300,
@@ -21,11 +36,11 @@
       "sanity_check_step": "run_pytest"
     },
     "SYNTAX_AND_PYTEST": {
-      "steps": ["validate_syntax", "run_pytest_validation", "apply_patches_to_disk"],
+      "steps": ["validate_syntax", "run_pytest", "apply_patches_to_disk"],
       "sanity_check_step": "run_pytest"
     },
     "FULL_VALIDATION": {
-      "steps": ["validate_syntax", "run_pytest_validation", "run_benchmark_validation", "apply_patches_to_disk"],
+      "steps": ["validate_syntax", "run_pytest", "run_benchmark_validation", "apply_patches_to_disk"],
       "sanity_check_step": "run_pytest"
     },
     "DOC_UPDATE_STRATEGY": {
@@ -45,10 +60,10 @@
       "sanity_check_step": "run_pytest"
     },
     "CREATE_NEW_TEST_FILE_STRATEGY": {
-      "steps": ["validate_syntax", "run_pytest_new_file_validation", "apply_patches_to_disk"],      "sanity_check_step": "run_pytest_new_file_validation"
+      "steps": ["validate_syntax", "run_pytest_new_file", "apply_patches_to_disk"],      "sanity_check_step": "run_pytest_new_file"
     },
     "AUTO_CORRECTION_STRATEGY": {
-      "steps": ["validate_syntax", "apply_patches_to_disk", "run_pytest_validation"],      "sanity_check_step": "run_pytest"
+      "steps": ["validate_syntax", "apply_patches_to_disk", "run_pytest"],      "sanity_check_step": "run_pytest"
     }
   }
 }

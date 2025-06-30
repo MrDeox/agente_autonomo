@@ -86,11 +86,9 @@ def parse_json_response(raw_str: str, logger: logging.Logger) -> Tuple[Optional[
 
 
 class ArchitectAgent:
-    def __init__(self, api_key: str, model: str, logger: logging.Logger, base_url: str = "https://openrouter.ai/api/v1"):
-        self.api_key = api_key
-        self.model = model
+    def __init__(self, model_config: Dict[str, str], logger: logging.Logger):
+        self.model_config = model_config
         self.logger = logger # Type hint changed to logging.Logger
-        self.base_url = base_url
 
     def plan_action(self, objective: str, manifest: str) -> Tuple[Optional[Dict[str, Any]], Optional[str]]:
         """
@@ -168,8 +166,8 @@ Your response MUST be a valid JSON object and nothing else.
 - For "REPLACE" of an entire file or creation of a new file, use "block_to_replace": null.
 - Ensure the generated JSON is strictly valid.
 """
-        self.logger.info(f"ArchitectAgent: Gerando plano de patches com o modelo: {self.model}...")
-        raw_response, error = call_llm_api(self.api_key, self.model, prompt, 0.4, self.base_url, self.logger) # Use imported function
+        self.logger.info(f"ArchitectAgent: Gerando plano de patches com os modelos: {self.model_config}...")
+        raw_response, error = call_llm_api(self.model_config, prompt, 0.4, self.logger) # Use imported function
 
         if error:
             self.logger.error(f"ArchitectAgent: Erro ao chamar LLM para plano de patches: {error}")
@@ -224,12 +222,10 @@ Your response MUST be a valid JSON object and nothing else.
 
 
 class MaestroAgent:
-    def __init__(self, api_key: str, model_list: List[str], config: Dict[str, Any], logger: logging.Logger, base_url: str = "https://openrouter.ai/api/v1"):
-        self.api_key = api_key
-        self.model_list = model_list
+    def __init__(self, model_config: Dict[str, str], config: Dict[str, Any], logger: logging.Logger):
+        self.model_config = model_config
         self.config = config
         self.logger = logger # Type hint changed to logging.Logger
-        self.base_url = base_url
 
     def choose_strategy(self, action_plan_data: Dict[str, Any], memory_summary: Optional[str] = None) -> List[Dict[str, Any]]:
         """
@@ -265,10 +261,9 @@ class MaestroAgent:
 Considere esse histórico em sua decisão. Evite repetir estratégias que falharam recentemente para objetivos semelhantes.
 """
 
-        for model in self.model_list:
-            self.logger.info(f"MaestroAgent: Tentando decisão com o modelo: {model}...")
+        self.logger.info(f"MaestroAgent: Tentando decisão com os modelos: {self.model_config}...")
 
-            prompt = f"""
+        prompt = f"""
 [IDENTITY]
 You are the Maestro of the Hephaestus agent. Your task is to analyze the Engineer's proposal (patch plan) and recent history to decide the best course of action.
 
@@ -291,66 +286,57 @@ Respond ONLY with a JSON object containing the "strategy_key" and the value bein
 Example: {{"strategy_key": "sandbox_pytest_validation"}}
 Example: {{"strategy_key": "CAPACITATION_REQUIRED"}}
 """
-            if self.logger: self.logger.debug(f"MaestroAgent: Prompt for decision:\n{prompt}")
+        if self.logger: self.logger.debug(f"MaestroAgent: Prompt for decision:\n{prompt}")
 
-            attempt_log = {
-                "model": model,
-                "raw_response": "",
-                "parsed_json": None,
-                "success": False,
-            }
+        attempt_log = {
+            "model": f"primary: {self.model_config.get('primary')}, fallback: {self.model_config.get('fallback')}",
+            "raw_response": "",
+            "parsed_json": None,
+            "success": False,
+        }
 
-            content, error_api = call_llm_api(self.api_key, model, prompt, 0.2, self.base_url, self.logger) # Use imported function
+        content, error_api = call_llm_api(self.model_config, prompt, 0.2, self.logger)
 
-            if error_api:
-                attempt_log["raw_response"] = f"Erro da API (modelo {model}): {error_api}"
-                attempt_logs.append(attempt_log)
-                continue
-
-            if not content:  # Content can be an empty string from LLM, treat as invalid for this case
-                attempt_log["raw_response"] = f"Resposta vazia do LLM (modelo {model})"
-                attempt_logs.append(attempt_log)
-                continue
-
-            attempt_log["raw_response"] = content
-            parsed_json, error_parsing = parse_json_response(content, self.logger)
-
-            if error_parsing:
-                attempt_log["raw_response"] = f"Erro ao fazer parse (modelo {model}): {error_parsing}. Content: {content[:200]}"
-                attempt_log["raw_response"] = f"Erro ao fazer parse (modelo {model}): {error_parsing}. Conteúdo: {content[:200]}"
-                attempt_logs.append(attempt_log)
-                continue
-
-            if not parsed_json:  # Should ideally be caught by error_parsing, but as a safeguard
-                attempt_log["raw_response"] = f"JSON convertido para None sem erro explícito (modelo {model}). Conteúdo: {content[:200]}"
-                attempt_logs.append(attempt_log)
-                continue
-
-            if not isinstance(parsed_json, dict) or "strategy_key" not in parsed_json:
-                error_msg = f"JSON com formato inválido ou faltando 'strategy_key' (modelo {model})"
-                error_msg = f"JSON com formato inválido ou faltando 'strategy_key' (modelo {model}). Recebido: {parsed_json}"
-                if self.logger: self.logger.warning(f"MaestroAgent: {error_msg}")
-                attempt_log["raw_response"] = f"{error_msg}. Original: {content[:200]}"
-                attempt_logs.append(attempt_log)
-                continue
-
-            # Further validation: is the strategy_key valid?
-            chosen_strategy = parsed_json.get("strategy_key")
-            if chosen_strategy not in available_strategies and chosen_strategy not in ["CAPACITATION_REQUIRED", "WEB_SEARCH_REQUIRED"]:
-                error_msg = f"'strategy_key' escolhido ('{chosen_strategy}') não é válido ou CAPACITATION_REQUIRED (modelo {model}). Válidos: {available_keys}, CAPACITATION_REQUIRED"
-                error_msg = (
-                    f"Estratégia escolhida ('{chosen_strategy}') não é válida ou CAPACITATION_REQUIRED (modelo {model}). Válidas: {available_keys}, CAPACITATION_REQUIRED"
-                )
-                if self.logger: self.logger.warning(f"MaestroAgent: {error_msg}")
-                attempt_log["raw_response"] = f"{error_msg}. Original: {content[:200]}"
-                # Do not mark as success, let it try next model or fail
-                attempt_logs.append(attempt_log)
-                continue
-
-
-            attempt_log["parsed_json"] = parsed_json
-            attempt_log["success"] = True
+        if error_api:
+            attempt_log["raw_response"] = f"Erro da API: {error_api}"
             attempt_logs.append(attempt_log)
-            break # Success, no need to try other models
+            return attempt_logs
+
+        if not content:
+            attempt_log["raw_response"] = "Resposta vazia do LLM"
+            attempt_logs.append(attempt_log)
+            return attempt_logs
+
+        attempt_log["raw_response"] = content
+        parsed_json, error_parsing = parse_json_response(content, self.logger)
+
+        if error_parsing:
+            attempt_log["raw_response"] = f"Erro ao fazer parse: {error_parsing}. Conteúdo: {content[:200]}"
+            attempt_logs.append(attempt_log)
+            return attempt_logs
+
+        if not parsed_json:
+            attempt_log["raw_response"] = f"JSON convertido para None sem erro explícito. Conteúdo: {content[:200]}"
+            attempt_logs.append(attempt_log)
+            return attempt_logs
+
+        if not isinstance(parsed_json, dict) or "strategy_key" not in parsed_json:
+            error_msg = f"JSON com formato inválido ou faltando 'strategy_key'. Recebido: {parsed_json}"
+            if self.logger: self.logger.warning(f"MaestroAgent: {error_msg}")
+            attempt_log["raw_response"] = f"{error_msg}. Original: {content[:200]}"
+            attempt_logs.append(attempt_log)
+            return attempt_logs
+
+        chosen_strategy = parsed_json.get("strategy_key")
+        if chosen_strategy not in available_strategies and chosen_strategy not in ["CAPACITATION_REQUIRED", "WEB_SEARCH_REQUIRED"]:
+            error_msg = f"Estratégia escolhida ('{chosen_strategy}') não é válida. Válidas: {available_keys}, CAPACITATION_REQUIRED"
+            if self.logger: self.logger.warning(f"MaestroAgent: {error_msg}")
+            attempt_log["raw_response"] = f"{error_msg}. Original: {content[:200]}"
+            attempt_logs.append(attempt_log)
+            return attempt_logs
+
+        attempt_log["parsed_json"] = parsed_json
+        attempt_log["success"] = True
+        attempt_logs.append(attempt_log)
 
         return attempt_logs
