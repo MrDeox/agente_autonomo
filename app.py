@@ -7,6 +7,7 @@ import logging
 from agent.queue_manager import QueueManager
 from agent.hephaestus_agent import HephaestusAgent # Import HephaestusAgent
 from agent.cycle_runner import run_cycles # Import run_cycles
+from agent.config_loader import load_config
 
 # Configure logging for the FastAPI app
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
