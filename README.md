@@ -22,11 +22,19 @@ Em vez de simplesmente completar tarefas de desenvolvimento de software, o Hepha
     git clone [URL_DO_SEU_REPOSITORIO]
     cd hephaestus-agent
     ```
-2.  **Instale as dependências:**
+
+2.  **Instale o Poetry:**
     ```bash
-    pip install -r requirements.txt
+    curl -sSL https://install.python-poetry.org | python3 -
+    export PATH="/home/arthur/.local/bin:$PATH"
     ```
-3.  **Configure suas Chaves de API:**
+
+3.  **Instale as dependências:**
+    ```bash
+    poetry install
+    ```
+
+4.  **Configure suas Chaves de API:**
     Crie um arquivo `.env` na raiz do projeto e adicione suas chaves. O agente usará o Gemini como primário e o OpenRouter como fallback.
     ```
     GEMINI_API_KEY="sua_chave_gemini_aqui"
@@ -34,27 +42,36 @@ Em vez de simplesmente completar tarefas de desenvolvimento de software, o Hepha
     ```
     Ou exporte-as em seu terminal.
 
-4.  **Revise a Configuração (Opcional):**
-    Ajuste `hephaestus_config.json` para selecionar modelos, estratégias de validação e outros parâmetros.
+5.  **Escolha como executar o agente:**
 
-5.  **Execute o servidor Hephaestus:**
+    **Opção 1: Usando a CLI (recomendado)**
     ```bash
-    python main.py
-    ```
-    Isso iniciará o servidor FastAPI (Uvicorn) na porta 8000 por padrão. O agente Hephaestus será executado em um thread em segundo plano, processando objetivos de uma fila.
+    # Iniciar o agente
+    poetry run python cli.py run
 
-6.  **Submeta Objetivos (Exemplo via `curl`):**
+    # Submeter um objetivo
+    poetry run python cli.py submit "Seu objetivo aqui"
+
+    # Verificar status
+    poetry run python cli.py status
+    ```
+
+    **Opção 2: Executar o servidor FastAPI (para uso via API)**
+    ```bash
+    poetry run python main.py
+    ```
+    Após iniciar o servidor, você pode enviar objetivos via API (veja exemplos abaixo).
+
+6.  **Exemplos de uso da API (se estiver executando o servidor):**
     Para enviar um novo objetivo ao agente, você pode usar o endpoint `/submit_objective`:
     ```bash
     curl -X POST "http://localhost:8000/submit_objective" -H "Content-Type: application/json" -d '{"objective": "Seu novo objetivo aqui"}'
     ```
 
-7.  **Verifique o Status (Exemplo via `curl`):**
     Para verificar o status do servidor e da fila de objetivos:
     ```bash
     curl "http://localhost:8000/status"
     ```
-    O agente iniciará seu ciclo de auto-aprimoramento e processará os objetivos da fila.
 
 ## Como Funciona? O Ciclo de Auto-Aprimoramento
 
@@ -70,7 +87,7 @@ O Hephaestus opera em um ciclo contínuo, agora como um serviço em segundo plan
 
 ## Estrutura do Projeto
 
--   **`app.py`**: Aplicação FastAPI que expõe a API para submissão de objetivos e status, e inicia o agente em um thread worker.
+-   **`app.py`**: Aplicação FastAPI que expõe a API para submissão de objetivos e status, e inicia the agent em um thread worker.
 -   **`agent/`**: Contém a lógica central do agente.
     -   `hephaestus_agent.py`: **Contém a classe principal `HephaestusAgent` (movida de `main.py`).**
     -   `brain.py`: Lógica de geração de objetivos e mensagens de commit. **Agora com lógica aprimorada para meta-análise e otimização de prompts.**
@@ -97,8 +114,7 @@ O Hephaestus opera em um ciclo contínuo, agora como um serviço em segundo plan
 ## Testes
 
 ```bash
-pip install -r requirements.txt
-pytest
+poetry run pytest
 ```
 
 ## Contribuições

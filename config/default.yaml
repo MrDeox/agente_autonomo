@@ -1,0 +1,43 @@
+defaults:
+  - base_config
+
+# Override settings for specific environments
+# production: inherit from production.yaml
+# development: inherit from development.yaml
+
+# Base configuration
+base_config:
+  memory_file_path: "HEPHAESTUS_MEMORY.json"
+  models:
+    architect_default:
+      primary: "gemini-pro"
+      fallback: "openrouter"
+      temperature: 0.3
+      max_tokens: 2048
+    maestro_default:
+      primary: "gemini-pro"
+      fallback: "openrouter"
+      temperature: 0.3
+      max_tokens: 2048
+    objective_generator:
+      primary: "gemini-pro"
+      fallback: "openrouter"
+      temperature: 0.3
+      max_tokens: 2048
+
+  validation_strategies:
+    SYNTAX_ONLY:
+      steps:
+        - validate_syntax
+        - run_pytest_validation
+    FULL_VALIDATION:
+      steps:
+        - validate_syntax
+        - run_pytest_validation
+        - apply_patches_to_disk
+    DOC_UPDATE_STRATEGY:
+      steps:
+        - validate_syntax
+        - apply_patches_to_disk
+    NO_OP_STRATEGY:
+      steps: []
