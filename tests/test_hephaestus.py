@@ -24,7 +24,7 @@ def temp_config_file(tmp_path):
         "models": {
             "objective_generator": "test-model-light",
             "architect_default": "test-model-architect",
-            "maestro_default_list": ["test-model-maestro"],
+            "maestro_default": {"primary": "test-model-maestro"},
             "capacitation_generator": "test-model-capacitation",
             "commit_message_generator": "test-model-commit"
         },
@@ -118,7 +118,7 @@ def agent_instance(mock_logger, temp_config_file, mock_env_vars, tmp_path):
                         "pytest": mock_run_pytest,
                         "init_git": mock_init_git
                     }
-                    return agent # Fornece a instância do agente para o teste
+                    yield agent # Fornece a instância do agente para o teste
 
     # Restaurar o diretório de trabalho original
     os.chdir(original_cwd)

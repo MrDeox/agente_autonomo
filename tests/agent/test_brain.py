@@ -11,9 +11,14 @@ class TestBrainFunctions(unittest.TestCase):
         self.logger = logging.getLogger(__name__)
         self.logger.setLevel(logging.DEBUG) # Or logging.CRITICAL to suppress logs during most tests
 
-        self.api_key = "test_api_key"
-        self.model = "test_model"
-        self.base_url = "https://api.example.com/v1"
+        self.model_config = {
+            "primary": "test_model",
+            "fallback": "fallback_model",
+            "primary_api_key": "test_api_key",
+            "fallback_api_key": "fallback_api_key",
+            "primary_base_url": "https://api.example.com/v1",
+            "fallback_base_url": "https://fallback.example.com/v1",
+        }
 
         # Default config for testing generate_next_objective thresholds
         self.default_config = {
@@ -33,13 +38,11 @@ class TestBrainFunctions(unittest.TestCase):
         mock_call_llm_api.return_value = ("New objective based on defaults", None)
 
         generate_next_objective(
-            api_key=self.api_key,
-            model=self.model,
+            model_config=self.model_config,
             current_manifest="Manifest content",
             logger=self.logger,
             project_root_dir=".",
             config=self.default_config, # Pass the test config
-            base_url=self.base_url,
             memory_summary="No relevant history."
         )
 
@@ -65,13 +68,11 @@ class TestBrainFunctions(unittest.TestCase):
         mock_call_llm_api.return_value = ("New objective based on custom", None)
 
         generate_next_objective(
-            api_key=self.api_key,
-            model=self.model,
+            model_config=self.model_config,
             current_manifest="Manifest content",
             logger=self.logger,
             project_root_dir="/another/path",
             config=custom_config, # Pass the custom test config
-            base_url=self.base_url,
             memory_summary="Some history."
         )
 
@@ -91,13 +92,11 @@ class TestBrainFunctions(unittest.TestCase):
         mock_call_llm_api.return_value = ("Objective with default thresholds", None)
 
         generate_next_objective(
-            api_key=self.api_key,
-            model=self.model,
+            model_config=self.model_config,
             current_manifest="",
             logger=self.logger,
             project_root_dir=".",
             config=config_missing_thresholds, # Pass empty config
-            base_url=self.base_url
         )
 
         # Defaults inside generate_next_objective if config values are missing
@@ -117,8 +116,8 @@ class TestBrainFunctions(unittest.TestCase):
         mock_call_llm_api.return_value = ("Test objective", None)
 
         objective = generate_next_objective(
-            api_key=self.api_key, model=self.model, current_manifest="Test Manifest",
-            logger=self.logger, project_root_dir=".", config=self.default_config, base_url=self.base_url
+            model_config=self.model_config, current_manifest="Test Manifest",
+            logger=self.logger, project_root_dir=".", config=self.default_config
         )
 
         self.assertEqual(objective, "Test objective")
@@ -126,11 +125,9 @@ class TestBrainFunctions(unittest.TestCase):
         mock_call_llm_api.assert_called_once()
 
         called_kwargs_llm = mock_call_llm_api.call_args.kwargs
-        self.assertEqual(called_kwargs_llm["api_key"], self.api_key)
-        self.assertEqual(called_kwargs_llm["model"], self.model)
+        self.assertEqual(called_kwargs_llm["model_config"], self.model_config)
         self.assertIn("Test Manifest", called_kwargs_llm["prompt"])
         self.assertEqual(called_kwargs_llm["temperature"], 0.3)
-        self.assertEqual(called_kwargs_llm["base_url"], self.base_url)
         self.assertEqual(called_kwargs_llm["logger"], self.logger)
 
     @patch('agent.brain.call_llm_api')
@@ -138,12 +135,12 @@ class TestBrainFunctions(unittest.TestCase):
         mock_call_llm_api.return_value = (None, "LLM Error")
 
         objective = generate_next_objective(
-            api_key=self.api_key, model=self.model, current_manifest="Test Manifest",
-            logger=self.logger, project_root_dir=".", config=self.default_config, base_url=self.base_url
+            model_config=self.model_config, current_manifest="Test Manifest",
+            logger=self.logger, project_root_dir=".", config=self.default_config
         )
 
         # Fallback objective
-        self.assertEqual(objective, "Analyze current project state and propose an incremental improvement")
+        self.assertEqual(objective, "Analisar o estado atual do projeto e propor uma melhoria incremental")
         mock_call_llm_api.assert_called_once()
 
     @patch('agent.brain.call_llm_api')
@@ -152,20 +149,17 @@ class TestBrainFunctions(unittest.TestCase):
         engineer_analysis = "Need new tool X"
 
         objective = generate_capacitation_objective(
-            api_key=self.api_key, model=self.model, engineer_analysis=engineer_analysis,
-            logger=self.logger, base_url=self.base_url
+            model_config=self.model_config, engineer_analysis=engineer_analysis,
+            logger=self.logger
         )
 
         self.assertEqual(objective, "Capacitation objective")
         mock_call_llm_api.assert_called_once() # Ensure it was called
-        called_args = mock_call_llm_api.call_args.args
-        # call_llm_api(api_key, model, prompt, temperature, base_url, logger)
-        self.assertEqual(called_args[0], self.api_key)
-        self.assertEqual(called_args[1], self.model)
-        self.assertIn(engineer_analysis, called_args[2]) # prompt is args[2]
-        self.assertEqual(called_args[3], 0.3)          # temperature is args[3]
-        self.assertEqual(called_args[4], self.base_url)
-        self.assertEqual(called_args[5], self.logger)
+        called_kwargs = mock_call_llm_api.call_args.kwargs
+        self.assertEqual(called_kwargs["model_config"], self.model_config)
+        self.assertIn(engineer_analysis, called_kwargs["prompt"]) # prompt is in kwargs
+        self.assertEqual(called_kwargs["temperature"], 0.3)          # temperature is in kwargs
+        self.assertEqual(called_kwargs["logger"], self.logger)
 
     @patch('agent.brain.call_llm_api')
     def test_generate_capacitation_objective_error(self, mock_call_llm_api):
@@ -173,11 +167,11 @@ class TestBrainFunctions(unittest.TestCase):
         engineer_analysis = "Need new tool X"
 
         objective = generate_capacitation_objective(
-            api_key=self.api_key, model=self.model, engineer_analysis=engineer_analysis,
-            logger=self.logger, base_url=self.base_url
+            model_config=self.model_config, engineer_analysis=engineer_analysis,
+            logger=self.logger
         )
 
-        self.assertEqual(objective, "Analyze capacitation need and propose a solution") # Fallback
+        self.assertEqual(objective, "Analisar a necessidade de capacitação e propor uma solução") # Fallback
         mock_call_llm_api.assert_called_once()
 
     # Test for generate_commit_message (which is currently simulated and does not call LLM)
@@ -186,9 +180,9 @@ class TestBrainFunctions(unittest.TestCase):
         objective = "feat: Add new feature Y for enhanced performance" # Objective starts with type
 
         commit_message = generate_commit_message(
-            api_key=self.api_key, model=self.model,
+            model_config=self.model_config,
             analysis_summary=analysis_summary, objective=objective,
-            logger=self.logger, base_url=self.base_url
+            logger=self.logger
         )
         # Now, the function should extract "feat" as type and use the rest as summary.
         expected_summary_part = "Add new feature Y for enhanced performance"
@@ -197,7 +191,7 @@ class TestBrainFunctions(unittest.TestCase):
         # Check if it respects length limits for the summary part
         long_objective = "feat: Implement a very long and detailed feature description that will certainly exceed the typical subject line length for a commit message"
         commit_message_long = generate_commit_message(
-            self.api_key, self.model, analysis_summary, long_objective, self.logger, self.base_url
+            self.model_config, analysis_summary, long_objective, self.logger
         )
         # Expected summary: "Implement a very long and detailed feature description that will cert..."
         # Expected full: "feat: Implement a very long and detailed feature desc..." (type + summary)
@@ -211,7 +205,7 @@ class TestBrainFunctions(unittest.TestCase):
 
         objective_fix = "fix: Resolve critical bug in module X causing data corruption"
         commit_message_fix = generate_commit_message(
-            self.api_key, self.model, "Fixed the bug.", objective_fix, self.logger, self.base_url
+            self.model_config, "Fixed the bug.", objective_fix, self.logger
         )
         # max_summary_len for "fix" is 72 - (3 + 2) = 67.
         # Summary part: "Resolve critical bug in module X causing data corruption" (56 chars). No truncation.
@@ -222,7 +216,7 @@ class TestBrainFunctions(unittest.TestCase):
         # Test a simple objective without a type prefix - heuristic should apply
         simple_objective = "Improve the logging system for better debuggability" # 50 chars.
         commit_message_simple = generate_commit_message(
-            self.api_key, self.model, "Added more logs.", simple_objective, self.logger, self.base_url
+            self.model_config, "Added more logs.", simple_objective, self.logger
         )
         # Heuristic defaults to "feat". max_summary_len for "feat" is 66. No truncation.
         self.assertEqual(commit_message_simple, f"feat: {simple_objective}") # This should be fine
@@ -235,7 +229,7 @@ class TestBrainFunctions(unittest.TestCase):
         # summary_part[:59] = "the entire authentication module to use new security protocol"
         # expected_trunc_summary = "the entire authentication module to use new security protocol..." # This should be fine
         commit_message_trunc = generate_commit_message(
-            self.api_key, self.model, "Refactored auth.", objective_for_trunc, self.logger, self.base_url
+            self.model_config, "Refactored auth.", objective_for_trunc, self.logger
         )
         expected_trunc_summary = "the entire authentication module to use new security protocol..."
         self.assertEqual(commit_message_trunc, f"refactor: {expected_trunc_summary}")

@@ -21,6 +21,7 @@ import re
 # - generate_commit_message
 
 from agent.project_scanner import analyze_code_metrics
+from agent.performance_analyzer import PerformanceAnalysisAgent
 from agent.utils.llm_client import call_llm_api
 
 
@@ -92,8 +93,19 @@ def generate_next_objective(
         if logger: logger.error(f"Error analyzing code metrics: {e}", exc_info=True)
         code_analysis_summary_str = "Error processing code analysis."
 
+    # 2. Analyze performance log
+    performance_summary_str = ""
+    try:
+        if logger: logger.info("Analyzing performance log...")
+        performance_agent = PerformanceAnalysisAgent()
+        performance_summary_str = performance_agent.analyze_performance()
+        if logger: logger.debug(f"Performance analysis summary:\n{performance_summary_str}")
+    except Exception as e:
+        if logger: logger.error(f"Error analyzing performance: {e}", exc_info=True)
+        performance_summary_str = "Error processing performance analysis."
 
-    # 2. Prepare manifest and memory context
+
+    # 3. Prepare manifest and memory context
     current_manifest = current_manifest or "" # Ensure not None
     sanitized_memory = memory_summary.strip() if memory_summary and memory_summary.strip() else None
     memory_context_section = ""
@@ -125,17 +137,21 @@ Generate ONLY a single text string containing the initial objective. Be concise 
 You are the 'Planejador Estratégico Avançado' do agente autônomo Hephaestus. Sua principal responsabilidade é identificar e propor o próximo objetivo de desenvolvimento mais impactante para a evolução do agente ou do projeto em análise.
 
 [Decision Process for the Next Objective]
-1.  **Analyze Code Metrics:** Review the `[CODE METRICS AND ANALYSIS]` section below. It contains data on file size (LOC), function size (LOC), cyclomatic complexity (CC) of functions, and modules that may be missing tests.
-2.  **Consider the Project Manifest:** If the `[CURRENT PROJECT MANIFEST]` is provided, use it to understand the overall goals, architecture, and areas already documented or needing attention.
-3.  **Review Recent History:** The `[HISTÓRICO RECENTE DO PROJETO E DO AGENTE]` section provides context on recent tasks, successes, and failures. Avoid repeating objectives that recently failed in the same way, unless the cause of failure has been resolved. Use history to build on successes.
-4.  **Prioritize Structural and Quality Improvements:** Based on metrics, identify opportunities to:
+1.  **Analyze Performance:** Review the `[PERFORMANCE ANALYSIS]` section to understand the agent's overall success rate and identify trends.
+2.  **Analyze Code Metrics:** Review the `[CODE METRICS AND ANALYSIS]` section below. It contains data on file size (LOC), function size (LOC), cyclomatic complexity (CC) of functions, and modules that may be missing tests.
+3.  **Consider the Project Manifest:** If the `[CURRENT PROJECT MANIFEST]` is provided, use it to understand the overall goals, architecture, and areas already documented or needing attention.
+4.  **Review Recent History:** The `[HISTÓRICO RECENTE DO PROJETO E DO AGENTE]` section provides context on recent tasks, successes, and failures. Avoid repeating objectives that recently failed in the same way, unless the cause of failure has been resolved. Use history to build on successes.
+5.  **Prioritize Structural and Quality Improvements:** Based on metrics, identify opportunities to:
     *   Refactor very large modules or very long/complex functions.
     *   Create tests for critical/complex modules or functions that lack them.
     *   Improve documentation (docstrings, manifest) where crucial.
     *   Propose the creation of new capabilities (new agents, tools) if the analysis indicates a strategic need.
-5.  **Be Specific and Actionable:** The objective should be clear, concise, and indicate a concrete action.
+6.  **Be Specific and Actionable:** The objective should be clear, concise, and indicate a concrete action.
 
 {memory_section}
+
+[PERFORMANCE ANALYSIS]
+{performance_summary}
 
 [CODE METRICS AND ANALYSIS]
 {code_analysis_summary}
@@ -144,6 +160,9 @@ You are the 'Planejador Estratégico Avançado' do agente autônomo Hephaestus. 
 {current_manifest}
 
 [Examples of Smart and Self-Aware Objectives]
+*   **Performance-Based Objectives:**
+    *   "The agent's success rate is low. Analyze the `evolution_log.csv` to identify the most common causes of failure and propose a solution."
+    *   "Given the high number of failed cycles, implement a more robust error analysis mechanism in `error_analyzer.py`."
 *   **Metrics-Based Refactoring:**
     *   "Refactor the module `agent/brain.py` (LOC: 350) which is extensive, considering splitting responsibilities into smaller modules (e.g., `agent/prompt_builder.py` or `agent/analysis_processor.py`)."
     *   "The function `generate_next_objective` in `agent/brain.py` (LOC: 85, CC: 12) is long and complex. Propose a plan to refactor it into smaller, more focused functions."
@@ -170,6 +189,7 @@ Be concise, but specific enough to be actionable.
 """
         prompt = prompt_template.format(
             memory_section=memory_context_section,
+            performance_summary=performance_summary_str,
             code_analysis_summary=code_analysis_summary_str,
             current_manifest=current_manifest if current_manifest.strip() else "N/A (Manifesto non-existent or empty)"
         )
@@ -188,23 +208,13 @@ Be concise, but specific enough to be actionable.
         log_message = f"Erro ao gerar próximo objetivo: {error}"
         if logger:
             logger.error(log_message)
-        fallback = (
-            "Analyze current project state and propose an incremental improvement"
-            if base_url != "https://openrouter.ai/api/v1"
-            else "Analisar o estado atual do projeto e propor uma melhoria incremental"
-        )
-        return fallback
+        return "Analisar o estado atual do projeto e propor uma melhoria incremental"
 
     if not content: # Content can be an empty string, which is a valid (though poor) objective
         log_message = "Resposta vazia do LLM para próximo objetivo."
         if logger:
             logger.warning(log_message)
-        fallback = (
-            "Analyze current project state and propose an incremental improvement"
-            if base_url != "https://openrouter.ai/api/v1"
-            else "Analisar o estado atual do projeto e propor uma melhoria incremental"
-        )
-        return fallback
+        return "Analisar o estado atual do projeto e propor uma melhoria incremental"
 
     return content.strip()
 
@@ -248,29 +258,24 @@ The objective MUST start with "[CAPACITATION TASK]". For example: "[CAPACITATION
     if logger:
         logger.debug(f"Prompt to generate capacitation objective:\n{prompt}")
 
-    content, error = call_llm_api(model_config, prompt, 0.3, logger) # Use imported function
+    content, error = call_llm_api(
+        model_config=model_config,
+        prompt=prompt,
+        temperature=0.3,
+        logger=logger
+    )
 
     if error:
         log_message = f"Erro ao gerar objetivo de capacitação: {error}"
         if logger:
             logger.error(log_message)
-        fallback = (
-            "Analyze capacitation need and propose a solution"
-            if base_url != "https://openrouter.ai/api/v1"
-            else "Analisar a necessidade de capacitação e propor uma solução"
-        )
-        return fallback
+        return "Analisar a necessidade de capacitação e propor uma solução"
 
     if not content:
         log_message = "Empty response from LLM for capacitation objective."
         if logger:
             logger.warning(log_message)
-        fallback = (
-            "Analyze capacitation need and propose a solution"
-            if base_url != "https://openrouter.ai/api/v1"
-            else "Analisar a necessidade de capacitação e propor uma solução"
-        )
-        return fallback
+        return "Analisar a necessidade de capacitação e propor uma solução"
 
     return content.strip()
 
@@ -286,12 +291,10 @@ def generate_commit_message(
     (Currently simulated for this environment)
 
     Args:
-        api_key: API key (e.g., OpenRouter).
-        model: LLM model to use.
+        model_config: Dictionary with model configuration.
         analysis_summary: Summary of the analysis and implementation of the change.
         objective: The original objective of the change.
         logger: Logger instance for recording information.
-        base_url: Base URL of the LLM API.
 
     Returns:
         A string containing the generated commit message.
@@ -307,7 +310,7 @@ def generate_commit_message(
 Based on the objective and analysis, write a clear and concise commit message following the 'Conventional Commits' standard. E.g., feat: Add benchmark tool or fix: Correct syntax validation for JSON. The message should be only the commit string, without prefixes or explanations.
 """
 
-    logger.info(f"Generating commit message with model: {model}...")
+    logger.info(f"Generating commit message with model: {model_config.get('primary')}...")
 
     # This part remains a simulation as per the original code's intent for this function.
     # If direct LLM call is desired here, it should use call_llm_api.
@@ -375,13 +378,3 @@ Based on the objective and analysis, write a clear and concise commit message fo
 
     logger.info(f"Commit message generated (simulated): {simulated_commit_message}")
     return simulated_commit_message
-
-    # Original LLM call code (commented out):
-    # content, error = call_llm_api(api_key, model, prompt, 0.5, base_url, logger)
-    # if error:
-    #     logger.error(f"Error generating commit message: {error}")
-    #     return f"chore: Automatic updates based on objective: {objective}" # Fallback
-    # if not content:
-    #     logger.warning("Empty LLM response for commit message.")
-    #     return f"chore: Automatic updates (empty LLM response): {objective}" # Fallback
-    # return content.strip()

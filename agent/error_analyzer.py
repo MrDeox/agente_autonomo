@@ -68,8 +68,7 @@ class ErrorAnalysisAgent:
             "1. Classify the error. Choose one from: SYNTAX_ERROR, TEST_FAILURE, LOGIC_ERROR, CONFIGURATION_ERROR, TOOL_ERROR, UNKNOWN_ERROR.",
             "2. Based on the classification and details, determine the best suggestion type. Choose one from: REGENERATE_PATCHES, NEW_OBJECTIVE, RETRY_WITH_MODIFICATION, LOG_FOR_REVIEW, FIX_CONFIGURATION.",
             "3. Generate a 'suggested_prompt' for the AI agent's next action. This prompt MUST be directly usable by another AI agent (like an Architect or Objective Generator) to implement the fix or new approach. Ensure it contains all necessary context from the failure analysis.",
-            "   - If REGENERATE_PATCHES for a TEST_FAILURE: The prompt should instruct an Architect to create new patches. It MUST include specific details about the test failure and the original patches. Crucially, include the '[CONTEXT_FLAG] TEST_FIX_IN_PROGRESS' string at the end of the prompt.",
-            "     Example: '[CORRECTION TASK - TEST] Original Objective: <obj>. Test Failure: <test_out>. Regenerate patches for <files> to pass tests. Previous patches: <patches_json>.\\n[CONTEXT_FLAG] TEST_FIX_IN_PROGRESS'",
+            "   - If REGENERATE_PATCHES for a TEST_FAILURE: The prompt should instruct an Architect to create new patches. It MUST include specific details about the test failure and the original patches. Crucially, include the '[CONTEXT_FLAG] TEST_FIX_IN_PROGRESS' string at the end of the prompt.",            "     Example: '[CORRECTION TASK - TEST] Original Objective: <obj>. Test Failure: <test_out>. Regenerate patches for <files> to pass tests. Previous patches: <patches_json>.\n[CONTEXT_FLAG] TEST_FIX_IN_PROGRESS'"
             "   - If REGENERATE_PATCHES for other errors (e.g. SYNTAX_ERROR): The prompt should instruct an Architect to create new patches, considering the error.",
             "     Example: '[CORRECTION TASK - SYNTAX] Original Objective: <obj>. Error: <err>. Fix the syntax in the previous patches: <patches_json>.'",
             "   - If NEW_OBJECTIVE: The prompt should be a new, refined objective that considers the failure. It might be for an ObjectiveGenerator.",
@@ -94,7 +93,7 @@ class ErrorAnalysisAgent:
         self.logger.debug(f"ErrorAnalysisAgent: Prompt for LLM:\n{prompt}")
 
         raw_response, error = call_llm_api(
-            self.model_config, prompt, temperature=0.3, logger=self.logger
+            model_config=self.model_config, prompt=prompt, temperature=0.3, logger=self.logger
         )
 
         if error:

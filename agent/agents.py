@@ -167,7 +167,12 @@ Your response MUST be a valid JSON object and nothing else.
 - Ensure the generated JSON is strictly valid.
 """
         self.logger.info(f"ArchitectAgent: Gerando plano de patches com os modelos: {self.model_config}...")
-        raw_response, error = call_llm_api(self.model_config, prompt, 0.4, self.logger) # Use imported function
+        raw_response, error = call_llm_api(
+            model_config=self.model_config,
+            prompt=prompt,
+            temperature=0.4,
+            logger=self.logger
+        ) # Use imported function
 
         if error:
             self.logger.error(f"ArchitectAgent: Erro ao chamar LLM para plano de patches: {error}")
@@ -295,7 +300,12 @@ Example: {{"strategy_key": "CAPACITATION_REQUIRED"}}
             "success": False,
         }
 
-        content, error_api = call_llm_api(self.model_config, prompt, 0.2, self.logger)
+        content, error_api = call_llm_api(
+            model_config=self.model_config,
+            prompt=prompt,
+            temperature=0.2,
+            logger=self.logger
+        )
 
         if error_api:
             attempt_log["raw_response"] = f"Erro da API: {error_api}"

@@ -5,3 +5,4 @@ psutil>=5.9.8
 pytest>=7.0.0
 pytest-mock>=3.0.0
 radon>=5.1.0
+pandas>=1.0.0

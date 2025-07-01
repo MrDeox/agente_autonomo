@@ -12,11 +12,16 @@ class TestErrorAnalysisAgent(unittest.TestCase):
         # Suppress logging during tests unless specifically needed
         self.logger.setLevel(logging.CRITICAL + 1)
 
-        self.api_key = "test_api_key"
-        self.model = "test_model"
+        self.model_config = {
+            "primary": "test_model",
+            "fallback": "fallback_model",
+            "primary_api_key": "test_api_key",
+            "fallback_api_key": "fallback_api_key",
+            "primary_base_url": "https://api.example.com/v1",
+            "fallback_base_url": "https://fallback.example.com/v1",
+        }
         self.analyzer = ErrorAnalysisAgent(
-            api_key=self.api_key,
-            model=self.model,
+            model_config=self.model_config,
             logger=self.logger
         )
 
@@ -116,12 +121,12 @@ class TestErrorAnalysisAgent(unittest.TestCase):
         # Verify suggested_prompt content for malformed JSON
         expected_prompt_start_lower = f"erroranalysisagent failed to parse llm response for objective: {failed_objective_str.lower()}"
         self.assertTrue(result["suggested_prompt"].lower().startswith(expected_prompt_start_lower))
-        self.assertIn(malformed_json_string, result["suggested_prompt"]) # Raw response should be included
+        self.assertIn(malformed_json_string, result["suggested_prompt"])
 
         # Verify details content for malformed JSON
         expected_details_start_lower = "failed to parse llm json response."
         self.assertTrue(result["details"].lower().startswith(expected_details_start_lower))
-        self.assertIn(malformed_json_string, result["details"]) # Raw response should be included
+        self.assertIn(malformed_json_string, result["details"])
 
         mock_call_llm_api.assert_called_once()
 
@@ -164,8 +169,8 @@ class TestErrorAnalysisAgent(unittest.TestCase):
             )
 
             mock_llm_call.assert_called_once()
-            args, _ = mock_llm_call.call_args
-            prompt_sent_to_llm = args[2] # prompt is the 3rd argument (api_key, model, prompt, ...)
+            _, kwargs = mock_llm_call.call_args
+            prompt_sent_to_llm = kwargs["prompt"]
 
             self.assertIn("[FAILED OBJECTIVE]\nO1", prompt_sent_to_llm)
             self.assertIn("[FAILURE REASON CODE]\nR1", prompt_sent_to_llm)
@@ -173,7 +178,7 @@ class TestErrorAnalysisAgent(unittest.TestCase):
             self.assertIn("[ORIGINAL PATCHES ATTEMPTED (JSON)]\nP1", prompt_sent_to_llm)
             self.assertIn("[FAILED CODE SNIPPET]\nS1", prompt_sent_to_llm)
             self.assertIn("[TEST OUTPUT]\nT1", prompt_sent_to_llm)
-            self.assertIn("Example: '[CORRECTION TASK - TEST] Original Objective: <obj>. Test Failure: <test_out>. Regenerate patches for <files> to pass tests. Previous patches: <patches_json>.\\n[CONTEXT_FLAG] TEST_FIX_IN_PROGRESS'", prompt_sent_to_llm)
+            self.assertIn("Example: '[CORRECTION TASK - TEST] Original Objective: <obj>. Test Failure: <test_out>. Regenerate patches for <files> to pass tests. Previous patches: <patches_json>.\n[CONTEXT_FLAG] TEST_FIX_IN_PROGRESS'", prompt_sent_to_llm)
 
 if __name__ == '__main__':
     unittest.main()
