@@ -30,7 +30,7 @@ def temp_config_file(tmp_path):
         },
         "validation_strategies": {
             "DEFAULT_STRATEGY": {
-                "steps": ["apply_patches_to_disk", "validate_syntax", "run_pytest_validation"],
+                "steps": ["apply_patches_to_disk", "validate_syntax", "PytestValidator"],
                 "sanity_check_step": "run_pytest"
             },
             "NO_OP_STRATEGY": {
