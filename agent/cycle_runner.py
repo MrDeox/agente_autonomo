@@ -19,7 +19,11 @@ if TYPE_CHECKING:  # pragma: no cover - for type checking only
     from main import HephaestusAgent
 
 
-def run_cycles(agent: "HephaestusAgent") -> None:
+from agent.queue_manager import QueueManager # Import QueueManager
+
+from agent.queue_manager import QueueManager # Import QueueManager
+
+def run_cycles(agent: "HephaestusAgent", queue_manager: QueueManager) -> None:
     """Execute the main evolution loop for the given agent."""
     if not agent.objective_stack:
         agent.logger.info("Gerando objetivo inicial...")
@@ -52,9 +56,9 @@ def run_cycles(agent: "HephaestusAgent") -> None:
         estrategia_final = ""
         objetivo_do_ciclo = ""
 
-        if not agent.objective_stack:
+        if queue_manager.is_empty():
             if agent.continuous_mode:
-                agent.logger.info(f"\n{'='*20} MODO CONTÍNUO {'='*20}\nPilha de objetivos vazia. Gerando novo objetivo...")
+                agent.logger.info(f"\n{'='*20} MODO CONTÍNUO {'='*20}\nFila de objetivos vazia. Gerando novo objetivo...")
                 model_config = agent.config.get("models", {}).get("objective_generator")
                 new_objective = generate_next_objective(
                     model_config=model_config,
@@ -63,15 +67,16 @@ def run_cycles(agent: "HephaestusAgent") -> None:
                     project_root_dir=".",
                     config=agent.config,
                     memory_summary=agent.memory.get_full_history_for_prompt(),
+                    current_objective=None, # No current objective for the new generation
                 )
-                agent.objective_stack.append(new_objective)
-                agent.logger.info(f"Novo objetivo gerado para modo contínuo: {new_objective}")
+                queue_manager.put_objective(new_objective)
+                agent.logger.info(f"Novo objetivo gerado para modo contínuo e adicionado à fila: {new_objective}")
 
                 continuous_delay = agent.config.get("continuous_mode_delay_seconds", 5)
                 agent.logger.info(f"Aguardando {continuous_delay} segundos antes do próximo ciclo contínuo...")
                 time.sleep(continuous_delay)
             else:
-                agent.logger.info("Pilha de objetivos vazia e modo contínuo desativado. Encerrando agente.")
+                agent.logger.info("Fila de objetivos vazia e modo contínuo desativado. Encerrando agente.")
                 break
 
         if agent.objective_stack_depth_for_testing is not None and cycle_count >= agent.objective_stack_depth_for_testing:
@@ -303,6 +308,7 @@ def run_cycles(agent: "HephaestusAgent") -> None:
                             project_root_dir=".",
                             config=agent.config,
                             memory_summary=agent.memory.get_full_history_for_prompt(),
+                            current_objective=current_objective,
                         )
                         agent.objective_stack.append(next_obj)
                         agent.logger.info(f"Próximo objetivo: {next_obj}")

@@ -57,21 +57,21 @@ def mock_env_vars(monkeypatch):
 def agent_instance(mock_logger, temp_config_file, mock_env_vars, tmp_path):
     """Cria uma instância do HephaestusAgent com mocks para testes."""
     # Import HephaestusAgent here to ensure mocks are applied before instantiation
-    from main import HephaestusAgent as MockableHephaestusAgent # Import with alias
+    from agent.hephaestus_agent import HephaestusAgent as MockableHephaestusAgent # Import with alias
 
     # Precisamos garantir que o diretório de trabalho seja o tmp_path para isolamento
     original_cwd = os.getcwd()
     os.chdir(tmp_path)
 
     # Mockear o arquivo de configuração para que ele use o temp_config_file
-    with patch('main.HephaestusAgent.load_config', return_value=json.load(open(temp_config_file))):
+    with patch('agent.config_loader.load_config', return_value=json.load(open(temp_config_file))):
         # Patch git initialization before HephaestusAgent is instantiated
         with patch('agent.git_utils.initialize_git_repository', return_value=True) as mock_init_git:
                 # Mock para evitar chamadas reais à API LLM
                 with (
                     patch('agent.brain.call_llm_api', return_value=("Mocked LLM Response", None)) as mock_llm_call,
                     patch('agent.agents.call_llm_api', return_value=("Mocked LLM Response Agents", None)) as mock_llm_agents,
-                    patch('main.run_git_command', return_value=(True, "Mocked git output")) as mock_git_main,
+                    
                     patch('agent.cycle_runner.run_git_command', return_value=(True, "Mocked git output")) as mock_git,
                     patch('agent.cycle_runner.update_project_manifest') as mock_update_manifest,
                     patch(
@@ -103,6 +103,7 @@ def agent_instance(mock_logger, temp_config_file, mock_env_vars, tmp_path):
 
                     agent = MockableHephaestusAgent( # Use the aliased class
                         logger_instance=mock_logger,
+                        config=json.load(open(temp_config_file)), # Pass the loaded config
                         continuous_mode=False, # Testar modo não contínuo por padrão
                         objective_stack_depth_for_testing=1 # Limitar a 1 ciclo para a maioria dos testes
                     )
@@ -110,7 +111,7 @@ def agent_instance(mock_logger, temp_config_file, mock_env_vars, tmp_path):
                     agent._mocks = {
                         "llm_brain": mock_llm_call,
                         "llm_agents": mock_llm_agents,
-                        "git_main": mock_git_main,
+                        
                         "git": mock_git,
                         "manifest": mock_update_manifest,
                         "apply_patches": mock_apply_patches,
