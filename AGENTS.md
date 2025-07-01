@@ -18,7 +18,11 @@ agente_autonomo/
     ANALISE_PERFORMANCE_HEPHAESTUS.md
     ISSUES.md
     CAPABILITIES.md
+    app.py # Novo: Aplicação FastAPI
     agent/
+        hephaestus_agent.py # Novo: Classe principal do agente
+        queue_manager.py # Novo: Gerenciador de fila
+        config_loader.py # Novo: Carregador de configuração
         deep_validator.py
         brain.py
         __init__.py
@@ -40,18 +44,34 @@ agente_autonomo/
             patch_applicator.py
             syntax_validator.py
             pytest_new_file_validator.py
+            # Novos placeholders para validadores
+            BenchmarkValidator.py
+            CheckFileExistenceValidator.py
+            ValidateJsonSyntax.py
         scanner/
         utils/
             __init__.py
             llm_client.py
-    hephaestus_agent/
-        scanner/
 
 ## 2. RESUMO DAS INTERFACES (APIs Internas)
 
-### Arquivo: `main.py`
+### Arquivo: `app.py`
+- **Função:** `submit_objective(obj: Objective)`
+  - *Endpoint para submeter novos objetivos ao agente.*
+- **Função:** `get_status()`
+  - *Endpoint para verificar o status do servidor e da fila.*
+
+### Arquivo: `agent/hephaestus_agent.py`
 - **Classe:** `HephaestusAgent`
-  - *Classe principal que encapsula a lógica do agente autônomo.*
+  - *Classe principal que encapsula a lógica do agente autônomo. Movida de `main.py`.*
+
+### Arquivo: `agent/queue_manager.py`
+- **Classe:** `QueueManager`
+  - *Gerencia uma fila de objetivos para processamento assíncrono.*
+
+### Arquivo: `agent/config_loader.py`
+- **Função:** `load_config()`
+  - *Carrega a configuração do agente de `hephaestus_config.json` com fallbacks.*
 
 ### Arquivo: `agent/deep_validator.py`
 - **Função:** `analyze_complexity(code_string: str)`
@@ -66,8 +86,8 @@ agente_autonomo/
   - *Detects duplicated code blocks in the given Python code string.*
 
 ### Arquivo: `agent/brain.py`
-- **Função:** `generate_next_objective(model_config: Dict[str, str], current_manifest: str, logger: logging.Logger, project_root_dir: str, config: Optional[Dict[str, Any]]=None, memory_summary: Optional[str]=None)`
-  - *Generates the next evolutionary objective using a lightweight model and code analysis.*
+- **Função:** `generate_next_objective(model_config: Dict[str, str], current_manifest: str, logger: logging.Logger, project_root_dir: str, config: Optional[Dict[str, Any]]=None, memory_summary: Optional[str]=None, current_objective: Optional[str]=None)`
+  - *Generates the next evolutionary objective using a lightweight model and code analysis. Aprimorado para meta-análise e otimização de prompts.*
 - **Função:** `generate_capacitation_objective(model_config: Dict[str, str], engineer_analysis: str, memory_summary: Optional[str]=None, logger: Optional[logging.Logger]=None)`
   - *Generates an objective to create necessary new capabilities.*
 - **Função:** `generate_commit_message(model_config: Dict[str, str], analysis_summary: str, objective: str, logger: logging.Logger)`
@@ -108,8 +128,8 @@ agente_autonomo/
   - *Aplica uma lista de instruções de patch aos arquivos.*
 
 ### Arquivo: `agent/cycle_runner.py`
-- **Função:** `run_cycles(agent: 'HephaestusAgent')`
-  - *Execute the main evolution loop for the given agent.*
+- **Função:** `run_cycles(agent: 'HephaestusAgent', queue_manager: QueueManager)`
+  - *Execute o loop principal de evolução para o agente, processando objetivos da fila.*
 
 ### Arquivo: `agent/memory.py`
 - **Classe:** `Memory`

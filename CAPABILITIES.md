@@ -11,9 +11,11 @@ Este documento descreve as capacidades atuais e desejadas do agente Hephaestus, 
   - Analisa métricas de código estático (complexidade, tamanho do arquivo/função, cobertura de testes).
   - Analisa o manifesto do projeto (`AGENTS.md`).
   - Gera um objetivo de desenvolvimento com base na análise.
+  - **Agora considera a análise de performance (`evolution_log.csv`) para otimizar prompts e estratégias.**
 - **Análise de Erros (`agent/error_analyzer.py`):**
   - Classifica falhas (ex: erro de sintaxe, falha de teste).
   - Propõe um prompt de correção para o `ArchitectAgent`.
+  - **Pode sugerir objetivos de meta-análise para questionar o objetivo ou a estratégia original.**
 - **Planejamento de Patches (`agent/agents.py:ArchitectAgent`):**
   - Recebe um objetivo e o manifesto do projeto.
   - Gera um plano de patches em formato JSON para modificar a base de código.
@@ -31,6 +33,7 @@ Este documento descreve as capacidades atuais e desejadas do agente Hephaestus, 
 - **Gerenciamento de Estado e Ciclo (`agent/state.py`, `agent/cycle_runner.py`):**
   - Orquestra o fluxo completo de um ciclo de evolução.
   - Mantém o estado do ciclo atual (objetivo, patches, resultado da validação).
+  - **O `cycle_runner.py` agora interage com um `QueueManager` para processar objetivos de forma assíncrona.**
 
 ### 1.3. Memória e Versionamento
 - **Memória Persistente (`agent/memory.py`):**
@@ -39,6 +42,16 @@ Este documento descreve as capacidades atuais e desejadas do agente Hephaestus, 
 - **Versionamento com Git (`agent/git_utils.py`):**
   - Inicializa o repositório Git.
   - Realiza commits automáticos após a validação bem-sucedida das alterações.
+
+### 1.4. Infraestrutura (Nova)
+- **Servidor FastAPI (`app.py`):**
+  - Executa o Hephaestus como um serviço em segundo plano.
+  - Expõe endpoints para submissão de objetivos e verificação de status.
+  - Gerencia um thread worker para processar objetivos da fila.
+- **Gerenciamento de Fila (`agent/queue_manager.py`):**
+  - Permite a comunicação assíncrona de objetivos entre o servidor e o worker do agente.
+- **Carregamento de Configuração (`agent/config_loader.py`):**
+  - Módulo dedicado para carregar a configuração do agente de forma centralizada.
 
 ---
 
@@ -49,20 +62,28 @@ O desenvolvimento futuro deve focar em aprimorar a capacidade do agente de enten
 ### 2.1. Meta-Cognição e Análise de Performance
 - **Análise de Performance do Agente:**
   - **Objetivo:** Desenvolver a capacidade de analisar o próprio log de evolução (`evolution_log.csv`) para identificar gargalos, estratégias ineficazes e padrões de falha.
-  - **Próximo Passo:** Criar um novo agente, `PerformanceAnalysisAgent`, que lê o log e gera um resumo de performance.
+  - **Status:** Implementado. O `PerformanceAnalysisAgent` agora fornece uma análise detalhada do `evolution_log.csv`, incluindo taxa de sucesso geral, taxa de sucesso por estratégia e tempo médio de ciclo. O `generate_next_objective` utiliza essa análise para informar a geração de objetivos.
 - **Análise de Causa Raiz (Meta-Análise):**
   - **Objetivo:** Aprimorar o `ErrorAnalysisAgent` para que, diante de falhas repetidas, ele possa questionar a validade do objetivo ou da estratégia, em vez de apenas tentar corrigir o código.
-  - **Próximo Passo:** Modificar o prompt do `ErrorAnalysisAgent` para incluir perguntas de meta-análise e a capacidade de gerar um `[META-ANALYSIS]` como objetivo.
+  - **Status:** Iniciado. O `ErrorAnalysisAgent` agora pode sugerir objetivos de meta-análise, e o `generate_next_objective` em `agent/brain.py` foi aprimorado para detectar e processar esses objetivos, gerando um novo objetivo estratégico para abordar a causa raiz da falha.
 
 ### 2.2. Aprimoramento da Arquitetura e Estratégia
 - **Estratégias de Validação Dinâmicas:**
   - **Objetivo:** Permitir que o `MaestroAgent` não apenas escolha, mas também proponha a criação de novas estratégias de validação com base no contexto da tarefa.
-  - **Próximo Passo:** Implementar um fluxo onde o `MaestroAgent` pode retornar `NEW_STRATEGY_REQUIRED`, acionando um objetivo de capacitação para criar uma nova entrada em `hephaestus_config.json`.
+  - **Status:** Iniciado. O `generate_next_objective` agora inclui a otimização de prompts e estratégias como uma prioridade, permitindo que o agente proponha modificações em `hephaestus_config.json` ou refinamento de prompts existentes com base na análise de performance.
 - **Refatoração Orientada a Capacidades:**
   - **Objetivo:** Garantir que os objetivos de refatoração estejam sempre ligados a um aprimoramento de capacidade, e não apenas à melhoria de métricas de código.
-  - **Próximo Passo:** Refinar o prompt do `generate_next_objective` para exigir uma justificativa de capacitação para qualquer refatoração proposta.
+  - **Status:** Não iniciado. (A base para isso foi estabelecida com a meta-análise e otimização de prompts, mas a refatoração explícita orientada a capacidades ainda não foi implementada).
 
 ### 2.3. Expansão de Ferramentas
 - **Auto-Aprimoramento de Ferramentas:**
   - **Objetivo:** Dar ao agente a capacidade de modificar e aprimorar suas próprias ferramentas (ex: `tool_executor.py`) quando uma tarefa falha devido a uma limitação da ferramenta.
-  - **Próximo Passo:** Criar um fluxo de "capacitação de ferramenta" que é acionado quando uma falha é classificada como `TOOL_ERROR`.
+  - **Status:** Não iniciado. (A meta-análise de falhas pode identificar a necessidade de aprimoramento de ferramentas, mas a implementação autônoma ainda não está presente).
+
+- **Acesso e Raciocínio com Conhecimento Externo:**
+  - **Objetivo:** Implementar uma ferramenta de busca na web (`web_search`) robusta, permitindo que o agente pesquise documentação de APIs, soluções para erros e novas bibliotecas para resolver problemas que estão além de seu conhecimento atual.
+  - **Status:** Não iniciado.
+
+- **Gerenciamento de Estratégias Dinâmicas:**
+  - **Objetivo:** O `MaestroAgent` deve evoluir de um simples selecionador de estratégias para um arquiteto de estratégias. Ele deve ser capaz de propor, e até mesmo codificar, novas estratégias de validação em `hephaestus_config.json` com base nos requisitos de um objetivo.
+  - **Status:** Iniciado. O `generate_next_objective` agora inclui a otimização de prompts e estratégias como uma prioridade, permitindo que o agente proponha modificações em `hephaestus_config.json` ou refinamento de prompts existentes com base na análise de performance.

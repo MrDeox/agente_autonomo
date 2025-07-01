@@ -37,31 +37,50 @@ Em vez de simplesmente completar tarefas de desenvolvimento de software, o Hepha
 4.  **Revise a Configuração (Opcional):**
     Ajuste `hephaestus_config.json` para selecionar modelos, estratégias de validação e outros parâmetros.
 
-5.  **Execute o agente:**
+5.  **Execute o servidor Hephaestus:**
     ```bash
     python main.py
     ```
-    O agente iniciará seu ciclo de auto-aprimoramento.
+    Isso iniciará o servidor FastAPI (Uvicorn) na porta 8000 por padrão. O agente Hephaestus será executado em um thread em segundo plano, processando objetivos de uma fila.
+
+6.  **Submeta Objetivos (Exemplo via `curl`):**
+    Para enviar um novo objetivo ao agente, você pode usar o endpoint `/submit_objective`:
+    ```bash
+    curl -X POST "http://localhost:8000/submit_objective" -H "Content-Type: application/json" -d '{"objective": "Seu novo objetivo aqui"}'
+    ```
+
+7.  **Verifique o Status (Exemplo via `curl`):**
+    Para verificar o status do servidor e da fila de objetivos:
+    ```bash
+    curl "http://localhost:8000/status"
+    ```
+    O agente iniciará seu ciclo de auto-aprimoramento e processará os objetivos da fila.
 
 ## Como Funciona? O Ciclo de Auto-Aprimoramento
 
-O Hephaestus opera em um ciclo contínuo, que agora é focado em RSI:
+O Hephaestus opera em um ciclo contínuo, agora como um serviço em segundo plano, com foco em RSI:
 
-1.  **Geração de Objetivo Estratégico:** O agente primeiro analisa o `CAPABILITIES.md` e seu `ROADMAP.md` para decidir qual capacidade aprimorar. Ele também revisa seu log de performance (`evolution_log.csv`) para encontrar padrões de falha a serem corrigidos. As métricas de código são usadas como um fator de desempate ou suporte.
-2.  **Planejamento Arquitetônico:** O `ArchitectAgent` cria um plano de modificação de código (patches) para alcançar o objetivo estratégico.
-3.  **Decisão Estratégica:** O `MaestroAgent` analisa o plano e escolhe a melhor forma de validar as alterações. Se o plano for muito arriscado ou exigir uma capacidade que o agente não possui, ele pode solicitar um novo objetivo de "capacitação".
-4.  **Execução e Validação:** As alterações são aplicadas em um ambiente seguro (sandbox) e validadas usando testes e verificação de sintaxe.
-5.  **Meta-Análise de Falha:** Se o ciclo falhar, o `ErrorAnalysisAgent` é ativado. Sua nova função é questionar não apenas o código, mas também o objetivo e a estratégia. Ele pode sugerir uma abordagem completamente nova ou um objetivo para entender a causa raiz da falha.
-6.  **Aplicação e Versionamento:** Se a validação for bem-sucedida, as alterações são aplicadas à base de código principal e um commit é feito automaticamente.
+1.  **Serviço em Segundo Plano:** O Hephaestus agora é executado como um servidor FastAPI, permitindo a submissão assíncrona de objetivos via API. Um thread worker dedicado processa os objetivos de uma fila.
+2.  **Geração de Objetivo Estratégico:** O agente primeiro analisa o `CAPABILITIES.md` e seu `ROADMAP.md` para decidir qual capacidade aprimorar. Ele também revisa seu log de performance (`evolution_log.csv`) para encontrar padrões de falha a serem corrigidos. As métricas de código são usadas como um fator de desempate ou suporte. **Agora, o LLM é instruído a considerar a otimização de seus próprios prompts e estratégias com base na análise de performance.**
+3.  **Planejamento Arquitetônico:** O `ArchitectAgent` cria um plano de modificação de código (patches) para alcançar o objetivo estratégico.
+4.  **Decisão Estratégica:** O `MaestroAgent` analisa o plano e escolhe a melhor forma de validar as alterações. Se o plano for muito arriscado ou exigir uma capacidade que o agente não possui, ele pode solicitar um novo objetivo de "capacitação".
+5.  **Execução e Validação:** As alterações são aplicadas em um ambiente seguro (sandbox) e validadas usando testes e verificação de sintaxe.
+6.  **Meta-Análise de Falha:** Se o ciclo falhar, o `ErrorAnalysisAgent` é ativado. Sua nova função é questionar não apenas o código, mas também o objetivo e a estratégia. **Ele pode sugerir uma abordagem completamente nova ou um objetivo de meta-análise para entender a causa raiz da falha, que será processado pelo 'Planejador Estratégico Avançado'.**
+7.  **Aplicação e Versionamento:** Se a validação for bem-sucedida, as alterações são aplicadas à base de código principal e um commit é feito automaticamente.
 
 ## Estrutura do Projeto
 
+-   **`app.py`**: Aplicação FastAPI que expõe a API para submissão de objetivos e status, e inicia o agente em um thread worker.
 -   **`agent/`**: Contém a lógica central do agente.
-    -   `brain.py`: Lógica de geração de objetivos e mensagens de commit.
+    -   `hephaestus_agent.py`: **Contém a classe principal `HephaestusAgent` (movida de `main.py`).**
+    -   `brain.py`: Lógica de geração de objetivos e mensagens de commit. **Agora com lógica aprimorada para meta-análise e otimização de prompts.**
     -   `agents.py`: Define os agentes especializados (`Architect`, `Maestro`).
-    -   `cycle_runner.py`: Orquestra o ciclo de auto-aprimoramento.
-    -   `error_analyzer.py`: Analisa falhas e realiza meta-análise.
+    -   `cycle_runner.py`: Orquestra o ciclo de auto-aprimoramento. **Agora interage com o `QueueManager`.**
+    -   `error_analyzer.py`: Analisa falhas e realiza meta-análise. **Agora pode sugerir objetivos de meta-análise.**
+    -   `queue_manager.py`: **Novo módulo para gerenciar a fila de objetivos.**
+    -   `config_loader.py`: **Novo módulo para carregar a configuração do agente.**
     -   `utils/llm_client.py`: Gerencia a comunicação com as APIs de LLM (Gemini, OpenRouter).
+    -   `validation_steps/`: Contém os passos de validação. **Agora inclui placeholders para `BenchmarkValidator`, `CheckFileExistenceValidator`, `ValidateJsonSyntax`.**
 -   **`tests/`**: Testes unitários para o agente.
 -   **Documentos de Estratégia:**
     -   `README.md`: (Este arquivo) Visão geral do projeto.
@@ -70,8 +89,8 @@ O Hephaestus opera em um ciclo contínuo, que agora é focado em RSI:
     -   `MANIFESTO.md`: Os princípios de design do projeto.
     -   `AGENTS.md`: Documentação da arquitetura interna.
 -   **Configuração e Logs:**
-    -   `main.py`: Ponto de entrada para executar o agente.
-    -   `hephaestus_config.json`: Configuração principal (modelos, estratégias).
+    -   `main.py`: **Ponto de entrada para iniciar o servidor FastAPI.**
+    -   `hephaestus_config.json`: Configuração principal (modelos, estratégias). **Nomes de etapas de validação atualizados.**
     -   `hephaestus.log`: Log detalhado de execução.
     -   `evolution_log.csv`: Log de alto nível sobre a performance de cada ciclo.
 

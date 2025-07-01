@@ -14,45 +14,59 @@
 O núcleo do sistema Hephaestus reside no diretório `agent/`. É lá que a lógica para o ciclo de operação, a tomada de decisão ("cérebro" ou `brain.py`), e a aplicação de modificações no código (`patch_applicator.py`) estão implementadas. Um componente chave que demonstra a intenção de criar um sistema de autoaperfeiçoamento é o `self_improvement_validator.py`.
 
 O projeto já possui uma base sólida com:
-*   Um ciclo de execução principal (`cycle_runner.py`).
-*   Um cérebro centralizado para o agente (`brain.py`).
+*   Um ciclo de execução principal (`cycle_runner.py`), agora operando em um thread worker separado.
+*   Um cérebro centralizado para o agente (`brain.py`), aprimorado para meta-análise e otimização de prompts.
 *   Mecanismos para aplicar patches de código (`patch_applicator.py`).
 *   Um sistema de validação de sintaxe e testes (`SyntaxValidator`, `PytestValidator`).
-*   A capacidade de se autoavaliar e propor melhorias, parcialmente implementada através do `SelfImprovementValidator` e dos mecanismos de geração de objetivos.
+*   A capacidade de se autoavaliar e propor melhorias, implementada através do `ErrorAnalysisAgent` (que agora pode sugerir objetivos de meta-análise) e dos mecanismos de geração de objetivos.
+*   **Um servidor FastAPI (`app.py`) para submissão assíncrona de objetivos e monitoramento de status.**
+*   **Um gerenciador de fila (`queue_manager.py`) para comunicação assíncrona de objetivos.**
+*   **Um módulo de carregamento de configuração (`config_loader.py`) para centralizar o gerenciamento de configurações.**
 
 ### Componentes Principais (Arquitetura Conceitual)
 
-- **Brain**: Coordenação central, tomada de decisões e interface com modelos LLM
-- **Memory**: Armazenamento persistente do estado e histórico do agente
-- **Tool Executor**: Execução segura de ferramentas e comandos externos
-- **Project Scanner**: Análise e compreensão da estrutura do projeto
-- **Code Validator**: Validação de sintaxe e consistência de código
-- **Patch Applicator**: Aplicação segura de modificações no código
+- **HephaestusAgent**: A classe principal do agente, agora em `agent/hephaestus_agent.py`.
+- **Brain**: Coordenação central, tomada de decisões e interface com modelos LLM. Aprimorado para meta-análise e otimização de prompts.
+- **Memory**: Armazenamento persistente do estado e histórico do agente.
+- **Tool Executor**: Execução segura de ferramentas e comandos externos.
+- **Project Scanner**: Análise e compreensão da estrutura do projeto.
+- **Code Validator**: Validação de sintaxe e consistência de código.
+- **Patch Applicator**: Aplicação segura de modificações no código.
+- **Queue Manager**: Gerencia a fila de objetivos para processamento assíncrono.
+- **Config Loader**: Carrega e gerencia as configurações do agente.
 
-### Fluxo Operacional
+### Fluxo Operacional (Atualizado)
 
-1. Recebe um objetivo de alto nível
-2. Analisa o estado atual do projeto
-3. Planeja as ações necessárias
-4. Valida e executa as ações
-5. Atualiza sua memória com os resultados
-6. Gera feedback e próximo objetivo
+1.  **Servidor FastAPI (`app.py`)** recebe objetivos via API e os adiciona a uma fila.
+2.  Um **thread worker** executa o ciclo principal do agente (`cycle_runner.py`).
+3.  O `cycle_runner` obtém um objetivo da fila.
+4.  O **Brain** (com o 'Planejador Estratégico Avançado') analisa o estado atual do projeto, métricas de código, histórico de performance e, se for um objetivo de meta-análise, o objetivo original e a razão da falha.
+5.  O **ArchitectAgent** planeja as ações necessárias (patches).
+6.  O **MaestroAgent** valida e executa as ações, escolhendo a estratégia de validação apropriada (que pode ser influenciada pela otimização de prompts).
+7.  O agente atualiza sua **Memory** com os resultados.
+8.  O **ErrorAnalysisAgent** analisa falhas e, se necessário, gera um novo objetivo de correção ou um objetivo de meta-análise, que é adicionado de volta à fila.
+9.  O ciclo se repete, puxando o próximo objetivo da fila.
 
 ## Interfaces Principais
 
 ### API Interna (Core)
 
-- `brain.generate_next_objective()`: Gera o próximo objetivo evolutivo
-- `brain.generate_capacitation_objective()`: Cria objetivos para novas capacidades
-- `memory.add_completed_objective()`: Registra objetivos concluídos
-- `tool_executor.run_pytest()`: Executa testes automatizados
-- `patch_applicator.apply_patches()`: Aplica modificações no código
+- `hephaestus_agent.HephaestusAgent`: A classe principal do agente.
+- `brain.generate_next_objective()`: Gera o próximo objetivo evolutivo, agora com meta-análise e otimização de prompts.
+- `brain.generate_capacitation_objective()`: Cria objetivos para novas capacidades.
+- `memory.add_completed_objective()`: Registra objetivos concluídos.
+- `tool_executor.run_pytest()`: Executa testes automatizados.
+- `patch_applicator.apply_patches()`: Aplica modificações no código.
+- `queue_manager.put_objective()`: Adiciona um objetivo à fila.
+- `queue_manager.get_objective()`: Obtém um objetivo da fila.
+- `config_loader.load_config()`: Carrega a configuração do agente.
 
 ### Interfaces Externas
 
-- **OpenRouter API**: Conexão com modelos LLM
-- **Git**: Controle de versão
-- **Filesystem**: Leitura/escrita de arquivos do projeto
+- **FastAPI API**: Para submissão de objetivos e status (HTTP).
+- **OpenRouter API**: Conexão com modelos LLM.
+- **Git**: Controle de versão.
+- **Filesystem**: Leitura/escrita de arquivos do projeto.
 
 ## Roadmap Inicial (Histórico)
 
