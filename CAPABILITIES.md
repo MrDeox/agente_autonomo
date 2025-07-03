@@ -12,14 +12,14 @@ Este documento descreve as capacidades atuais e desejadas do agente Hephaestus, 
   - Analisa o manifesto do projeto (`AGENTS.md`).
   - Gera um objetivo de desenvolvimento com base na análise.
   - **Agora considera a análise de performance (`evolution_log.csv`) para otimizar prompts e estratégias.**
-- **Análise de Erros (`agent/error_analyzer.py`):**
+- **Análise de Erros (`agent/agents/error_analyzer.py`):**
   - Classifica falhas (ex: erro de sintaxe, falha de teste).
   - Propõe um prompt de correção para o `ArchitectAgent`.
   - **Pode sugerir objetivos de meta-análise para questionar o objetivo ou a estratégia original.**
-- **Planejamento de Patches (`agent/agents.py:ArchitectAgent`):**
+- **Planejamento de Patches (`agent/agents/architect_agent.py`):**
   - Recebe um objetivo e o manifesto do projeto.
   - Gera um plano de patches em formato JSON para modificar a base de código.
-- **Seleção de Estratégia (`agent/agents.py:MaestroAgent`):**
+- **Seleção de Estratégia (`agent/agents/maestro_agent.py`):**
   - Analisa o plano de patches.
   - Escolhe uma estratégia de validação apropriada (ex: apenas sintaxe, sintaxe e testes).
 

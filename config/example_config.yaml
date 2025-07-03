@@ -1,0 +1,105 @@
+# Hephaestus Example Configuration (Using Hydra)
+# -----------------------------------------------
+#
+# This file provides guidance on how to understand and customize the configuration
+# for the Hephaestus agent, which uses Hydra for flexible configuration management.
+#
+# How Configuration Works:
+# 1. Main Entry Point: `config/default.yaml` is the primary configuration file loaded by Hydra.
+# 2. Base Settings: `config/base_config.yaml` contains foundational settings like memory file paths,
+#    default model parameters (temperature, max_tokens), logging levels, and code analysis thresholds.
+# 3. Model Configurations: Model choices (e.g., for architect, maestro, error analyzer) are defined in
+#    `config/models/main.yaml`. You can see different model providers and settings there.
+# 4. Validation Strategies: Various strategies for validating generated code are defined in
+#    `config/validation_strategies/main.yaml`. These specify sequences of validation steps.
+#
+# How to Customize:
+# Hydra allows for several ways to customize your configuration without directly modifying the
+# core configuration files (though you can, if you prefer).
+#
+# Method 1: Command-Line Overrides (Recommended for temporary changes)
+# You can override any configuration value when running the agent from the command line.
+# For example, to change the primary model for the architect:
+# `python run_agent.py models.architect_default.primary="your-custom-model-name"`
+# To change the logging level:
+# `python run_agent.py base_config.log_level="DEBUG"`
+#
+# Method 2: Creating a Local Override File (Recommended for persistent local changes)
+#    a. Create a new directory, e.g., `config/local/`.
+#    b. Inside `config/local/`, create a YAML file, e.g., `my_overrides.yaml`.
+#    c. In `my_overrides.yaml`, specify only the values you want to change. For example:
+#
+#       ```yaml
+#       # In config/local/my_overrides.yaml
+#       base_config:
+#         log_level: "DEBUG"
+#         memory_file_path: "/path/to/your/custom_memory.json"
+#
+#       models:
+#         architect_default:
+#           primary: "gpt-4" # Example override
+#           temperature: 0.5
+#         error_analyzer:
+#           primary: "claude-2"
+#
+#       # You can also override entire validation strategies or parts of them
+#       validation_strategies:
+#         SYNTAX_ONLY:
+#           steps:
+#             - validate_syntax
+#             # - PatchApplicatorStep # Example: removing a step
+#       ```
+#
+#    d. To use this local override, you can either:
+#       - Add it to the `defaults` list in `config/default.yaml`:
+#         ```yaml
+#         # In config/default.yaml
+#         defaults:
+#           - base_config
+#           - models: main
+#           - validation_strategies: main
+#           - local/my_overrides  # Add this line (path relative to config dir)
+#           - _self_
+#         ```
+#         Ensure `local/my_overrides.yaml` is the last one before `_self_` to take precedence.
+#       - Or, specify it via Hydra's multirun or sweep capabilities if running experiments.
+#
+# What to Configure:
+# - API Keys: Sensitive information like API keys for LLM services (OpenAI, Anthropic, OpenRouter, etc.)
+#   should NOT be stored directly in these YAML files. Instead, configure them using environment variables.
+#   The application's LLM client (e.g., in `agent/utils/llm_client.py`) should be designed to pick up
+#   API keys from environment variables (e.g., `OPENAI_API_KEY`, `ANTHROPIC_API_KEY`, `OPENROUTER_API_KEY`).
+#
+# - Model Selection: In `config/models/main.yaml` (or your override file), you can change the `primary`
+#   and `fallback` models for various agent functions. You can also adjust `temperature` and `max_tokens`
+#   either in `config/base_config.yaml` (for defaults) or per-model in `config/models/main.yaml`.
+#
+# - File Paths: `base_config.memory_file_path` in `config/base_config.yaml`.
+#
+# - Validation: Modify strategies in `config/validation_strategies/main.yaml` or define new ones.
+#
+# - Thresholds: `code_analysis_thresholds` in `config/base_config.yaml` for things like max file lines of code (LOC),
+#   function LOC, and cyclomatic complexity (CC).
+#
+#
+# This `example_config.yaml` itself is not directly loaded by the application.
+# It serves as documentation. The actual configuration is loaded starting from `default.yaml`.
+#
+# To see the fully composed configuration that your application will use,
+# you can add a small utility script or modify `agent/config_loader.py` (main block)
+# to print the loaded config. For example:
+#
+# ```python
+# # In a test script or at the end of config_loader.py's __main__
+# from agent.config_loader import load_config
+# import yaml # PyYAML
+#
+# config = load_config()
+# print(yaml.dump(config)) # Pretty print the full config
+# ```
+#
+# Refer to the official Hydra documentation (https://hydra.cc/) for more advanced
+# features like composition, variable interpolation, and command-line usage.
+
+# This is just a marker to make it a valid YAML file.
+example_hydra_configuration_guidance: true
