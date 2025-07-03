@@ -1,6 +1,8 @@
 # Agent package
-from .error_analyzer import ErrorAnalysisAgent
+from .agents import ErrorAnalysisAgent
 from .agents import ArchitectAgent, MaestroAgent
+# ErrorCorrectionAgent and PerformanceAnalysisAgent are not directly exported here,
+# but are available via from agent.agents import ...
 from .brain import generate_next_objective, generate_capacitation_objective, generate_commit_message
 from .code_validator import validate_python_code, validate_json_syntax, perform_deep_validation
 from .cycle_runner import run_cycles

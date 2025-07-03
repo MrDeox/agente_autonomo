@@ -1,7 +1,7 @@
 
 import pandas as pd
 import pytest
-from agent.performance_analyzer import PerformanceAnalysisAgent
+from agent.agents import PerformanceAnalysisAgent # Updated import
 
 @pytest.fixture
 def mock_log_file(tmp_path):
