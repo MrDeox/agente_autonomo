@@ -124,14 +124,17 @@ class TestBrainFunctions(unittest.TestCase):
         mock_analyze_code_metrics.assert_called_once() # Verify this mock is called
         mock_call_llm_api.assert_called_once()
 
-        called_kwargs_llm = mock_call_llm_api.call_args.kwargs
+        called_args_llm, called_kwargs_llm = mock_call_llm_api.call_args
         self.assertEqual(called_kwargs_llm["model_config"], self.model_config)
-        self.assertIn("Test Manifest", called_kwargs_llm["prompt"])
+        self.assertIsInstance(called_kwargs_llm["prompt"], str) # Check that a prompt string is passed
+        self.assertTrue(len(called_kwargs_llm["prompt"]) > 50) # Check prompt is not trivial/empty
+        self.assertIn("Test Manifest", called_kwargs_llm["prompt"]) # Still check for key context presence
         self.assertEqual(called_kwargs_llm["temperature"], 0.3)
         self.assertEqual(called_kwargs_llm["logger"], self.logger)
 
-    @patch('agent.brain.call_llm_api')
-    def test_generate_next_objective_llm_call_error(self, mock_call_llm_api):
+    @patch('agent.brain.call_llm_api') # This mock is for the call inside generate_next_objective
+    @patch('agent.brain.analyze_code_metrics') # Also mock this as it's called before the error path for LLM
+    def test_generate_next_objective_llm_call_error(self, mock_analyze_code_metrics, mock_call_llm_api):
         mock_call_llm_api.return_value = (None, "LLM Error")
 
         objective = generate_next_objective(

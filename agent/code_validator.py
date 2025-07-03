@@ -5,7 +5,7 @@ import sys
 import json
 import logging
 from pathlib import Path
-from agent import deep_validator # Importando o novo módulo
+from agent import code_metrics # Updated import
 
 # Configuração básica de logging se não configurado externamente
 # logging.basicConfig(level=logging.INFO, format='%(levelname)s: %(message)s')
@@ -23,15 +23,15 @@ def perform_deep_validation(file_path: Path, logger: logging.Logger) -> dict | N
         logger.error(f"Não foi possível ler o arquivo {file_path} para validação profunda: {e}")
         return None
 
-    complexity_report = deep_validator.analyze_complexity(code_content)
+    complexity_report = code_metrics.analyze_complexity(code_content)
     if complexity_report.get("error"):
         logger.warning(f"Erro na análise de complexidade para {file_path}: {complexity_report['error']}")
         # Prosseguir mesmo com erro de complexidade para tentar outras análises
 
-    duplication_report = deep_validator.detect_code_duplication(code_content)
+    duplication_report = code_metrics.detect_code_duplication(code_content)
 
     # O calculate_quality_score lida com relatórios de erro internamente
-    quality_score = deep_validator.calculate_quality_score(complexity_report, duplication_report)
+    quality_score = code_metrics.calculate_quality_score(complexity_report, duplication_report)
 
     report = {
         "file_path": str(file_path),

@@ -1,5 +1,5 @@
 import pytest
-from agent.deep_validator import analyze_complexity, detect_code_duplication, calculate_quality_score
+from agent.code_metrics import analyze_complexity, detect_code_duplication, calculate_quality_score # Updated import
 
 # Fixtures for sample code
 @pytest.fixture

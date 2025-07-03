@@ -1,0 +1,66 @@
+# Hydra Group Configuration for Validation Strategies (Located in config/validation_strategies/main.yaml)
+
+SYNTAX_ONLY:
+  steps:
+    - validate_syntax
+    - PatchApplicatorStep
+  sanity_check_step: "skip_sanity_check"
+
+BENCHMARK_ONLY:
+  steps:
+    - run_benchmark_validation
+    - PatchApplicatorStep
+  sanity_check_step: "run_pytest"
+
+SYNTAX_AND_PYTEST:
+  steps:
+    - validate_syntax
+    - run_pytest
+    - PatchApplicatorStep
+  sanity_check_step: "run_pytest"
+
+FULL_VALIDATION:
+  steps:
+    - validate_syntax
+    - run_pytest
+    - run_benchmark_validation
+    - PatchApplicatorStep
+  sanity_check_step: "run_pytest"
+
+DOC_UPDATE_STRATEGY:
+  steps:
+    - validate_syntax
+    - PatchApplicatorStep
+    - check_file_existence
+  sanity_check_step: "check_file_existence"
+
+CONFIG_UPDATE_STRATEGY:
+  steps:
+    - ValidateJsonSyntax # Assuming this is a valid step name
+    - validate_syntax
+    - PatchApplicatorStep
+  sanity_check_step: "check_file_existence"
+
+DISCARD:
+  steps: []
+  sanity_check_step: "skip_sanity_check"
+
+TEST_FIX_STRATEGY:
+  steps:
+    - validate_syntax
+    - PatchApplicatorStep
+  sanity_check_step: "run_pytest"
+
+CREATE_NEW_TEST_FILE_STRATEGY:
+  steps:
+    - validate_syntax
+    - run_pytest_new_file
+    - PatchApplicatorStep
+  sanity_check_step: "run_pytest_new_file"
+
+AUTO_CORRECTION_STRATEGY:
+  steps:
+    - validate_syntax
+    - PatchApplicatorStep
+    - run_pytest
+  sanity_check_step: "run_pytest"
