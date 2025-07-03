@@ -26,23 +26,32 @@ agente_autonomo/
         validation_strategies/
             main.yaml
     agent/
-        hephaestus_agent.py # Novo: Classe principal do agente
-        queue_manager.py # Novo: Gerenciador de fila
-        config_loader.py # Novo: Carregador de configuração
-        deep_validator.py
-        brain.py
         __init__.py
-        git_utils.py
+        brain.py
+        code_metrics.py # Renomeado de deep_validator.py
         code_validator.py
-        error_correction.py
-        agents.py
-        patch_applicator.py
+        config_loader.py
         cycle_runner.py
+        git_utils.py
+        hephaestus_agent.py
         memory.py
-        tool_executor.py
+        patch_applicator.py
         project_scanner.py
+        prompt_builder.py # Novo
+        queue_manager.py
         state.py
-        error_analyzer.py
+        tool_executor.py
+        agents/ # Novo pacote para agentes especializados
+            __init__.py
+            architect_agent.py
+            maestro_agent.py
+            error_analyzer.py # Movido
+            error_correction.py # Movido
+            performance_analyzer.py # Movido
+        utils/
+            __init__.py
+            json_parser.py # Novo
+            llm_client.py
         validation_steps/
             pytest_validator.py
             __init__.py
@@ -50,14 +59,9 @@ agente_autonomo/
             patch_applicator.py
             syntax_validator.py
             pytest_new_file_validator.py
-            # Novos placeholders para validadores
-            BenchmarkValidator.py
-            CheckFileExistenceValidator.py
-            ValidateJsonSyntax.py
-        scanner/
-        utils/
-            __init__.py
-            llm_client.py
+            # Outros validadores podem ser adicionados aqui conforme necessário.
+        # A listagem do scanner/ foi removida pois o diretório está vazio ou não é relevante para interfaces.
+        # A listagem duplicada de utils/ foi removida. utils/ é listado acima com seu conteúdo.
 
 ## 2. RESUMO DAS INTERFACES (APIs Internas)
 
@@ -79,7 +83,7 @@ agente_autonomo/
 - **Função:** `load_config()`
   - *Carrega a configuração do agente utilizando Hydra. As configurações são definidas em arquivos YAML dentro do diretório `config/` (iniciando por `default.yaml`). Não há mais fallback para arquivos JSON.*
 
-### Arquivo: `agent/deep_validator.py`
+### Arquivo: `agent/code_metrics.py`
 - **Função:** `analyze_complexity(code_string: str)`
   - *Analyzes the cyclomatic complexity and other metrics of the given Python code string using Radon.*
 - **Função:** `calculate_quality_score(complexity_report: dict, duplication_report: list)`
@@ -93,7 +97,7 @@ agente_autonomo/
 
 ### Arquivo: `agent/brain.py`
 - **Função:** `generate_next_objective(model_config: Dict[str, str], current_manifest: str, logger: logging.Logger, project_root_dir: str, config: Optional[Dict[str, Any]]=None, memory_summary: Optional[str]=None, current_objective: Optional[str]=None)`
-  - *Generates the next evolutionary objective using a lightweight model and code analysis. Aprimorado para meta-análise e otimização de prompts.*
+  - *Gera o próximo objetivo evolutivo usando um modelo de LLM e análise de código. A construção detalhada dos prompts é delegada ao módulo `agent.prompt_builder`. Aprimorado para meta-análise e otimização de prompts.*
 - **Função:** `generate_capacitation_objective(model_config: Dict[str, str], engineer_analysis: str, memory_summary: Optional[str]=None, logger: Optional[logging.Logger]=None)`
   - *Generates an objective to create necessary new capabilities.*
 - **Função:** `generate_commit_message(model_config: Dict[str, str], analysis_summary: str, objective: str, logger: logging.Logger)`
@@ -113,15 +117,9 @@ agente_autonomo/
 - **Função:** `validate_json_syntax(file_path: str | Path, logger: logging.Logger)`
   - *Valida se um arquivo contém JSON válido.*
 
-### Arquivo: `agent/error_correction.py`
-- **Classe:** `ErrorCorrectionAgent`
-  - *Agent for analyzing errors and generating corrective actions.*
-
-### Arquivo: `agent/agents.py`
-- **Função:** `parse_json_response(raw_str: str, logger: logging.Logger)`
-  - *Analisa uma string bruta que se espera conter JSON, limpando-a e decodificando-a.*
-- **Classe:** `ArchitectAgent`
-- **Classe:** `MaestroAgent`
+# A seção para o antigo agent/agents.py foi removida.
+# ArchitectAgent e MaestroAgent serão documentados em seus novos arquivos.
+# parse_json_response será documentado em agent/utils/json_parser.py.
 
 ### Arquivo: `agent/patch_applicator.py`
 - **Função:** `_handle_insert(full_path: Path, lines: list[str], instruction: dict, logger: logging.Logger)`
@@ -153,6 +151,36 @@ agente_autonomo/
 - **Função:** `web_search(query: str)`
   - *Realiza uma pesquisa na web usando a API DuckDuckGo e retorna os resultados.*
 
+### Arquivo: `agent/agents/architect_agent.py`
+- **Classe:** `ArchitectAgent`
+  - `__init__(self, model_config: Dict[str, str], logger: logging.Logger)`
+  - `plan_action(self, objective: str, manifest: str) -> Tuple[Optional[Dict[str, Any]], Optional[str]]`
+    - *Gera um plano de patches JSON com base no objetivo e no manifesto do projeto.*
+
+### Arquivo: `agent/agents/error_analyzer.py`
+- **Classe:** `ErrorAnalysisAgent`
+  - `__init__(self, model_config: Dict[str, str], logger: logging.Logger)`
+  - `analyze_error(self, failed_objective: str, error_reason: str, error_context: str, original_patches: Optional[str] = None, failed_code_snippet: Optional[str] = None, test_output: Optional[str] = None) -> Dict[str, Any]`
+    - *Analisa uma falha e sugere um curso de ação, retornando um dicionário com classificação, tipo de sugestão, prompt sugerido e detalhes.*
+
+### Arquivo: `agent/agents/error_correction.py`
+- **Classe:** `ErrorCorrectionAgent`
+  - `__init__(self, api_key: str, model: str, logger)` # Assinatura do construtor como no código
+  - `generate_fix(self, error_context: Dict[str, Any]) -> Tuple[str, str]`
+    - *Gera uma ação corretiva (patch ou novo objetivo) com base no contexto do erro.*
+
+### Arquivo: `agent/agents/maestro_agent.py`
+- **Classe:** `MaestroAgent`
+  - `__init__(self, model_config: Dict[str, str], config: Dict[str, Any], logger: logging.Logger)`
+  - `choose_strategy(self, action_plan_data: Dict[str, Any], memory_summary: Optional[str] = None) -> List[Dict[str, Any]]`
+    - *Analisa o plano de patches e o histórico para decidir a melhor estratégia de validação ou se é necessária capacitação.*
+
+### Arquivo: `agent/agents/performance_analyzer.py`
+- **Classe:** `PerformanceAnalysisAgent`
+  - `__init__(self, evolution_log_path="evolution_log.csv")`
+  - `analyze_performance(self) -> str`
+    - *Analisa o log de evolução para gerar um resumo de performance.*
+
 ### Arquivo: `agent/project_scanner.py`
 - **Função:** `_extract_elements(code_string: str)`
 - **Função:** `_extract_skeleton(code_string: str)`
@@ -160,12 +188,21 @@ agente_autonomo/
 - **Função:** `analyze_code_metrics(root_dir: str, excluded_dir_patterns: Optional[List[str]]=None, file_loc_threshold: int=300, func_loc_threshold: int=50, func_cc_threshold: int=10)`
   - *Analisa arquivos Python em um diretório para métricas de código como LOC e Complexidade Ciclomática.*
 
+### Arquivo: `agent/prompt_builder.py`
+- **Função:** `build_memory_context_section(memory_summary: Optional[str]) -> str`
+  - *Constrói a seção de contexto da memória para os prompts.*
+- **Função:** `build_initial_objective_prompt(memory_context_section: str) -> str`
+  - *Constrói o prompt para gerar o objetivo inicial.*
+- **Função:** `build_meta_analysis_objective_prompt(current_objective: str, original_failed_objective: str, error_reason_for_meta: str, performance_summary_str: str, memory_context_section: str) -> str`
+  - *Constrói o prompt para gerar um objetivo estratégico após uma meta-análise de falha.*
+- **Função:** `build_standard_objective_prompt(memory_context_section: str, performance_summary_str: str, code_analysis_summary_str: str, current_manifest: str) -> str`
+  - *Constrói o prompt padrão para gerar o próximo objetivo estratégico.*
+
 ### Arquivo: `agent/state.py`
 - **Classe:** `AgentState`
   - *Representa o estado interno do agente Hephaestus durante um ciclo de processamento.*
 
-### Arquivo: `agent/error_analyzer.py`
-- **Classe:** `ErrorAnalysisAgent`
+# Entrada duplicada para agent/error_analyzer.py removida. A correta está sob agent/agents/.
 
 ### Arquivo: `agent/validation_steps/pytest_validator.py`
 - **Classe:** `PytestValidator(ValidationStep)`
@@ -191,6 +228,10 @@ agente_autonomo/
   - *A validation step that runs pytest specifically on newly created test files.*
 
 ### Arquivo: `agent/utils/__init__.py`
+
+### Arquivo: `agent/utils/json_parser.py`
+- **Função:** `parse_json_response(raw_str: str, logger: logging.Logger)`
+  - *Analisa uma string bruta que se espera conter JSON, limpando-a e decodificando-a.*
 
 ### Arquivo: `agent/utils/llm_client.py`
 - **Função:** `call_gemini_api(model: str, prompt: str, temperature: float, logger: logging.Logger)`
