@@ -6,7 +6,7 @@ from .agents import ArchitectAgent, MaestroAgent
 from .brain import generate_next_objective, generate_capacitation_objective, generate_commit_message
 from .code_validator import validate_python_code, validate_json_syntax, perform_deep_validation
 from .cycle_runner import run_cycles
-from .deep_validator import analyze_complexity, detect_code_duplication, calculate_quality_score
+from .code_metrics import analyze_complexity, detect_code_duplication, calculate_quality_score # Updated import
 from .git_utils import initialize_git_repository
 from .memory import Memory
 from .patch_applicator import apply_patches

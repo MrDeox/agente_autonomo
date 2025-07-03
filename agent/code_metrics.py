@@ -1,5 +1,4 @@
-# Placeholder for deep_validator.py
-# This module will contain functions for code complexity analysis,
+# This module contains functions for code complexity analysis,
 # pattern repetition detection, and quality score calculation.
 
 from radon.visitors import ComplexityVisitor
