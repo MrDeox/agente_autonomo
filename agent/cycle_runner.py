@@ -13,7 +13,7 @@ from agent.brain import (
     generate_commit_message,
 )
 from agent.tool_executor import run_pytest, check_file_existence, run_git_command
-from agent.error_analyzer import ErrorAnalysisAgent # Import ErrorAnalysisAgent
+from agent.agents import ErrorAnalysisAgent # Import ErrorAnalysisAgent from new location
 
 if TYPE_CHECKING:  # pragma: no cover - for type checking only
     from main import HephaestusAgent

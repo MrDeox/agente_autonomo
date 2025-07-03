@@ -3,7 +3,7 @@ import logging
 import json
 from unittest.mock import patch, MagicMock
 
-from agent.error_analyzer import ErrorAnalysisAgent
+from agent.agents import ErrorAnalysisAgent # Updated import
 
 class TestErrorAnalysisAgent(unittest.TestCase):
 
