@@ -1,43 +1,14 @@
+# Default configuration for Hephaestus
+# This is the main entry point for Hydra configuration.
+
 defaults:
-  - base_config
+  - base_config            # Load base settings from base_config.yaml
+  - models: main           # Load model configurations from config/models/main.yaml
+  - validation_strategies: main # Load validation strategies from config/validation_strategies/main.yaml
+  - _self_                  # Allows values in this file to override defaults from included files
 
-# Override settings for specific environments
-# production: inherit from production.yaml
-# development: inherit from development.yaml
+# You can override specific values here if needed, for example:
+# memory_file_path: "MY_CUSTOM_MEMORY.json"
 
-# Base configuration
-base_config:
-  memory_file_path: "HEPHAESTUS_MEMORY.json"
-  models:
-    architect_default:
-      primary: "gemini-pro"
-      fallback: "openrouter"
-      temperature: 0.3
-      max_tokens: 2048
-    maestro_default:
-      primary: "gemini-pro"
-      fallback: "openrouter"
-      temperature: 0.3
-      max_tokens: 2048
-    objective_generator:
-      primary: "gemini-pro"
-      fallback: "openrouter"
-      temperature: 0.3
-      max_tokens: 2048
-
-  validation_strategies:
-    SYNTAX_ONLY:
-      steps:
-        - validate_syntax
-        - run_pytest_validation
-    FULL_VALIDATION:
-      steps:
-        - validate_syntax
-        - run_pytest_validation
-        - apply_patches_to_disk
-    DOC_UPDATE_STRATEGY:
-      steps:
-        - validate_syntax
-        - apply_patches_to_disk
-    NO_OP_STRATEGY:
-      steps: []
+# Add a top-level key to confirm this file is loaded, if necessary for debugging
+config_source: "default.yaml"

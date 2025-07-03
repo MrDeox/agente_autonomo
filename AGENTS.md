@@ -4,13 +4,11 @@
 agente_autonomo/
     README.md
     hephaestus.log
-    example_config.json
     AGENTS.md
     CONTRIBUTING.md
     HEPHAESTUS_MEMORY.json
     main.py
     ROADMAP.md
-    hephaestus_config.json
     requirements.txt
     MANIFESTO.md
     evolution_log.csv
@@ -19,6 +17,14 @@ agente_autonomo/
     ISSUES.md
     CAPABILITIES.md
     app.py # Novo: Aplicação FastAPI
+    config/
+        default.yaml
+        base_config.yaml
+        example_config.yaml
+        models/
+            main.yaml
+        validation_strategies/
+            main.yaml
     agent/
         hephaestus_agent.py # Novo: Classe principal do agente
         queue_manager.py # Novo: Gerenciador de fila
@@ -71,7 +77,7 @@ agente_autonomo/
 
 ### Arquivo: `agent/config_loader.py`
 - **Função:** `load_config()`
-  - *Carrega a configuração do agente de `hephaestus_config.json` com fallbacks.*
+  - *Carrega a configuração do agente utilizando Hydra. As configurações são definidas em arquivos YAML dentro do diretório `config/` (iniciando por `default.yaml`). Não há mais fallback para arquivos JSON.*
 
 ### Arquivo: `agent/deep_validator.py`
 - **Função:** `analyze_complexity(code_string: str)`

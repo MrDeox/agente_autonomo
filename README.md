@@ -107,7 +107,13 @@ O Hephaestus opera em um ciclo contínuo, agora como um serviço em segundo plan
     -   `AGENTS.md`: Documentação da arquitetura interna.
 -   **Configuração e Logs:**
     -   `main.py`: **Ponto de entrada para iniciar o servidor FastAPI.**
-    -   `hephaestus_config.json`: Configuração principal (modelos, estratégias). **Nomes de etapas de validação atualizados.**
+    -   `config/`: Diretório contendo a configuração do agente, gerenciada pelo Hydra.
+        -   `default.yaml`: Ponto de entrada principal da configuração Hydra.
+        -   `base_config.yaml`: Configurações base (caminhos, thresholds, logging).
+        -   `models/main.yaml`: Configurações dos modelos de LLM.
+        -   `validation_strategies/main.yaml`: Estratégias de validação.
+        -   `example_config.yaml`: Documentação e exemplo de como customizar a configuração Hydra.
+    -   `hephaestus_config.json`: (Removido) A configuração agora é gerenciada via Hydra no diretório `config/`.
     -   `hephaestus.log`: Log detalhado de execução.
     -   `evolution_log.csv`: Log de alto nível sobre a performance de cada ciclo.
 
