@@ -43,6 +43,10 @@ def build_meta_analysis_objective_prompt(
     original_failed_objective: str,
     error_reason_for_meta: str,
     performance_summary_str: str,
+    memory_context_section: str,
+    capabilities_content: str, # Novo argumento
+    roadmap_content: str       # Novo argumento
+
     memory_context_section: str
 ) -> str:
     """
@@ -65,6 +69,15 @@ You are the 'Meta-Strategic Planner' for the Hephaestus agent. Your task is to p
 {performance_summary_str}
 
 {memory_context_section}
+
+[CAPABILITIES DOCUMENT (CAPABILITIES.md)]
+{capabilities_content}
+
+[ROADMAP DOCUMENT (ROADMAP.md)]
+{roadmap_content}
+
+[YOUR TASK]
+Based on the meta-analysis objective, the original failure details, strategic documents (Capabilities, Roadmap), and the overall agent performance and history:
 
 [YOUR TASK]
 Based on the meta-analysis objective, the original failure details, and the overall agent performance and history:
@@ -95,6 +108,10 @@ def build_standard_objective_prompt(
     memory_context_section: str,
     performance_summary_str: str,
     code_analysis_summary_str: str,
+    current_manifest: str,
+    capabilities_content: str, # Novo argumento
+    roadmap_content: str       # Novo argumento
+
     current_manifest: str
 ) -> str:
     """
@@ -105,6 +122,16 @@ def build_standard_objective_prompt(
 You are the 'Planejador Estratégico Avançado' do agente autônomo Hephaestus. Sua principal responsabilidade é identificar e propor o próximo objetivo de desenvolvimento mais impactante para a evolução do agente ou do projeto em análise.
 
 [Decision Process for the Next Objective]
+1.  **Analyze Performance:** Review the `[PERFORMANCE ANALYSIS]` section.
+2.  **Analyze Code Metrics:** Review the `[CODE METRICS AND ANALYSIS]` section.
+3.  **Consider Strategic Documents:** Review `[CAPABILITIES DOCUMENT]` and `[ROADMAP DOCUMENT]` to understand current capabilities, desired future states, and strategic direction. Identify gaps or next steps.
+4.  **Consider the Project Manifest:** If the `[CURRENT PROJECT MANIFEST]` is provided, use it for context.
+5.  **Review Recent History:** The `[HISTÓRICO RECENTE DO PROJETO E DO AGENTE]` section provides context.
+6.  **Prioritize RSI:** Focus on objectives that enhance the agent's ability to self-improve, improve its core logic, prompts, or strategies.
+7.  **Prioritize Capabilities & Roadmap:** Generate objectives that fill gaps in `[CAPABILITIES DOCUMENT]` or advance items in `[ROADMAP DOCUMENT]`.
+8.  **Prioritize Structural and Quality Improvements:** Based on metrics and strategic documents.
+9.  **Be Specific and Actionable:** The objective should be clear, concise, and indicate a concrete action.
+
 1.  **Analyze Performance:** Review the `[PERFORMANCE ANALYSIS]` section to understand the agent's overall success rate and identify trends, especially focusing on strategies with high failure rates.
 2.  **Analyze Code Metrics:** Review the `[CODE METRICS AND ANALYSIS]` section below. It contains data on file size (LOC), function size (LOC), cyclomatic complexity (CC) of functions, and modules that may be missing tests.
 3.  **Consider the Project Manifest:** If the `[CURRENT PROJECT MANIFEST]` is provided, use it to understand the overall goals, architecture, and areas already documented or needing attention.
@@ -126,6 +153,13 @@ You are the 'Planejador Estratégico Avançado' do agente autônomo Hephaestus. 
 
 [CODE METRICS AND ANALYSIS]
 {code_analysis_summary}
+
+[CAPABILITIES DOCUMENT (CAPABILITIES.md)]
+{capabilities_content}
+
+[ROADMAP DOCUMENT (ROADMAP.md)]
+{roadmap_content}
+
 
 [CURRENT PROJECT MANIFEST (if existing)]
 {current_manifest}

@@ -39,7 +39,9 @@ class TestErrorAnalysisAgent(unittest.TestCase):
             failed_objective="Test objective",
             error_reason="SYNTAX_VALIDATION_FAILED",
             error_context="SyntaxError: invalid syntax",
-            original_patches='[{"op": "replace", "path": "/foo", "value": "bar"}]'
+            original_patches='[{"op": "replace", "path": "/foo", "value": "bar"}]',
+            capabilities_content=None,
+            roadmap_content=None
         )
 
         self.assertEqual(result["classification"], "SYNTAX_ERROR")
@@ -63,7 +65,9 @@ class TestErrorAnalysisAgent(unittest.TestCase):
             error_reason="PYTEST_FAILURE",
             error_context="AssertionError: expected True, got False",
             test_output="TestMyFunction.test_case1 failed: AssertionError",
-            original_patches='[]'
+            original_patches='[]',
+            capabilities_content=None,
+            roadmap_content=None
         )
         self.assertEqual(result["classification"], "TEST_FAILURE")
         self.assertEqual(result["suggestion_type"], "REGENERATE_PATCHES")
@@ -77,7 +81,9 @@ class TestErrorAnalysisAgent(unittest.TestCase):
         result = self.analyzer.analyze_error(
             failed_objective="Objective causing API error",
             error_reason="ANY_REASON",
-            error_context="Some context"
+            error_context="Some context",
+            capabilities_content=None,
+            roadmap_content=None
         )
 
         self.assertEqual(result["classification"], "UNKNOWN_ERROR")
@@ -93,7 +99,9 @@ class TestErrorAnalysisAgent(unittest.TestCase):
         result = self.analyzer.analyze_error(
             failed_objective="Objective with empty LLM response",
             error_reason="ANY_REASON",
-            error_context="Some context"
+            error_context="Some context",
+            capabilities_content=None,
+            roadmap_content=None
         )
 
         self.assertEqual(result["classification"], "UNKNOWN_ERROR")
@@ -111,7 +119,9 @@ class TestErrorAnalysisAgent(unittest.TestCase):
         result = self.analyzer.analyze_error(
             failed_objective=failed_objective_str,
             error_reason="ANY_REASON",
-            error_context="Some context"
+            error_context="Some context",
+            capabilities_content=None,
+            roadmap_content=None
         )
 
         # Check fallback behavior
@@ -138,7 +148,9 @@ class TestErrorAnalysisAgent(unittest.TestCase):
         result = self.analyzer.analyze_error(
             failed_objective="Objective with JSON missing keys",
             error_reason="ANY_REASON",
-            error_context="Some context"
+            error_context="Some context",
+            capabilities_content=None,
+            roadmap_content=None
         )
 
         self.assertEqual(result["classification"], "LOGIC_ERROR")
@@ -165,7 +177,9 @@ class TestErrorAnalysisAgent(unittest.TestCase):
                 error_context="C1",
                 original_patches='P1',
                 failed_code_snippet="S1",
-                test_output="T1"
+                test_output="T1",
+                capabilities_content="Caps: Test capabilities.",
+                roadmap_content="Roadmap: Test roadmap."
             )
 
             mock_llm_call.assert_called_once()
@@ -178,6 +192,8 @@ class TestErrorAnalysisAgent(unittest.TestCase):
             self.assertIn("[ORIGINAL PATCHES ATTEMPTED (JSON)]\nP1", prompt_sent_to_llm)
             self.assertIn("[FAILED CODE SNIPPET]\nS1", prompt_sent_to_llm)
             self.assertIn("[TEST OUTPUT]\nT1", prompt_sent_to_llm)
+            self.assertIn("[CAPABILITIES DOCUMENT (CAPABILITIES.md)]\nCaps: Test capabilities.", prompt_sent_to_llm)
+            self.assertIn("[ROADMAP DOCUMENT (ROADMAP.md)]\nRoadmap: Test roadmap.", prompt_sent_to_llm)
             self.assertIn("Example: '[CORRECTION TASK - TEST] Original Objective: <obj>. Test Failure: <test_out>. Regenerate patches for <files> to pass tests. Previous patches: <patches_json>.\n[CONTEXT_FLAG] TEST_FIX_IN_PROGRESS'", prompt_sent_to_llm)
 
 if __name__ == '__main__':

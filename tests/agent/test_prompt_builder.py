@@ -38,6 +38,10 @@ Consider this history to avoid repeating failures, build on successes, and ident
             original_failed_objective="Implement X",
             error_reason_for_meta="Syntax Error",
             performance_summary_str="Performance good.",
+            memory_context_section="[HISTÓRICO RECENTE DO PROJETO E DO AGENTE]\nMemory context.",
+            capabilities_content="Capabilities: Can do X.",
+            roadmap_content="Roadmap: Achieve Y."
+
             memory_context_section="[HISTÓRICO RECENTE DO PROJETO E DO AGENTE]\nMemory context."
         )
         self.assertIn("You are the 'Meta-Strategic Planner'", prompt)
@@ -46,6 +50,9 @@ Consider this history to avoid repeating failures, build on successes, and ident
         self.assertIn("[REASON FOR FAILURE (from ErrorAnalysisAgent)]\nSyntax Error", prompt)
         self.assertIn("[PERFORMANCE ANALYSIS (Overall Agent Performance)]\nPerformance good.", prompt)
         self.assertIn("[HISTÓRICO RECENTE DO PROJETO E DO AGENTE]\nMemory context.", prompt)
+        self.assertIn("[CAPABILITIES DOCUMENT (CAPABILITIES.md)]\nCapabilities: Can do X.", prompt)
+        self.assertIn("[ROADMAP DOCUMENT (ROADMAP.md)]\nRoadmap: Achieve Y.", prompt)
+
         self.assertIn("Generate ONLY a single text string containing the NEXT STRATEGIC OBJECTIVE", prompt)
 
     def test_build_standard_objective_prompt(self):
@@ -53,12 +60,19 @@ Consider this history to avoid repeating failures, build on successes, and ident
             memory_context_section="[HISTÓRICO RECENTE DO PROJETO E DO AGENTE]\nStandard memory.",
             performance_summary_str="Standard performance.",
             code_analysis_summary_str="Standard code analysis.",
+            current_manifest="Standard manifest.",
+            capabilities_content="Caps: Build Z.",
+            roadmap_content="Roadmap: Phase 1."
+
             current_manifest="Standard manifest."
         )
         self.assertIn("You are the 'Planejador Estratégico Avançado'", prompt)
         self.assertIn("[HISTÓRICO RECENTE DO PROJETO E DO AGENTE]\nStandard memory.", prompt)
         self.assertIn("[PERFORMANCE ANALYSIS]\nStandard performance.", prompt)
         self.assertIn("[CODE METRICS AND ANALYSIS]\nStandard code analysis.", prompt)
+        self.assertIn("[CAPABILITIES DOCUMENT (CAPABILITIES.md)]\nCaps: Build Z.", prompt)
+        self.assertIn("[ROADMAP DOCUMENT (ROADMAP.md)]\nRoadmap: Phase 1.", prompt)
+
         self.assertIn("[CURRENT PROJECT MANIFEST (if existing)]\nStandard manifest.", prompt)
         self.assertIn("generate ONLY a single text string containing the NEXT STRATEGIC OBJECTIVE", prompt)
 
@@ -67,6 +81,14 @@ Consider this history to avoid repeating failures, build on successes, and ident
             memory_context_section="",
             performance_summary_str="Perf sum",
             code_analysis_summary_str="Code sum",
+            current_manifest="  ", # Empty manifest
+            capabilities_content="Caps content",
+            roadmap_content="Roadmap content"
+        )
+        self.assertIn("[CURRENT PROJECT MANIFEST (if existing)]\nN/A (Manifesto non-existent or empty)", prompt)
+        self.assertIn("[CAPABILITIES DOCUMENT (CAPABILITIES.md)]\nCaps content", prompt)
+        self.assertIn("[ROADMAP DOCUMENT (ROADMAP.md)]\nRoadmap content", prompt)
+
             current_manifest="  " # Empty manifest
         )
         self.assertIn("[CURRENT PROJECT MANIFEST (if existing)]\nN/A (Manifesto non-existent or empty)", prompt)

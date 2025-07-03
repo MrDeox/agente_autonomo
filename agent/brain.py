@@ -48,6 +48,31 @@ def generate_next_objective(
 
     config = config or {}
 
+    # Read strategic documents
+    capabilities_content = ""
+    try:
+        with open("CAPABILITIES.md", "r", encoding="utf-8") as f:
+            capabilities_content = f.read()
+        if logger: logger.info("CAPABILITIES.md lido com sucesso.")
+    except FileNotFoundError:
+        if logger: logger.warning("CAPABILITIES.md não encontrado.")
+        capabilities_content = "CAPABILITIES.md não encontrado."
+    except Exception as e:
+        if logger: logger.error(f"Erro ao ler CAPABILITIES.md: {e}")
+        capabilities_content = f"Erro ao ler CAPABILITIES.md: {e}"
+
+    roadmap_content = ""
+    try:
+        with open("ROADMAP.md", "r", encoding="utf-8") as f:
+            roadmap_content = f.read()
+        if logger: logger.info("ROADMAP.md lido com sucesso.")
+    except FileNotFoundError:
+        if logger: logger.warning("ROADMAP.md não encontrado.")
+        roadmap_content = "ROADMAP.md não encontrado."
+    except Exception as e:
+        if logger: logger.error(f"Erro ao ler ROADMAP.md: {e}")
+        roadmap_content = f"Erro ao ler ROADMAP.md: {e}"
+
     # 1. Analyze code metrics using thresholds from config
     code_analysis_summary_str = ""
     try:
@@ -132,6 +157,10 @@ def generate_next_objective(
                 original_failed_objective=original_failed_objective,
                 error_reason_for_meta=error_reason_for_meta,
                 performance_summary_str=performance_summary_str,
+                memory_context_section=memory_context_section,
+                capabilities_content=capabilities_content, # Adicionado
+                roadmap_content=roadmap_content           # Adicionado
+
                 memory_context_section=memory_context_section
             )
         else:
@@ -139,6 +168,10 @@ def generate_next_objective(
                 memory_context_section=memory_context_section,
                 performance_summary_str=performance_summary_str,
                 code_analysis_summary_str=code_analysis_summary_str,
+                current_manifest=current_manifest, # Already prepped
+                capabilities_content=capabilities_content,
+                roadmap_content=roadmap_content
+
                 current_manifest=current_manifest # Already prepped
             )
 

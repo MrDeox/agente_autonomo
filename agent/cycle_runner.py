@@ -356,11 +356,28 @@ def run_cycles(agent: "HephaestusAgent", queue_manager: QueueManager) -> None:
 
                     # TODO: Consider passing failed_code_snippet and test_output if available/relevant
                     # For now, error_context might contain some of this.
+                    # Ler capabilities e roadmap para passar ao ErrorAnalysisAgent
+                    capabilities_content_for_error_analysis = agent.state.manifesto_content # Usar manifesto atual como fallback se CAPABILITIES.md falhar
+                    try:
+                        with open("CAPABILITIES.md", "r", encoding="utf-8") as f:
+                            capabilities_content_for_error_analysis = f.read()
+                    except Exception:
+                        agent.logger.warning("Não foi possível ler CAPABILITIES.md para ErrorAnalysisAgent, usando manifesto atual.")
+
+                    roadmap_content_for_error_analysis = "" # Default para string vazia se não encontrado
+                    try:
+                        with open("ROADMAP.md", "r", encoding="utf-8") as f:
+                            roadmap_content_for_error_analysis = f.read()
+                    except Exception:
+                        agent.logger.warning("Não foi possível ler ROADMAP.md para ErrorAnalysisAgent.")
+
                     analysis_result = error_analyzer.analyze_error(
                         failed_objective=current_objective,
                         error_reason=reason,
                         error_context=context,
-                        original_patches=original_patches_json
+                        original_patches=original_patches_json,
+                        capabilities_content=capabilities_content_for_error_analysis,
+                        roadmap_content=roadmap_content_for_error_analysis
                     )
 
                     agent.logger.info(f"ErrorAnalysisAgent resultado: Classificação='{analysis_result['classification']}', Tipo de Sugestão='{analysis_result['suggestion_type']}'")
