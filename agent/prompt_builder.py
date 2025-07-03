@@ -44,10 +44,8 @@ def build_meta_analysis_objective_prompt(
     error_reason_for_meta: str,
     performance_summary_str: str,
     memory_context_section: str,
-    capabilities_content: str, # Novo argumento
-    roadmap_content: str       # Novo argumento
-
-    memory_context_section: str
+    capabilities_content: str,
+    roadmap_content: str
 ) -> str:
     """
     Constrói o prompt para gerar um objetivo estratégico após uma meta-análise de falha.
@@ -109,10 +107,8 @@ def build_standard_objective_prompt(
     performance_summary_str: str,
     code_analysis_summary_str: str,
     current_manifest: str,
-    capabilities_content: str, # Novo argumento
-    roadmap_content: str       # Novo argumento
-
-    current_manifest: str
+    capabilities_content: str,
+    roadmap_content: str
 ) -> str:
     """
     Constrói o prompt padrão para gerar o próximo objetivo estratégico.
@@ -181,6 +177,8 @@ You are the 'Planejador Estratégico Avançado' do agente autônomo Hephaestus. 
     *   "Module `agent/memory.py` lacks tests. Generate `tests/agent/test_memory.py` and include placeholder tests for its public functions."
     *   "Create unit tests for the module `agent/tool_executor.py` in a new file `tests/agent/test_tool_executor.py`, focusing on the `web_search` function."
     *   "The function `call_llm_api` in `agent/utils/llm_client.py` is critical. Ensure robust unit tests exist for it in `tests/agent/utils/test_llm_client.py`, covering success and failure cases. If the test file doesn't exist, create it."
+*   **Test-Driven Development (TDD) Flow:**
+    *   "The previous cycle successfully created a new test file `tests/agent/test_new_feature.py` which is now failing as expected. The next objective is to implement the minimal code in `agent/new_feature.py` required to make the tests in `tests/agent/test_new_feature.py` pass."
 *   **Strategic Documentation Improvement:**
     *   "The manifest (`AGENTS.md`) does not describe the new metrics analysis functionality in `project_scanner.py`. Update it."
     *   "Improve docstrings for public functions in the `agent/memory.py` module to detail parameters and expected behavior."
@@ -200,5 +198,7 @@ Be concise, but specific enough to be actionable.
         memory_section=memory_context_section,
         performance_summary=performance_summary_str,
         code_analysis_summary=code_analysis_summary_str,
-        current_manifest=current_manifest if current_manifest.strip() else "N/A (Manifesto non-existent or empty)"
+        current_manifest=current_manifest if current_manifest.strip() else "N/A (Manifesto non-existent or empty)",
+        capabilities_content=capabilities_content,
+        roadmap_content=roadmap_content
     )

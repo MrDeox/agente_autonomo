@@ -8,7 +8,7 @@ memory_file_path: "HEPHAESTUS_MEMORY.json"
 # These can be overridden in specific model configurations
 default_model_settings:
   temperature: 0.3 # Default temperature from original default.yaml
-  max_tokens: 2048 # Default max_tokens from original default.yaml
+  max_tokens: -1 # Default max_tokens from original default.yaml
 
 # Model configurations will be loaded from model_config.yaml
 # We define a placeholder here so Hydra knows about the 'models' group

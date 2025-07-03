@@ -70,8 +70,8 @@ def agent_instance(mock_logger, temp_config_file, mock_env_vars, tmp_path):
                 # Mock para evitar chamadas reais à API LLM
                 with (
                     patch('agent.brain.call_llm_api', return_value=("Mocked LLM Response", None)) as mock_llm_call,
-                    patch('agent.agents.call_llm_api', return_value=("Mocked LLM Response Agents", None)) as mock_llm_agents,
-                    
+                    patch('agent.agents.architect_agent.call_llm_api', return_value=("Mocked LLM Response Architect", None)) as mock_llm_architect,
+                    patch('agent.agents.maestro_agent.call_llm_api', return_value=("Mocked LLM Response Maestro", None)) as mock_llm_maestro,
                     patch('agent.cycle_runner.run_git_command', return_value=(True, "Mocked git output")) as mock_git,
                     patch('agent.cycle_runner.update_project_manifest') as mock_update_manifest,
                     patch(
@@ -110,8 +110,8 @@ def agent_instance(mock_logger, temp_config_file, mock_env_vars, tmp_path):
                     # Anexar mocks ao agente para facilitar o acesso nos testes, se necessário
                     agent._mocks = {
                         "llm_brain": mock_llm_call,
-                        "llm_agents": mock_llm_agents,
-                        
+                        "llm_architect": mock_llm_architect,
+                        "llm_maestro": mock_llm_maestro,
                         "git": mock_git,
                         "manifest": mock_update_manifest,
                         "apply_patches": mock_apply_patches,
@@ -194,8 +194,8 @@ def test_degenerative_loop_break_success_interspersed(agent_instance, mock_logge
     agent.objective_stack_depth_for_testing = 1
 
     # Mockar as fases do ciclo para que ele "execute" o objetivo
-    agent._mocks["llm_brain"].return_value = ("{\"analysis\": \"mock analysis\", \"patches_to_apply\": []}", None) # Arquiteto
-    agent._mocks["llm_agents"].return_value = ("{\"strategy_key\": \"NO_OP_STRATEGY\"}", None) # Maestro
+    agent._mocks["llm_architect"].return_value = ("{\"analysis\": \"mock analysis\", \"patches_to_apply\": []}", None) # Arquiteto
+    agent._mocks["llm_maestro"].return_value = ("{\"strategy_key\": \"NO_OP_STRATEGY\"}", None) # Maestro
 
     with patch.object(agent, '_generate_manifest', return_value=True) as mock_gen_manifest:
         agent.run()

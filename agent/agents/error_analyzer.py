@@ -18,10 +18,8 @@ class ErrorAnalysisAgent:
         original_patches: Optional[str] = None,
         failed_code_snippet: Optional[str] = None,
         test_output: Optional[str] = None,
-        capabilities_content: Optional[str] = None, # Novo
-        roadmap_content: Optional[str] = None        # Novo
-
-        test_output: Optional[str] = None
+        capabilities_content: Optional[str] = None,
+        roadmap_content: Optional[str] = None
     ) -> Dict[str, Any]:
         """
         Analyzes a failure and suggests a course of action.

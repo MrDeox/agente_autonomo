@@ -41,8 +41,6 @@ Consider this history to avoid repeating failures, build on successes, and ident
             memory_context_section="[HISTÓRICO RECENTE DO PROJETO E DO AGENTE]\nMemory context.",
             capabilities_content="Capabilities: Can do X.",
             roadmap_content="Roadmap: Achieve Y."
-
-            memory_context_section="[HISTÓRICO RECENTE DO PROJETO E DO AGENTE]\nMemory context."
         )
         self.assertIn("You are the 'Meta-Strategic Planner'", prompt)
         self.assertIn("[META-ANALYSIS OBJECTIVE] Analyze failure of X", prompt)
@@ -63,8 +61,6 @@ Consider this history to avoid repeating failures, build on successes, and ident
             current_manifest="Standard manifest.",
             capabilities_content="Caps: Build Z.",
             roadmap_content="Roadmap: Phase 1."
-
-            current_manifest="Standard manifest."
         )
         self.assertIn("You are the 'Planejador Estratégico Avançado'", prompt)
         self.assertIn("[HISTÓRICO RECENTE DO PROJETO E DO AGENTE]\nStandard memory.", prompt)
@@ -88,10 +84,6 @@ Consider this history to avoid repeating failures, build on successes, and ident
         self.assertIn("[CURRENT PROJECT MANIFEST (if existing)]\nN/A (Manifesto non-existent or empty)", prompt)
         self.assertIn("[CAPABILITIES DOCUMENT (CAPABILITIES.md)]\nCaps content", prompt)
         self.assertIn("[ROADMAP DOCUMENT (ROADMAP.md)]\nRoadmap content", prompt)
-
-            current_manifest="  " # Empty manifest
-        )
-        self.assertIn("[CURRENT PROJECT MANIFEST (if existing)]\nN/A (Manifesto non-existent or empty)", prompt)
 
 if __name__ == '__main__':
     unittest.main()

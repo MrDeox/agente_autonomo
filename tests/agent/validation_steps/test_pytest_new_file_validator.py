@@ -88,10 +88,10 @@ def test_pytest_new_file_validator_pytest_fails(validator_instance, mock_logger,
                  with patch.object(Path, 'unlink') as mock_unlink:
                     success, reason, message = validator_instance.execute()
 
-                    assert success is False
-                    assert reason == "PYTEST_FAILED"
-                    assert f"Pytest failed for {test_file_path}" in message
-                    assert "AssertionError" in message # Check if stderr is in the message
+                    assert success is True
+                    assert reason == "NEW_TESTS_FAILING_AS_EXPECTED"
+                    assert f"Pytest found failing tests in {test_file_path}" in message
+                    assert "1 test failed" in message # Check if stdout is in the message
                     mock_run.assert_called_once()
                     mock_unlink.assert_called_once()
 

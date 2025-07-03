@@ -158,21 +158,17 @@ def generate_next_objective(
                 error_reason_for_meta=error_reason_for_meta,
                 performance_summary_str=performance_summary_str,
                 memory_context_section=memory_context_section,
-                capabilities_content=capabilities_content, # Adicionado
-                roadmap_content=roadmap_content           # Adicionado
-
-                memory_context_section=memory_context_section
+                capabilities_content=capabilities_content,
+                roadmap_content=roadmap_content
             )
         else:
             prompt = build_standard_objective_prompt(
                 memory_context_section=memory_context_section,
                 performance_summary_str=performance_summary_str,
                 code_analysis_summary_str=code_analysis_summary_str,
-                current_manifest=current_manifest, # Already prepped
+                current_manifest=current_manifest,
                 capabilities_content=capabilities_content,
                 roadmap_content=roadmap_content
-
-                current_manifest=current_manifest # Already prepped
             )
 
     if logger: logger.debug(f"Prompt for generate_next_objective:\n{prompt}")

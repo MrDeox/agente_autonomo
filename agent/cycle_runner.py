@@ -85,6 +85,14 @@ def run_cycles(agent: "HephaestusAgent", queue_manager: QueueManager) -> None:
             )
             break
 
+        if not agent.objective_stack:
+            agent.logger.info("Fila de objetivos vazia. Verificando modo contínuo.")
+            if not agent.continuous_mode:
+                break
+            else:
+                # Lógica para modo contínuo
+                pass # A lógica de modo contínuo já está sendo tratada acima
+
         cycle_count += 1
         current_objective = agent.objective_stack.pop()
         agent.logger.info(f"\n\n{'='*20} INÍCIO DO CICLO DE EVOLUÇÃO (Ciclo #{cycle_count}) {'='*20}")

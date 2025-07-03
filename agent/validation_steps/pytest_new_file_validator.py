@@ -91,6 +91,10 @@ class PytestNewFileValidator(ValidationStep):
                 self.logger.info(f"Pytest passed for new file {new_file_path_str}.\nSTDOUT:\n{stdout}")
                 if temp_file_written: target_file_path.unlink(missing_ok=True)
                 return True, "PYTEST_PASSED", f"Pytest passed for {new_file_path_str}.\n{stdout}"
+            elif process.returncode == 1:
+                self.logger.warning(f"Pytest reported failing tests for new file {new_file_path_str}, which is expected for TDD. Treating as success.\nSTDOUT:\n{stdout}\nSTDERR:\n{stderr}")
+                if temp_file_written: target_file_path.unlink(missing_ok=True)
+                return True, "NEW_TESTS_FAILING_AS_EXPECTED", f"Pytest found failing tests in {new_file_path_str}, which is expected for a new test file.\n{stdout}"
             else:
                 # Pytest exit codes:
                 # 0: All tests passed

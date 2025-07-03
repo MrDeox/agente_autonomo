@@ -51,6 +51,7 @@ class HephaestusAgent:
         self.objective_stack_depth_for_testing = objective_stack_depth_for_testing
         self.state: AgentState = AgentState()
         self.queue_manager = QueueManager()
+        self.objective_stack: list = []
 
         # Inicialização da Memória Persistente
         memory_file_path = self.config.get("memory_file_path", "HEPHAESTUS_MEMORY.json")

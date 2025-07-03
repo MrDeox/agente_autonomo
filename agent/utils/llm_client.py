@@ -15,7 +15,7 @@ if GEMINI_API_KEY:
 OPENROUTER_API_KEY = os.getenv("OPENROUTER_API_KEY")
 OPENROUTER_BASE_URL = "https://openrouter.ai/api/v1"
 
-def call_gemini_api(model: str, prompt: str, temperature: float, logger: logging.Logger) -> Tuple[Optional[str], Optional[str]]:
+def call_gemini_api(model: str, prompt: str, temperature: float, max_tokens: Optional[int], logger: logging.Logger) -> Tuple[Optional[str], Optional[str]]:
     """
     Calls the Google Gemini API.
     """
@@ -27,7 +27,11 @@ def call_gemini_api(model: str, prompt: str, temperature: float, logger: logging
         # Model name in config is "gemini/model-name", we need to pass "model-name"
         model_name = model.split('/')[-1]
         gemini_model = genai.GenerativeModel(model_name)
-        response = gemini_model.generate_content(prompt, generation_config=genai.types.GenerationConfig(temperature=temperature))
+        generation_config = genai.types.GenerationConfig(temperature=temperature)
+        if max_tokens and max_tokens > 0:
+            generation_config.max_output_tokens = max_tokens
+
+        response = gemini_model.generate_content(prompt, generation_config=generation_config)
         
         if response.text:
             logger.debug(f"Gemini API Response: {response.text}")
@@ -45,7 +49,7 @@ def call_gemini_api(model: str, prompt: str, temperature: float, logger: logging
         logger.error(error_details)
         return None, error_details
 
-def call_openrouter_api(model: str, prompt: str, temperature: float, logger: logging.Logger) -> Tuple[Optional[str], Optional[str]]:
+def call_openrouter_api(model: str, prompt: str, temperature: float, max_tokens: Optional[int], logger: logging.Logger) -> Tuple[Optional[str], Optional[str]]:
     """
     Calls a generic OpenAI-compatible API (like OpenRouter).
     """
@@ -63,6 +67,9 @@ def call_openrouter_api(model: str, prompt: str, temperature: float, logger: log
         "messages": [{"role": "user", "content": prompt}],
         "temperature": temperature
     }
+    if max_tokens and max_tokens > 0:
+        payload['max_tokens'] = max_tokens
+
     try:
         response = requests.post(url, json=payload, headers=headers)
         response.raise_for_status()
@@ -87,21 +94,22 @@ def call_openrouter_api(model: str, prompt: str, temperature: float, logger: log
         logger.error(error_details)
         return None, error_details
 
-def call_llm_with_fallback(model_config: Dict[str, str], prompt: str, temperature: float, logger: logging.Logger) -> Tuple[Optional[str], Optional[str]]:
+def call_llm_with_fallback(model_config: Dict[str, Any], prompt: str, temperature: float, logger: logging.Logger) -> Tuple[Optional[str], Optional[str]]:
     """
     Orchestrates LLM calls with a primary and fallback model.
     """
     primary_model = model_config.get("primary")
     fallback_model = model_config.get("fallback")
+    max_tokens = model_config.get("max_tokens")
 
     # Try primary model first
     if primary_model:
         logger.info(f"Calling primary model: {primary_model}")
         content, error = None, None
         if primary_model.startswith("gemini/"):
-            content, error = call_gemini_api(primary_model, prompt, temperature, logger)
+            content, error = call_gemini_api(primary_model, prompt, temperature, max_tokens, logger)
         else: # Assuming other primary models are OpenAI compatible
-            content, error = call_openrouter_api(primary_model, prompt, temperature, logger)
+            content, error = call_openrouter_api(primary_model, prompt, temperature, max_tokens, logger)
 
         if content is not None:
             return content, None
@@ -112,7 +120,7 @@ def call_llm_with_fallback(model_config: Dict[str, str], prompt: str, temperatur
     if fallback_model:
         logger.info(f"Calling fallback model: {fallback_model}")
         # Assuming all fallbacks are OpenAI compatible for now
-        return call_openrouter_api(fallback_model, prompt, temperature, logger)
+        return call_openrouter_api(fallback_model, prompt, temperature, max_tokens, logger)
 
     return None, "Both primary and fallback models failed or are not configured."
 
