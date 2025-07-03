@@ -46,6 +46,8 @@ def build_meta_analysis_objective_prompt(
     memory_context_section: str,
     capabilities_content: str, # Novo argumento
     roadmap_content: str       # Novo argumento
+
+    memory_context_section: str
 ) -> str:
     """
     Constrói o prompt para gerar um objetivo estratégico após uma meta-análise de falha.
@@ -76,6 +78,9 @@ You are the 'Meta-Strategic Planner' for the Hephaestus agent. Your task is to p
 
 [YOUR TASK]
 Based on the meta-analysis objective, the original failure details, strategic documents (Capabilities, Roadmap), and the overall agent performance and history:
+
+[YOUR TASK]
+Based on the meta-analysis objective, the original failure details, and the overall agent performance and history:
 1.  **Identify the root cause:** Was the original objective fundamentally flawed? Was the chosen strategy inappropriate? Was there a missing capability or tool?
 2.  **Propose a new, strategic objective:** This objective should aim to prevent similar failures in the future by addressing the root cause. It could involve:
     *   Refining the prompt of an agent (e.g., Architect, Maestro, ErrorAnalysis).
@@ -106,6 +111,8 @@ def build_standard_objective_prompt(
     current_manifest: str,
     capabilities_content: str, # Novo argumento
     roadmap_content: str       # Novo argumento
+
+    current_manifest: str
 ) -> str:
     """
     Constrói o prompt padrão para gerar o próximo objetivo estratégico.
@@ -125,6 +132,20 @@ You are the 'Planejador Estratégico Avançado' do agente autônomo Hephaestus. 
 8.  **Prioritize Structural and Quality Improvements:** Based on metrics and strategic documents.
 9.  **Be Specific and Actionable:** The objective should be clear, concise, and indicate a concrete action.
 
+1.  **Analyze Performance:** Review the `[PERFORMANCE ANALYSIS]` section to understand the agent's overall success rate and identify trends, especially focusing on strategies with high failure rates.
+2.  **Analyze Code Metrics:** Review the `[CODE METRICS AND ANALYSIS]` section below. It contains data on file size (LOC), function size (LOC), cyclomatic complexity (CC) of functions, and modules that may be missing tests.
+3.  **Consider the Project Manifest:** If the `[CURRENT PROJECT MANIFEST]` is provided, use it to understand the overall goals, architecture, and areas already documented or needing attention.
+4.  **Review Recent History:** The `[HISTÓRICO RECENTE DO PROJETO E DO AGENTE]` section provides context on recent tasks, successes, and failures. Avoid repeating objectives that recently failed in the same way, unless the cause of failure has been resolved. Use history to build on successes.
+5.  **Prioritize Structural and Quality Improvements:** Based on metrics, identify opportunities to:
+    *   Refactor very large modules or very long/complex functions.
+    *   Create tests for critical/complex modules or functions that lack them.
+    *   Improve documentation (docstrings, manifest) where crucial.
+    *   Propose the creation of new capabilities (new agents, tools) if the analysis indicates a strategic need.
+6.  **Prioritize Prompt and Strategy Optimization (RSI Focus):** If the performance analysis reveals strategies with consistently low success rates, consider objectives to:
+    *   Refine the prompts used by agents (e.g., Architect, Maestro, ErrorAnalysis) for those failing strategies.
+    *   Propose new or modified validation strategies in `hephaestus_config.json` to address specific failure patterns.
+7.  **Be Specific and Actionable:** The objective should be clear, concise, and indicate a concrete action.
+
 {memory_section}
 
 [PERFORMANCE ANALYSIS]
@@ -138,6 +159,7 @@ You are the 'Planejador Estratégico Avançado' do agente autônomo Hephaestus. 
 
 [ROADMAP DOCUMENT (ROADMAP.md)]
 {roadmap_content}
+
 
 [CURRENT PROJECT MANIFEST (if existing)]
 {current_manifest}

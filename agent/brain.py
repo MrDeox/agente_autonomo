@@ -160,6 +160,8 @@ def generate_next_objective(
                 memory_context_section=memory_context_section,
                 capabilities_content=capabilities_content, # Adicionado
                 roadmap_content=roadmap_content           # Adicionado
+
+                memory_context_section=memory_context_section
             )
         else:
             prompt = build_standard_objective_prompt(
@@ -169,6 +171,8 @@ def generate_next_objective(
                 current_manifest=current_manifest, # Already prepped
                 capabilities_content=capabilities_content,
                 roadmap_content=roadmap_content
+
+                current_manifest=current_manifest # Already prepped
             )
 
     if logger: logger.debug(f"Prompt for generate_next_objective:\n{prompt}")

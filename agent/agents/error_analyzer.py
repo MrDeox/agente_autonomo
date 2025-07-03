@@ -20,6 +20,8 @@ class ErrorAnalysisAgent:
         test_output: Optional[str] = None,
         capabilities_content: Optional[str] = None, # Novo
         roadmap_content: Optional[str] = None        # Novo
+
+        test_output: Optional[str] = None
     ) -> Dict[str, Any]:
         """
         Analyzes a failure and suggests a course of action.
@@ -94,6 +96,9 @@ class ErrorAnalysisAgent:
             "4. Provide brief 'details' explaining your reasoning, especially if proposing a NEW_OBJECTIVE that deviates significantly from a simple fix.",
             "\n[REQUIRED OUTPUT FORMAT - JSON ONLY]",
             "{",
+
+            "3. Generate a 'suggested_prompt' for the AI agent's next action. This prompt MUST be directly usable by another AI agent (like an Architect or Objective Generator) to implement the fix or new approach. Ensure it contains all necessary context from the failure analysis.",
+            "   - If REGENERATE_PATCHES for a TEST_FAILURE: The prompt should instruct an Architect to create new patches. It MUST include specific details about the test failure and the original patches. Crucially, include the '[CONTEXT_FLAG] TEST_FIX_IN_PROGRESS' string at the end of the prompt.",            "     Example: '[CORRECTION TASK - TEST] Original Objective: <obj>. Test Failure: <test_out>. Regenerate patches for <files> to pass tests. Previous patches: <patches_json>.\n[CONTEXT_FLAG] TEST_FIX_IN_PROGRESS'",            "   - If REGENERATE_PATCHES for other errors (e.g. SYNTAX_ERROR): The prompt should instruct an Architect to create new patches, considering the error.",            "     Example: '[CORRECTION TASK - SYNTAX] Original Objective: <obj>. Error: <err>. Fix the syntax in the previous patches: <patches_json>.'",            "   - If NEW_OBJECTIVE: The prompt should be a new, refined objective that considers the failure. It might be for an ObjectiveGenerator.",            "     Example: '[REVISED OBJECTIVE - LOGIC] Original: <obj>. Failure: <reason>. New approach: Develop a simpler solution for X before attempting Y.'",            "     Example: '[META-ANALYSIS OBJECTIVE] The objective \"<failed_objective>\" failed repeatedly due to \"<error_reason>\". Analyze if the objective itself was flawed or if the chosen strategy was inappropriate. Propose a new, more strategic objective to address the root cause.'",            "   - If RETRY_WITH_MODIFICATION: The prompt should be a modification of the original objective, perhaps with specific guidance.",            "     Example: '[MODIFIED OBJECTIVE - TOOL] Original: <obj>. Tool Error: <err>. Retry objective, ensuring tool X is called with parameter Y.'",            "   - If FIX_CONFIGURATION: The prompt should suggest how to fix a configuration issue.",            "     Example: '[CONFIGURATION FIX] The tool X failed. The configuration file Y seems to be missing parameter Z. Update file Y.'",            "   - If LOG_FOR_REVIEW: The prompt can be a summary of the issue for logging.",            "     Example: 'Failure during <obj> due to <reason>. Analysis: <your analysis>. Recommended for manual review.'",            "4. Provide brief 'details' explaining your reasoning.",            "\n[REQUIRED OUTPUT FORMAT - JSON ONLY]",            "{",            "  \"classification\": \"<Your chosen classification>\",",            "  \"suggestion_type\": \"<Your chosen suggestion type>\",",            "  \"suggested_prompt\": \"<Your generated prompt for the next AI action>\",",            "  \"details\": \"<Your brief reasoning/analysis>\"",            "}"        ])
 
         prompt = "\n".join(prompt_parts)
         self.logger.debug(f"ErrorAnalysisAgent: Prompt for LLM:\n{prompt}")
