@@ -26,6 +26,8 @@ class AgentState:
     # model_architect: Optional[str] = None # Removido, usado localmente na fase
     # model_code_engineer: Optional[str] = None # Removido, não utilizado
 
+    file_content_context: str = "" # Novo campo para contexto de arquivo
+
     def get_patches_to_apply(self) -> List[Dict[str, Any]]:
         """Helper para obter a lista de patches do action_plan_data de forma segura."""
         if self.action_plan_data and "patches_to_apply" in self.action_plan_data:
@@ -38,7 +40,7 @@ class AgentState:
             return self.action_plan_data.get("analysis", "Nenhuma análise do arquiteto fornecida.")
         return "Nenhum plano de ação disponível."
 
-    def reset_for_new_cycle(self, current_objective: Optional[str]):
+    def reset_for_new_cycle(self, current_objective: Optional[str] = None):
         """Reseta o estado para um novo ciclo, mantendo o objetivo atual se fornecido."""
         self.current_objective = current_objective
         self.manifesto_content = ""
@@ -46,6 +48,7 @@ class AgentState:
         self.strategy_key = None
         self.validation_result = (False, "PENDING", "Novo ciclo")
         self.applied_files_report = {}
+        self.file_content_context = "" # Redefine o contexto
 
 # Exemplo de como poderia ser usado (não faz parte do arquivo final):
 # if __name__ == '__main__':

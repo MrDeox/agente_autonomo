@@ -418,6 +418,8 @@ agente_autonomo/
   - *Executa testes pytest no diretório especificado e retorna resultados.*
 - **Função:** `check_file_existence(file_paths: list[str])`
   - *Verifica se todos os arquivos especificados existem.*
+- **Função:** `read_file(file_path: str)`
+  - *Lê o conteúdo de um arquivo e o retorna como uma string.*
 - **Função:** `run_in_sandbox(temp_dir_path: str, objective: str)`
   - *Executa o main.py de um diretório isolado monitorando tempo e memória.*
 - **Função:** `run_git_command(command: list[str])`

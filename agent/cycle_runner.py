@@ -99,6 +99,9 @@ class CycleRunner:
         if not self._execute_phase_and_handle_failure(self.agent._generate_manifest, "MANIFEST_GENERATION_FAILED", "Could not generate project manifest."):
             return
 
+        if not self._execute_phase_and_handle_failure(self.agent._gather_information_phase, "INFORMATION_GATHERING_FAILED", "Could not read file context for the objective."):
+            return
+
         if not self._execute_phase_and_handle_failure(self.agent._run_architect_phase, "ARCHITECT_PHASE_FAILED", "ArchitectAgent could not generate a plan."):
             return
 

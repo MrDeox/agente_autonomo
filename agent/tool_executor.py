@@ -2,7 +2,7 @@ import subprocess
 import sys
 import time
 import requests  # Adicionado para suportar web_search
-from typing import Tuple, Dict, Any
+from typing import Tuple, Dict, Any, Optional
 
 import psutil
 import os
@@ -71,6 +71,28 @@ def check_file_existence(file_paths: list[str]) -> Tuple[bool, str]:
         return True, "Todos os arquivos especificados existem."
     else:
         return False, f"Arquivo(s) não encontrado(s): {', '.join(missing_files)}"
+
+
+def read_file(file_path: str) -> Optional[str]:
+    """
+    Lê o conteúdo de um arquivo e o retorna como uma string.
+
+    Args:
+        file_path: O caminho para o arquivo.
+
+    Returns:
+        O conteúdo do arquivo como uma string, ou None se o arquivo não for encontrado.
+    """
+    try:
+        with open(file_path, 'r', encoding='utf-8') as f:
+            return f.read()
+    except FileNotFoundError:
+        return None
+    except Exception as e:
+        # Log a more general error if something else goes wrong
+        # (logging would need to be passed in or handled differently)
+        print(f"Error reading file {file_path}: {e}")
+        return None
 
 
 def run_in_sandbox(temp_dir_path: str, objective: str) -> Dict[str, Any]:

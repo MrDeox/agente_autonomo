@@ -8,6 +8,7 @@ import csv
 from datetime import datetime
 from pathlib import Path
 from typing import Optional, Dict, Any, List, Tuple
+import re
 
 from agent.project_scanner import update_project_manifest
 from agent.brain import (
@@ -16,7 +17,7 @@ from agent.brain import (
     generate_commit_message
 )
 from agent.agents import ArchitectAgent, MaestroAgent, CodeReviewAgent
-from agent.tool_executor import run_pytest, check_file_existence, run_git_command
+from agent.tool_executor import run_pytest, check_file_existence, run_git_command, read_file
 from agent.git_utils import initialize_git_repository
 from agent.cycle_runner import CycleRunner
 from agent.memory import Memory
@@ -148,6 +149,38 @@ class HephaestusAgent:
             self.logger.error(f"ERRO CRÍTICO ao gerar manifesto: {e}", exc_info=True)
             return False
 
+    def _gather_information_phase(self) -> bool:
+        """
+        Analyzes the objective to find file paths and reads their content to provide context.
+        """
+        self.logger.info("\nAnalisando objetivo para coletar informações...")
+        objective = self.state.current_objective
+        if not objective:
+            return True # No objective, nothing to gather
+
+        # Regex to find potential file paths in the objective string
+        # This looks for patterns like `path/to/file.py` or `path/to/file_with_underscores.ext`
+        file_paths = re.findall(r'[\w/._-]+\.[\w]+', objective)
+        
+        if not file_paths:
+            self.logger.info("Nenhum caminho de arquivo encontrado no objetivo. Pulando leitura de arquivo.")
+            self.state.file_content_context = "No files were read for this objective."
+            return True
+
+        # For simplicity, read the first valid file path found
+        file_to_read = file_paths[0]
+        self.logger.info(f"Arquivo '{file_to_read}' identificado no objetivo para leitura de contexto.")
+        
+        file_content = read_file(file_to_read)
+        if file_content is None:
+            self.logger.warning(f"Não foi possível ler o arquivo '{file_to_read}'. Pode não existir.")
+            self.state.file_content_context = f"Attempted to read '{file_to_read}' from objective, but it could not be read."
+        else:
+            self.logger.info(f"Arquivo '{file_to_read}' lido com sucesso para o contexto do Arquiteto.")
+            self.state.file_content_context = f"Content of '{file_to_read}':\\n\\n{file_content}"
+            
+        return True
+
     def _run_architect_phase(self) -> bool:
         self.logger.info("\nSolicitando plano de ação do ArchitectAgent...")
         if not self.state.current_objective:
@@ -156,15 +189,18 @@ class HephaestusAgent:
 
         action_plan_data, error_msg = self.architect.plan_action(
             objective=self.state.current_objective,
-            manifest=self.state.manifesto_content
+            manifest=self.state.manifesto_content,
+            file_content_context=getattr(self.state, 'file_content_context', '')
         )
+
         if error_msg or not action_plan_data or "patches_to_apply" not in action_plan_data:
             self.logger.error(
                 f"--- FALHA: ArchitectAgent não conseguiu gerar um plano de ação válido. Erro: {error_msg} ---"
             )
-            action_plan_data = {"analysis": "", "patches_to_apply": []}
+            self.state.action_plan_data = {"analysis": "", "patches_to_apply": []}
+        else:
+            self.state.action_plan_data = action_plan_data
 
-        self.state.action_plan_data = action_plan_data
         self.logger.info(f"--- PLANO DE AÇÃO (PATCHES) GERADO PELO ARCHITECTAGENT ({self.architect.model_config}) ---")
         self.logger.debug(f"Análise do Arquiteto: {self.state.get_architect_analysis()}")
         self.logger.debug(f"Patches: {json.dumps(self.state.get_patches_to_apply(), indent=2)}")

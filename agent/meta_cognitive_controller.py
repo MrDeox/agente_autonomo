@@ -98,36 +98,48 @@ class MetaCognitiveController:
     
     def propose_flow_modifications(self, analysis: Dict[str, Any]) -> List[FlowModification]:
         """
-        Use LLM to propose modifications to the current flow.
+        Generate proposed modifications to optimize the LLM call flow.
+        
+        Args:
+            analysis: Current flow analysis from analyze_current_flow()
+            
+        Returns:
+            List[FlowModification]: List of proposed modifications, empty if none found
         """
         self.logger.info("MetaCognitiveController: Proposing flow modifications...")
         
         prompt = self._build_modification_prompt(analysis)
+        llm_response = self._get_llm_modification_proposals(prompt)
         
+        if not llm_response:
+            return []
+            
+        return self._parse_modification_proposals(llm_response, analysis)
+
+    def _get_llm_modification_proposals(self, prompt: str) -> Optional[Dict[str, Any]]:
+        """Get modification proposals from LLM."""
         response, error = call_llm_api(
             model_config=self.model_config,
             prompt=prompt,
-            temperature=0.4,  # Some creativity for novel solutions
+            temperature=0.4,
             logger=self.logger
         )
         
         if error:
             self.logger.error(f"Failed to get modification proposals: {error}")
-            return []
-        
-        parsed_response, parse_error = parse_json_response(response, self.logger)
-        
-        if parse_error or not parsed_response:
-            self.logger.error("Failed to parse modification proposals")
-            return []
-        
-        # Convert to FlowModification objects
+            return None
+            
+        return parse_json_response(response, self.logger)[0]
+
+    def _parse_modification_proposals(self, 
+                                    response: Dict[str, Any], 
+                                    analysis: Dict[str, Any]) -> List[FlowModification]:
+        """Parse LLM response into FlowModification objects."""
         modifications = []
-        for prop in parsed_response.get("modifications", []):
+        for prop in response.get("modifications", []):
             mod = self._create_flow_modification(prop, analysis)
             if mod:
                 modifications.append(mod)
-        
         return modifications
     
     def implement_modification(self, modification: FlowModification) -> bool:
