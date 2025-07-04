@@ -8,6 +8,7 @@ agente_autonomo/
     PROPOSTA_SERVIDOR_MCP.md
     CURSOR_MCP_GUIA_FINAL.md
     REVISAO_PROJETO_HEPHAESTUS.md
+    demo_self_awareness.py
     hephaestus_mcp_server.py
     META_INTELLIGENCE_UPGRADE_SUMMARY.md
     run_mcp.py
@@ -42,6 +43,8 @@ agente_autonomo/
         root_cause_analyzer.py
         code_validator.py
         meta_intelligence_core.py
+        llm_performance_booster.py
+        self_awareness_core.py
         flow_self_modifier.py
         patch_applicator.py
         cycle_runner.py
@@ -52,6 +55,7 @@ agente_autonomo/
         project_scanner.py
         queue_manager.py
         state.py
+        unified_config_manager.py
         config_loader.py
         advanced_knowledge_system.py
         validation_steps/
@@ -81,6 +85,7 @@ agente_autonomo/
             llm_optimizer.py
             advanced_logging.py
             error_handling.py
+            infrastructure_manager.py
             intelligent_cache.py
             ux_enhancer.py
             night_improvements.py
@@ -115,6 +120,18 @@ agente_autonomo/
 
 ## 2. RESUMO DAS INTERFACES (APIs Internas)
 
+### Arquivo: `demo_self_awareness.py`
+- **Função:** `create_demo_config()`
+  - *Criar configuração de demonstração*
+- **Função:** `demonstrate_self_awareness()`
+  - *Demonstra as capacidades de auto-consciência*
+- **Função:** `demonstrate_mcp_integration()`
+  - *Demonstra a integração com MCP*
+- **Função:** `create_comparison_summary()`
+  - *Cria um resumo comparativo das melhorias*
+- **Função:** `main()`
+  - *Função principal*
+
 ### Arquivo: `hephaestus_mcp_server.py`
 - **Classe:** `HephaestusMCPServer`
   - *Servidor MCP principal que gerencia todas as funcionalidades do Hephaestus*
@@ -132,6 +149,10 @@ agente_autonomo/
   - *Evolui as capacidades do sistema usando meta-inteligência.*
 - **Função:** `system_status()`
   - *Status geral do sistema Hephaestus.*
+- **Função:** `deep_self_reflection(focus_area: str='general')`
+  - *Realiza auto-reflexão profunda e introspecção do sistema.*
+- **Função:** `self_awareness_report()`
+  - *Relatório completo de auto-consciência do sistema.*
 - **Função:** `hephaestus_status()`
   - *Status detalhado do sistema Hephaestus*
 - **Função:** `hephaestus_capabilities()`
@@ -305,6 +326,32 @@ agente_autonomo/
 - **Função:** `get_meta_intelligence(model_config: Dict[str, str], logger: logging.Logger)`
   - *Get or create the global meta-intelligence instance*
 
+### Arquivo: `agent/llm_performance_booster.py`
+- **Classe:** `SemanticCache`
+  - *Cache semântico avançado para chamadas LLM*
+- **Classe:** `RuleBasedBypass`
+  - *Sistema de bypass baseado em regras*
+- **Classe:** `PromptCompressor`
+  - *Compressor inteligente de prompts*
+- **Classe:** `LLMPerformanceBooster`
+  - *Sistema principal de otimização de performance*
+- **Função:** `get_performance_booster(logger: Optional[logging.Logger]=None)`
+  - *Retorna instância singleton do performance booster*
+- **Função:** `optimized_llm_call(agent_type: str, prompt: str, model_config: Dict[str, Any], temperature: float=0.3, context: Optional[Dict]=None, logger: Optional[logging.Logger]=None)`
+  - *Função principal para chamadas LLM otimizadas.*
+
+### Arquivo: `agent/self_awareness_core.py`
+- **Classe:** `CognitiveState`
+  - *Represents the current cognitive state of the system*
+- **Classe:** `SelfInsight`
+  - *Represents a deep insight about the system's own nature*
+- **Classe:** `CognitiveEvolutionEvent`
+  - *Tracks significant changes in cognitive capabilities*
+- **Classe:** `SelfAwarenessCore`
+  - *The unified self-awareness system that provides deep introspection*
+- **Função:** `get_self_awareness_core(model_config: Dict[str, str], logger: logging.Logger)`
+  - *Get or create the global self-awareness core*
+
 ### Arquivo: `agent/flow_self_modifier.py`
 - **Classe:** `CallContext`
   - *Context for an LLM call*
@@ -414,6 +461,14 @@ agente_autonomo/
 ### Arquivo: `agent/state.py`
 - **Classe:** `AgentState`
   - *Representa o estado interno do agente Hephaestus durante um ciclo de processamento.*
+
+### Arquivo: `agent/unified_config_manager.py`
+- **Classe:** `UnifiedConfigManager`
+  - *Gerenciador unificado de configuração que resolve conflitos Hydra/JSON*
+- **Função:** `get_unified_config_manager(logger: Optional[logging.Logger]=None)`
+  - *Retorna instância singleton do gerenciador*
+- **Função:** `load_unified_config(logger: Optional[logging.Logger]=None, force_reload: bool=False)`
+  - *Função principal para carregar configuração unificada*
 
 ### Arquivo: `agent/config_loader.py`
 - **Função:** `load_config()`
@@ -525,6 +580,16 @@ agente_autonomo/
   - *Execute function safely with error handling*
 - **Função:** `retry_with_backoff(func: Callable, max_retries: int=3, backoff_factor: int=2)`
   - *Retry function with exponential backoff*
+
+### Arquivo: `agent/utils/infrastructure_manager.py`
+- **Classe:** `InfrastructureManager`
+  - *Gerenciador de infraestrutura básica do sistema*
+- **Função:** `ensure_basic_infrastructure(logger: Optional[logging.Logger]=None)`
+  - *Função utilitária para garantir infraestrutura básica*
+- **Função:** `diagnose_and_fix_infrastructure(logger: Optional[logging.Logger]=None)`
+  - *Função utilitária para diagnosticar e corrigir infraestrutura*
+- **Função:** `get_infrastructure_manager(logger: Optional[logging.Logger]=None)`
+  - *Retorna instância do gerenciador de infraestrutura*
 
 ### Arquivo: `agent/utils/intelligent_cache.py`
 - **Classe:** `IntelligentCache`
