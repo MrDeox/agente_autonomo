@@ -24,6 +24,9 @@ from pathlib import Path
 
 from agent.utils.llm_client import call_llm_api
 from agent.utils.json_parser import parse_json_response
+from agent.model_optimizer import get_model_optimizer
+from agent.advanced_knowledge_system import get_knowledge_system
+from agent.root_cause_analyzer import get_root_cause_analyzer
 
 
 @dataclass
@@ -658,9 +661,14 @@ class MetaIntelligenceCore:
         self.model_config = model_config
         self.logger = logger
         
-        # Sub-systems
+        # Core sub-systems
         self.prompt_evolution = PromptEvolutionEngine(model_config, logger)
         self.agent_genesis = AgentGenesisFactory(model_config, logger)
+        
+        # Advanced meta-intelligence systems
+        self.model_optimizer = get_model_optimizer(model_config, logger)
+        self.knowledge_system = get_knowledge_system(model_config, logger)
+        self.root_cause_analyzer = get_root_cause_analyzer(model_config, logger)
         
         # Meta-intelligence state
         self.intelligence_level = 1.0
@@ -672,68 +680,120 @@ class MetaIntelligenceCore:
         self.evolution_log = []
         self.meta_insights = []
         
+        self.logger.info("🧠 Enhanced MetaIntelligenceCore initialized with advanced optimization systems!")
+        
     def meta_cognitive_cycle(self, system_state: Dict[str, Any]) -> Dict[str, Any]:
         """
         The main meta-cognitive loop that drives self-improvement.
         This is where the system thinks about how it thinks.
         """
-        self.logger.info("MetaIntelligence: Starting meta-cognitive cycle")
+        self.logger.info("🧠 MetaIntelligence: Starting enhanced meta-cognitive cycle")
         
         cycle_results = {
             "prompt_evolutions": 0,
             "new_agents_created": 0,
             "insights_generated": 0,
-            "intelligence_delta": 0.0
+            "intelligence_delta": 0.0,
+            "model_optimizations": 0,
+            "knowledge_acquisitions": 0,
+            "root_cause_analyses": 0
         }
         
-        # 1. Self-Assessment
+        # 1. Enhanced Self-Assessment with Root Cause Analysis
         self_assessment = self._perform_self_assessment(system_state)
         
-        # 2. Identify Improvement Opportunities
-        opportunities = self._identify_improvement_opportunities(self_assessment)
+        # 2. Advanced Root Cause Analysis of Recent Failures
+        failure_patterns = system_state.get("failure_patterns", [])
+        if failure_patterns:
+            rca_analysis = self.root_cause_analyzer.analyze_failure_patterns("intermediate")
+            cycle_results["root_cause_analyses"] = 1
+            self.logger.info(f"🔍 Root cause analysis complete: {len(rca_analysis.primary_root_causes)} root causes identified")
         
-        # 3. Evolve Prompts
+        # 3. Intelligent Knowledge Acquisition
+        knowledge_gaps = self._identify_knowledge_gaps(self_assessment, failure_patterns)
+        for gap in knowledge_gaps[:3]:  # Process top 3 knowledge gaps
+            search_results = self.knowledge_system.intelligent_search(
+                gap, "comprehensive", max_results=5,
+                context={"system_state": system_state}
+            )
+            if search_results:
+                cycle_results["knowledge_acquisitions"] += 1
+                self.logger.info(f"📚 Knowledge acquired for gap: {gap}")
+        
+        # 4. Model Performance Optimization
         for agent_type, performance in system_state.get("agent_performance", {}).items():
             if performance.get("needs_evolution", False):
-                current_prompt = self._get_current_prompt(agent_type)
-                evolved_prompt = self.prompt_evolution.evolve_prompt(
-                    agent_type, current_prompt, performance
+                # Capture performance data for model optimization
+                quality_score = self.model_optimizer.capture_performance_data(
+                    agent_type=agent_type,
+                    prompt=self._get_current_prompt(agent_type),
+                    response="simulated_response",  # Would be actual response
+                    success=performance.get("success_rate", 0.5) > 0.7,
+                    execution_time=performance.get("avg_time", 2.0),
+                    context_metadata={"performance": performance}
                 )
+                
+                # Evolve prompts using both genetic algorithms and performance data
+                current_prompt = self._get_current_prompt(agent_type)
+                evolved_prompt = self.model_optimizer.evolutionary_prompt_optimization(
+                    agent_type, current_prompt
+                )
+                
                 if evolved_prompt != current_prompt:
                     cycle_results["prompt_evolutions"] += 1
+                    cycle_results["model_optimizations"] += 1
                     self._deploy_evolved_prompt(agent_type, evolved_prompt)
         
-        # 4. Create New Agents if Needed
+        # 5. Identify Improvement Opportunities
+        opportunities = self._identify_improvement_opportunities(self_assessment)
+        
+        # 6. Create New Agents if Needed (Enhanced with Knowledge System)
         capability_gaps = self.agent_genesis.detect_capability_gaps(
-            system_state.get("failure_patterns", []),
+            failure_patterns,
             list(system_state.get("current_agents", []))
         )
         
         for gap in capability_gaps[:2]:  # Limit to 2 new agents per cycle
-            blueprint = self.agent_genesis.create_new_agent(gap, system_state)
+            # Use knowledge system to research best practices for this capability
+            research_results = self.knowledge_system.intelligent_search(
+                f"best practices {gap} implementation",
+                "code", max_results=3
+            )
+            
+            blueprint = self.agent_genesis.create_new_agent(gap, {
+                **system_state,
+                "research_results": research_results
+            })
+            
             if blueprint and blueprint.estimated_value > 0.7:
                 if self.agent_genesis.implement_agent(blueprint):
                     cycle_results["new_agents_created"] += 1
         
-        # 5. Generate Meta-Insights
+        # 7. Generate Enhanced Meta-Insights
         insights = self._generate_meta_insights(system_state, cycle_results)
         cycle_results["insights_generated"] = len(insights)
         self.meta_insights.extend(insights)
         
-        # 6. Update Intelligence Metrics
+        # 8. Update Intelligence Metrics
         intelligence_delta = self._calculate_intelligence_delta(cycle_results)
         self.intelligence_level += intelligence_delta
         cycle_results["intelligence_delta"] = intelligence_delta
         
-        # 7. Log Evolution
+        # 9. Log Evolution with Enhanced Data
         self.evolution_log.append({
             "timestamp": datetime.now().isoformat(),
             "cycle_results": cycle_results,
             "intelligence_level": self.intelligence_level,
-            "insights": insights
+            "insights": insights,
+            "optimization_reports": {
+                "model_optimizer": self.model_optimizer.get_optimization_report(),
+                "knowledge_system": self.knowledge_system.get_knowledge_report(),
+                "root_cause": self.root_cause_analyzer.get_analysis_report()
+            }
         })
         
-        self.logger.info(f"Meta-cognitive cycle complete. Intelligence level: {self.intelligence_level:.3f}")
+        self.logger.info(f"🚀 Enhanced meta-cognitive cycle complete. Intelligence level: {self.intelligence_level:.3f}")
+        self.logger.info(f"📊 Cycle metrics: {cycle_results}")
         return cycle_results
     
     def _perform_self_assessment(self, system_state: Dict[str, Any]) -> Dict[str, Any]:
@@ -854,12 +914,21 @@ Generate 3-5 profound insights as a JSON array of strings.
                 "total_cycles": len(self.evolution_log),
                 "prompts_evolved": sum(log["cycle_results"]["prompt_evolutions"] for log in self.evolution_log),
                 "agents_created": sum(log["cycle_results"]["new_agents_created"] for log in self.evolution_log),
-                "insights_generated": len(self.meta_insights)
+                "insights_generated": len(self.meta_insights),
+                "model_optimizations": sum(log["cycle_results"].get("model_optimizations", 0) for log in self.evolution_log),
+                "knowledge_acquisitions": sum(log["cycle_results"].get("knowledge_acquisitions", 0) for log in self.evolution_log),
+                "root_cause_analyses": sum(log["cycle_results"].get("root_cause_analyses", 0) for log in self.evolution_log)
+            },
+            "advanced_systems_status": {
+                "model_optimizer": self.model_optimizer.get_optimization_report(),
+                "knowledge_system": self.knowledge_system.get_knowledge_report(),
+                "root_cause_analyzer": self.root_cause_analyzer.get_analysis_report()
             },
             "recent_insights": self.meta_insights[-10:],
             "cognitive_trajectory": [log["intelligence_level"] for log in self.evolution_log[-20:]],
             "emergent_capabilities": self._identify_emergent_capabilities(),
-            "next_evolution_predictions": self._predict_next_evolution()
+            "next_evolution_predictions": self._predict_next_evolution(),
+            "optimization_trends": self._analyze_optimization_trends()
         }
     
     def _identify_emergent_capabilities(self) -> List[str]:
@@ -890,7 +959,55 @@ Generate 3-5 profound insights as a JSON array of strings.
         ]
         
         return predictions[:3]  # Return top 3 predictions
+    
+    def _analyze_optimization_trends(self) -> Dict[str, Any]:
+        """Analyze trends in optimization performance across cycles"""
+        if len(self.evolution_log) < 3:
+            return {"status": "insufficient_data"}
+        
+        recent_cycles = self.evolution_log[-5:]
+        
+        # Model optimization trends
+        model_opts = [log["cycle_results"].get("model_optimizations", 0) for log in recent_cycles]
+        knowledge_acqs = [log["cycle_results"].get("knowledge_acquisitions", 0) for log in recent_cycles]
+        root_cause_analyses = [log["cycle_results"].get("root_cause_analyses", 0) for log in recent_cycles]
+        
+        return {
+            "model_optimization_trend": "increasing" if sum(model_opts[-2:]) > sum(model_opts[:2]) else "stable",
+            "knowledge_acquisition_trend": "increasing" if sum(knowledge_acqs[-2:]) > sum(knowledge_acqs[:2]) else "stable", 
+            "analysis_frequency": sum(root_cause_analyses) / len(recent_cycles),
+            "optimization_velocity": sum(model_opts) / len(recent_cycles),
+            "learning_velocity": sum(knowledge_acqs) / len(recent_cycles),
+            "overall_improvement_rate": (self.evolution_log[-1]["intelligence_level"] - self.evolution_log[-5]["intelligence_level"]) / 5 if len(self.evolution_log) >= 5 else 0
+        }
 
+    def _identify_knowledge_gaps(self, self_assessment: Dict[str, Any], 
+                               failure_patterns: List[Dict[str, Any]]) -> List[str]:
+        """Identify knowledge gaps that need to be filled through intelligent search"""
+        knowledge_gaps = []
+        
+        # Extract gaps from self-assessment
+        if self_assessment and "cognitive_blind_spots" in self_assessment:
+            blind_spots = self_assessment["cognitive_blind_spots"]
+            knowledge_gaps.extend(blind_spots[:2])  # Top 2 blind spots
+        
+        # Extract gaps from failure patterns
+        for pattern in failure_patterns:
+            if "unknown" in pattern.get("error_type", "").lower():
+                knowledge_gaps.append(f"solutions for {pattern.get('context', 'unknown errors')}")
+            if "timeout" in pattern.get("error_type", "").lower():
+                knowledge_gaps.append("optimization techniques for performance")
+        
+        # Add common knowledge gaps
+        if not knowledge_gaps:
+            knowledge_gaps = [
+                "latest software development best practices",
+                "advanced debugging techniques",
+                "performance optimization strategies"
+            ]
+        
+        return list(set(knowledge_gaps))  # Remove duplicates
+    
     def _identify_improvement_opportunities(self, self_assessment: Dict[str, Any]) -> List[str]:
         """Identify specific improvement opportunities based on self-assessment"""
         opportunities = []
