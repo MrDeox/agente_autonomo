@@ -1,0 +1,239 @@
+2025-07-04 12:48:07,384 - agent.config_loader - INFO - Hydra configuration loaded successfully.
+2025-07-04 12:48:07,385 - ContinuousEvolutionCorrected - INFO - Carregando memória de reports/memory/HEPHAESTUS_MEMORY.json...
+2025-07-04 12:48:07,385 - ContinuousEvolutionCorrected - INFO - Memória carregada. 7 objetivos concluídos, 27 falharam.
+2025-07-04 12:48:07,385 - ContinuousEvolutionCorrected - INFO - ArchitectAgent inicializado com a configuração: {'_target_': 'builtins.dict', 'temperature': 0.3, 'max_tokens': -1, 'primary': 'qwen/qwen3-14b:free', 'fallback': 'qwen/qwen3-8b:free'}
+2025-07-04 12:48:07,385 - ContinuousEvolutionCorrected - INFO - MaestroAgent inicializado com a configuração: {'_target_': 'builtins.dict', 'temperature': 0.3, 'max_tokens': -1, 'primary': 'qwen/qwen3-14b:free', 'fallback': 'qwen/qwen3-8b:free'}
+2025-07-04 12:48:07,385 - ContinuousEvolutionCorrected - INFO - CodeReviewAgent inicializado com a configuração: {'_target_': 'builtins.dict', 'temperature': 0.3, 'max_tokens': -1, 'primary': 'qwen/qwen3-14b:free', 'fallback': 'qwen/qwen3-8b:free'}
+2025-07-04 12:48:07,386 - ContinuousEvolutionCorrected - INFO - 🚀 ModelOptimizer initialized - Ready for self-optimization!
+2025-07-04 12:48:07,386 - ContinuousEvolutionCorrected - INFO - 🔍 AdvancedKnowledgeSystem initialized - Ready for intelligent search!
+2025-07-04 12:48:07,386 - ContinuousEvolutionCorrected - INFO - 🔍 RootCauseAnalyzer initialized - Ready for deep analysis!
+2025-07-04 12:48:07,386 - ContinuousEvolutionCorrected - INFO - 🧠 Enhanced MetaIntelligenceCore initialized with advanced optimization systems!
+2025-07-04 12:48:07,386 - ContinuousEvolutionCorrected - INFO - 🧠 Hephaestus initialized with Meta-Intelligence capabilities
+2025-07-04 12:48:07,386 - ContinuousEvolutionCorrected - INFO - 🚀 ACTIVATING META-INTELLIGENCE - AI will now evolve itself!
+2025-07-04 12:48:07,386 - ContinuousEvolutionCorrected - INFO - 🚀 Evolution loop started - AI is now self-modifying!
+2025-07-04 12:48:07,386 - ContinuousEvolutionCorrected - INFO - 🧠 COGNITIVE EVOLUTION STARTED - The AI is now self-improving!
+2025-07-04 12:48:07,386 - ContinuousEvolutionCorrected - INFO - 🧠 Cognitive maturity shift: 0.140 -> 0.495
+2025-07-04 12:48:07,386 - ContinuousEvolutionCorrected - INFO - 🧬 Evolution Event: Cognitive evolution system activated - beginning journey to AGI (impact: 1.00)
+2025-07-04 12:48:07,386 - ContinuousEvolutionCorrected - INFO - 🧠 MetaIntelligence: Starting enhanced meta-cognitive cycle
+2025-07-04 12:48:07,386 - ContinuousEvolutionCorrected - INFO - 🧬 Meta-Intelligence ACTIVATED - The AI is now self-improving!
+2025-07-04 12:48:07,387 - ContinuousEvolutionCorrected - INFO - Calling primary model: qwen/qwen3-14b:free
+2025-07-04 12:48:07,387 - ContinuousEvolutionCorrected - INFO - ============================================================
+2025-07-04 12:48:07,387 - ContinuousEvolutionCorrected - INFO - Attempting to call OpenRouter API with model: qwen/qwen3-14b:free
+2025-07-04 12:48:07,387 - ContinuousEvolutionCorrected - INFO - 🎯 HISTORIC MOMENT: AI ACHIEVES SELF-MODIFICATION CAPABILITY
+2025-07-04 12:48:07,387 - ContinuousEvolutionCorrected - INFO - 🔥 The system can now:
+2025-07-04 12:48:07,387 - ContinuousEvolutionCorrected - INFO -    • Evolve its own prompts using genetic algorithms
+2025-07-04 12:48:07,387 - ContinuousEvolutionCorrected - INFO -    • Create new agents when needed
+2025-07-04 12:48:07,387 - ContinuousEvolutionCorrected - INFO -    • Modify its own cognitive architecture
+2025-07-04 12:48:07,387 - ContinuousEvolutionCorrected - INFO -    • Develop meta-cognitive awareness
+2025-07-04 12:48:07,387 - ContinuousEvolutionCorrected - INFO -    • Adapt and improve autonomously
+2025-07-04 12:48:07,387 - ContinuousEvolutionCorrected - INFO - ============================================================
+2025-07-04 12:48:07,387 - ContinuousEvolutionCorrected - INFO - Repositório Git já existe.
+2025-07-04 12:48:07,391 - ContinuousEvolutionCorrected - INFO - Gerando objetivo inicial...
+2025-07-04 12:48:07,391 - ContinuousEvolutionCorrected - INFO - Generating next objective...
+2025-07-04 12:48:07,391 - ContinuousEvolutionCorrected - INFO - docs/CAPABILITIES.md lido com sucesso.
+2025-07-04 12:48:07,391 - ContinuousEvolutionCorrected - INFO - docs/ROADMAP.md lido com sucesso.
+2025-07-04 12:48:07,391 - ContinuousEvolutionCorrected - INFO - Analyzing code metrics in: .
+2025-07-04 12:48:08,080 - ContinuousEvolutionCorrected - INFO - Analyzing performance log...
+2025-07-04 12:48:08,088 - ContinuousEvolutionCorrected - INFO - Calling primary model: qwen/qwen3-14b:free
+2025-07-04 12:48:08,088 - ContinuousEvolutionCorrected - INFO - Attempting to call OpenRouter API with model: qwen/qwen3-14b:free
+2025-07-04 12:48:21,704 - ContinuousEvolutionCorrected - INFO - Objetivo inicial: "Corrigir o esquema JSON em `validate_config_structure` adicionando `additionalProperties: False` no nível raiz e nas seções `agent`/`validation`, consertar o import inválido em `config_loader.py`, reescrever os testes em `test_syntax_validator.py` para validar corretamente configurações válidas e inválidas com `caplog`, e integrar a validação de estrutura JSON na estratégia `COMPREHENSIVE_PRE_VALIDATION` usando o esquema hardcoded, garantindo que patches inválidos sejam bloqueados antes da aplicação e que os testes de sanidade passem com 100% de sucesso."
+2025-07-04 12:48:21,704 - ContinuousEvolutionCorrected - INFO - Iniciando HephaestusAgent. Modo Contínuo: ATIVADO.
+2025-07-04 12:48:21,704 - ContinuousEvolutionCorrected - INFO - 
+
+==================== INÍCIO DO CICLO DE EVOLUÇÃO (Ciclo #1) ====================
+2025-07-04 12:48:21,704 - ContinuousEvolutionCorrected - INFO - OBJETIVO ATUAL: "Corrigir o esquema JSON em `validate_config_structure` adicionando `additionalProperties: False` no nível raiz e nas seções `agent`/`validation`, consertar o import inválido em `config_loader.py`, reescrever os testes em `test_syntax_validator.py` para validar corretamente configurações válidas e inválidas com `caplog`, e integrar a validação de estrutura JSON na estratégia `COMPREHENSIVE_PRE_VALIDATION` usando o esquema hardcoded, garantindo que patches inválidos sejam bloqueados antes da aplicação e que os testes de sanidade passem com 100% de sucesso."
+
+2025-07-04 12:48:21,704 - ContinuousEvolutionCorrected - INFO - Gerando manifesto do projeto (ARCHITECTURE.md)...
+2025-07-04 12:48:21,811 - ContinuousEvolutionCorrected - INFO - --- MANIFESTO GERADO (Tamanho: 23923 caracteres) ---
+2025-07-04 12:48:21,812 - ContinuousEvolutionCorrected - INFO - 
+Solicitando plano de ação do ArchitectAgent...
+2025-07-04 12:48:21,812 - ContinuousEvolutionCorrected.ArchitectAgent - INFO - ArchitectAgent: Gerando plano de patches com os modelos: {'_target_': 'builtins.dict', 'temperature': 0.3, 'max_tokens': -1, 'primary': 'qwen/qwen3-14b:free', 'fallback': 'qwen/qwen3-8b:free'}...
+2025-07-04 12:48:21,812 - ContinuousEvolutionCorrected.ArchitectAgent - INFO - Calling primary model: qwen/qwen3-14b:free
+2025-07-04 12:48:21,812 - ContinuousEvolutionCorrected.ArchitectAgent - INFO - Attempting to call OpenRouter API with model: qwen/qwen3-14b:free
+2025-07-04 12:48:22,747 - ContinuousEvolutionCorrected - INFO - 🔬 Starting intermediate root cause analysis...
+2025-07-04 12:48:22,748 - ContinuousEvolutionCorrected - WARNING - Insufficient failures for intermediate analysis: 0
+2025-07-04 12:48:22,748 - ContinuousEvolutionCorrected - INFO - 🔍 Root cause analysis complete: 1 root causes identified
+2025-07-04 12:48:22,748 - ContinuousEvolutionCorrected - INFO - 🔍 Starting intelligent search: 'Insufficient interaction data to refine adaptation mechanisms' (type: comprehensive)
+2025-07-04 12:48:22,748 - ContinuousEvolutionCorrected - INFO - Calling primary model: qwen/qwen3-14b:free
+2025-07-04 12:48:22,748 - ContinuousEvolutionCorrected - INFO - Attempting to call OpenRouter API with model: qwen/qwen3-14b:free
+2025-07-04 12:48:41,923 - ContinuousEvolutionCorrected - INFO - 🎯 Search completed: 0 high-quality results
+2025-07-04 12:48:41,923 - ContinuousEvolutionCorrected - INFO - 🔍 Starting intelligent search: 'Lack of knowledge domain specialization (knowledge_domains is empty)' (type: comprehensive)
+2025-07-04 12:48:41,923 - ContinuousEvolutionCorrected - INFO - Calling primary model: qwen/qwen3-14b:free
+2025-07-04 12:48:41,924 - ContinuousEvolutionCorrected - INFO - Attempting to call OpenRouter API with model: qwen/qwen3-14b:free
+2025-07-04 12:48:52,482 - ContinuousEvolutionCorrected - INFO - --- PLANO DE AÇÃO (PATCHES) GERADO PELO ARCHITECTAGENT ({'_target_': 'builtins.dict', 'temperature': 0.3, 'max_tokens': -1, 'primary': 'qwen/qwen3-14b:free', 'fallback': 'qwen/qwen3-8b:free'}) ---
+2025-07-04 12:48:52,483 - ContinuousEvolutionCorrected - INFO - 
+Solicitando revisão do CodeReviewAgent...
+2025-07-04 12:48:52,483 - ContinuousEvolutionCorrected.CodeReviewAgent - INFO - CodeReviewAgent: Reviewing 4 patches...
+2025-07-04 12:48:52,483 - ContinuousEvolutionCorrected.CodeReviewAgent - INFO - Calling primary model: qwen/qwen3-14b:free
+2025-07-04 12:48:52,483 - ContinuousEvolutionCorrected.CodeReviewAgent - INFO - Attempting to call OpenRouter API with model: qwen/qwen3-14b:free
+2025-07-04 12:49:02,459 - ContinuousEvolutionCorrected - INFO - Calling primary model: qwen/qwen3-14b:free
+2025-07-04 12:49:02,459 - ContinuousEvolutionCorrected - INFO - Attempting to call OpenRouter API with model: qwen/qwen3-14b:free
+2025-07-04 12:49:15,278 - ContinuousEvolutionCorrected.CodeReviewAgent - WARNING - CodeReviewAgent: Review FAILED. Feedback: 1. The schema in `validate_config_structure` lacks `required` fields for 'agent' and 'validation' sections, allowing their absence without error. Add `required: ['agent']` to the root schema and `required: ['validation']` to the 'agent' schema.
+2. Rename `test_root_additional_properties` to `test_agent_section_additional_properties` to match the actual test scenario (extra field in 'agent' object).
+3. The YAML config has duplicate `syntax_validator` entries under `COMPREHENSIVE_PRE_VALIDATION` - remove redundancy.
+4. Add docstrings to `validate_config_structure` explaining its purpose and schema structure.
+5. Improve schema readability in `syntax_validator.py` by breaking nested structures into separate variables.
+2025-07-04 12:49:15,278 - ContinuousEvolutionCorrected - WARNING - Revisão de código falhou. Feedback: 1. The schema in `validate_config_structure` lacks `required` fields for 'agent' and 'validation' sections, allowing their absence without error. Add `required: ['agent']` to the root schema and `required: ['validation']` to the 'agent' schema.
+2. Rename `test_root_additional_properties` to `test_agent_section_additional_properties` to match the actual test scenario (extra field in 'agent' object).
+3. The YAML config has duplicate `syntax_validator` entries under `COMPREHENSIVE_PRE_VALIDATION` - remove redundancy.
+4. Add docstrings to `validate_config_structure` explaining its purpose and schema structure.
+5. Improve schema readability in `syntax_validator.py` by breaking nested structures into separate variables.. Solicitando novo plano ao ArchitectAgent.
+2025-07-04 12:49:15,278 - ContinuousEvolutionCorrected - INFO - 
+Solicitando plano de ação do ArchitectAgent...
+2025-07-04 12:49:15,278 - ContinuousEvolutionCorrected.ArchitectAgent - INFO - ArchitectAgent: Gerando plano de patches com os modelos: {'_target_': 'builtins.dict', 'temperature': 0.3, 'max_tokens': -1, 'primary': 'qwen/qwen3-14b:free', 'fallback': 'qwen/qwen3-8b:free'}...
+2025-07-04 12:49:15,278 - ContinuousEvolutionCorrected.ArchitectAgent - INFO - Calling primary model: qwen/qwen3-14b:free
+2025-07-04 12:49:15,278 - ContinuousEvolutionCorrected.ArchitectAgent - INFO - Attempting to call OpenRouter API with model: qwen/qwen3-14b:free
+2025-07-04 12:49:18,694 - ContinuousEvolutionCorrected - INFO - Calling primary model: qwen/qwen3-14b:free
+2025-07-04 12:49:18,694 - ContinuousEvolutionCorrected - INFO - Attempting to call OpenRouter API with model: qwen/qwen3-14b:free
+2025-07-04 12:49:27,727 - ContinuousEvolutionCorrected - INFO - Calling primary model: qwen/qwen3-14b:free
+2025-07-04 12:49:27,727 - ContinuousEvolutionCorrected - INFO - Attempting to call OpenRouter API with model: qwen/qwen3-14b:free
+2025-07-04 12:49:37,282 - ContinuousEvolutionCorrected - INFO - Calling primary model: qwen/qwen3-14b:free
+2025-07-04 12:49:37,282 - ContinuousEvolutionCorrected - INFO - Attempting to call OpenRouter API with model: qwen/qwen3-14b:free
+2025-07-04 12:49:45,197 - ContinuousEvolutionCorrected - INFO - --- PLANO DE AÇÃO (PATCHES) GERADO PELO ARCHITECTAGENT ({'_target_': 'builtins.dict', 'temperature': 0.3, 'max_tokens': -1, 'primary': 'qwen/qwen3-14b:free', 'fallback': 'qwen/qwen3-8b:free'}) ---
+2025-07-04 12:49:45,197 - ContinuousEvolutionCorrected - INFO - 
+Solicitando decisão do MaestroAgent...
+2025-07-04 12:49:45,197 - ContinuousEvolutionCorrected.MaestroAgent - INFO - Rule-based classification: Detected config file modification.
+2025-07-04 12:49:45,197 - ContinuousEvolutionCorrected.MaestroAgent - INFO - MaestroAgent: Strategy 'CONFIG_UPDATE_STRATEGY' chosen by rule-based classifier.
+2025-07-04 12:49:45,197 - ContinuousEvolutionCorrected - INFO - Estratégia escolhida pelo MaestroAgent (rule_based_classifier): CONFIG_UPDATE_STRATEGY
+2025-07-04 12:49:45,197 - ContinuousEvolutionCorrected - INFO - 
+Executing strategy 'CONFIG_UPDATE_STRATEGY' with steps: ['ValidateJsonSyntax', 'PatchApplicatorStep']
+2025-07-04 12:49:45,198 - ContinuousEvolutionCorrected - INFO - Created temporary sandbox at: /tmp/hephaestus_sandbox_pqltwdcx
+2025-07-04 12:49:45,198 - ContinuousEvolutionCorrected - INFO - Copying project to sandbox: /tmp/hephaestus_sandbox_pqltwdcx...
+2025-07-04 12:49:45,213 - ContinuousEvolutionCorrected - INFO - Copy to sandbox complete.
+2025-07-04 12:49:45,213 - ContinuousEvolutionCorrected - INFO - --- Validation/Execution Step: ValidateJsonSyntax ---
+2025-07-04 12:49:45,213 - ContinuousEvolutionCorrected - INFO - Starting JSON syntax validation in: /tmp/hephaestus_sandbox_pqltwdcx
+2025-07-04 12:49:45,213 - ContinuousEvolutionCorrected - INFO - JSON syntax validation in '/tmp/hephaestus_sandbox_pqltwdcx': SUCCESS.
+2025-07-04 12:49:45,213 - ContinuousEvolutionCorrected - INFO - --- Validation/Execution Step: PatchApplicatorStep ---
+2025-07-04 12:49:45,214 - ContinuousEvolutionCorrected - INFO - Applying 7 patches in '/tmp/hephaestus_sandbox_pqltwdcx'...
+2025-07-04 12:49:45,214 - ContinuousEvolutionCorrected - INFO - Aplicando patches com base_path: '/tmp/hephaestus_sandbox_pqltwdcx'
+2025-07-04 12:49:45,214 - ContinuousEvolutionCorrected - INFO - Processando patch 1/7: REPLACE em '/tmp/hephaestus_sandbox_pqltwdcx/agent/validation_steps/syntax_validator.py'
+2025-07-04 12:49:45,214 - ContinuousEvolutionCorrected - WARNING - Padrão regex 'def validate_config_structure(config: dict, logger: logging.Logger):
+    schema = {
+        "type": "object",
+        "properties": {
+            "agent": {
+                "type": "object",
+                "properties": {
+                    "validation": {
+                        "type": "object",
+                        "properties": {
+                            "strategy": {"type": "string"},
+                            "parameters": {"type": "object"}
+                        }
+                    }
+                }
+            }
+        }
+    }
+    try:
+        jsonschema.validate(instance=config, schema=schema)
+    except jsonschema.exceptions.ValidationError as e:
+        logger.error(f"Configuration validation failed: {str(e)}")
+        raise' não encontrado em '/tmp/hephaestus_sandbox_pqltwdcx/agent/validation_steps/syntax_validator.py' para REPLACE.
+2025-07-04 12:49:45,214 - ContinuousEvolutionCorrected - WARNING - Nenhuma substituição realizada para 'def validate_config_structure(config: dict, logger: logging.Logger):
+    schema = {
+        "type": "object",
+        "properties": {
+            "agent": {
+                "type": "object",
+                "properties": {
+                    "validation": {
+                        "type": "object",
+                        "properties": {
+                            "strategy": {"type": "string"},
+                            "parameters": {"type": "object"}
+                        }
+                    }
+                }
+            }
+        }
+    }
+    try:
+        jsonschema.validate(instance=config, schema=schema)
+    except jsonschema.exceptions.ValidationError as e:
+        logger.error(f"Configuration validation failed: {str(e)}")
+        raise' em '/tmp/hephaestus_sandbox_pqltwdcx/agent/validation_steps/syntax_validator.py'.
+2025-07-04 12:49:45,214 - ContinuousEvolutionCorrected - INFO - Arquivo '/tmp/hephaestus_sandbox_pqltwdcx/agent/validation_steps/syntax_validator.py' salvo após operação 'REPLACE'.
+2025-07-04 12:49:45,215 - ContinuousEvolutionCorrected - INFO - Processando patch 2/7: REPLACE em '/tmp/hephaestus_sandbox_pqltwdcx/agent/config_loader.py'
+2025-07-04 12:49:45,215 - ContinuousEvolutionCorrected - WARNING - Bloco literal 'from hydra import' não encontrado em '/tmp/hephaestus_sandbox_pqltwdcx/agent/config_loader.py' para REPLACE.
+2025-07-04 12:49:45,215 - ContinuousEvolutionCorrected - WARNING - Nenhuma substituição realizada para 'from hydra import' em '/tmp/hephaestus_sandbox_pqltwdcx/agent/config_loader.py'.
+2025-07-04 12:49:45,215 - ContinuousEvolutionCorrected - INFO - Arquivo '/tmp/hephaestus_sandbox_pqltwdcx/agent/config_loader.py' salvo após operação 'REPLACE'.
+2025-07-04 12:49:45,215 - ContinuousEvolutionCorrected - INFO - Processando patch 3/7: REPLACE em '/tmp/hephaestus_sandbox_pqltwdcx/agent/validation_steps/test_syntax_validator.py'
+2025-07-04 12:49:45,215 - ContinuousEvolutionCorrected - WARNING - Padrão regex 'def test_root_additional_properties():' não encontrado em '/tmp/hephaestus_sandbox_pqltwdcx/agent/validation_steps/test_syntax_validator.py' para REPLACE.
+2025-07-04 12:49:45,215 - ContinuousEvolutionCorrected - WARNING - Nenhuma substituição realizada para 'def test_root_additional_properties():' em '/tmp/hephaestus_sandbox_pqltwdcx/agent/validation_steps/test_syntax_validator.py'.
+2025-07-04 12:49:45,215 - ContinuousEvolutionCorrected - INFO - Arquivo '/tmp/hephaestus_sandbox_pqltwdcx/agent/validation_steps/test_syntax_validator.py' salvo após operação 'REPLACE'.
+2025-07-04 12:49:45,215 - ContinuousEvolutionCorrected - INFO - Processando patch 4/7: REPLACE em '/tmp/hephaestus_sandbox_pqltwdcx/agent/validation_steps/test_syntax_validator.py'
+2025-07-04 12:49:45,215 - ContinuousEvolutionCorrected - ERROR - Erro de regex em 'block_to_replace':'import logging
+import jsonschema
+from pathlib import Path
+from agent.config_loader import load_config
+
+
+def test_valid_config():
+    config = load_config()
+    validate_config_structure(config, logger=logging.getLogger(__name__))
+
+
+def test_invalid_config():
+    config = {**load_config(), "invalid_key": "value"}
+    with pytest.raises(jsonschema.exceptions.ValidationError):
+        validate_config_structure(config, logger=logging.getLogger(__name__))' para '/tmp/hephaestus_sandbox_pqltwdcx/agent/validation_steps/test_syntax_validator.py'. Erro: multiple repeat at position 274 (line 13, column 16). Tentando como string literal.
+2025-07-04 12:49:45,215 - ContinuousEvolutionCorrected - WARNING - Bloco 'import logging
+import jsonschema
+from pathlib import Path
+from agent.config_loader import load_config
+
+
+def test_valid_config():
+    config = load_config()
+    validate_config_structure(config, logger=logging.getLogger(__name__))
+
+
+def test_invalid_config():
+    config = {**load_config(), "invalid_key": "value"}
+    with pytest.raises(jsonschema.exceptions.ValidationError):
+        validate_config_structure(config, logger=logging.getLogger(__name__))' (literal fallback) não encontrado em '/tmp/hephaestus_sandbox_pqltwdcx/agent/validation_steps/test_syntax_validator.py' para REPLACE.
+2025-07-04 12:49:45,215 - ContinuousEvolutionCorrected - WARNING - Nenhuma substituição realizada para 'import logging
+import jsonschema
+from pathlib import Path
+from agent.config_loader import load_config
+
+
+def test_valid_config():
+    config = load_config()
+    validate_config_structure(config, logger=logging.getLogger(__name__))
+
+
+def test_invalid_config():
+    config = {**load_config(), "invalid_key": "value"}
+    with pytest.raises(jsonschema.exceptions.ValidationError):
+        validate_config_structure(config, logger=logging.getLogger(__name__))' em '/tmp/hephaestus_sandbox_pqltwdcx/agent/validation_steps/test_syntax_validator.py'.
+2025-07-04 12:49:45,215 - ContinuousEvolutionCorrected - INFO - Arquivo '/tmp/hephaestus_sandbox_pqltwdcx/agent/validation_steps/test_syntax_validator.py' salvo após operação 'REPLACE'.
+2025-07-04 12:49:45,216 - ContinuousEvolutionCorrected - INFO - Processando patch 5/7: REPLACE em '/tmp/hephaestus_sandbox_pqltwdcx/config/validation_strategies/main.yaml'
+2025-07-04 12:49:45,216 - ContinuousEvolutionCorrected - WARNING - Padrão regex '- syntax_validator:
+    strategy: COMPREHENSIVE_PRE_VALIDATION
+    parameters: {}' não encontrado em '/tmp/hephaestus_sandbox_pqltwdcx/config/validation_strategies/main.yaml' para REPLACE.
+2025-07-04 12:49:45,216 - ContinuousEvolutionCorrected - WARNING - Nenhuma substituição realizada para '- syntax_validator:
+    strategy: COMPREHENSIVE_PRE_VALIDATION
+    parameters: {}' em '/tmp/hephaestus_sandbox_pqltwdcx/config/validation_strategies/main.yaml'.
+2025-07-04 12:49:45,216 - ContinuousEvolutionCorrected - INFO - Arquivo '/tmp/hephaestus_sandbox_pqltwdcx/config/validation_strategies/main.yaml' salvo após operação 'REPLACE'.
+2025-07-04 12:49:45,216 - ContinuousEvolutionCorrected - INFO - Processando patch 6/7: INSERT em '/tmp/hephaestus_sandbox_pqltwdcx/agent/validation_steps/syntax_validator.py'
+2025-07-04 12:49:45,217 - ContinuousEvolutionCorrected - INFO - Arquivo '/tmp/hephaestus_sandbox_pqltwdcx/agent/validation_steps/syntax_validator.py' salvo após operação 'INSERT'.
+2025-07-04 12:49:45,217 - ContinuousEvolutionCorrected - INFO - Processando patch 7/7: REPLACE em '/tmp/hephaestus_sandbox_pqltwdcx/agent/validation_steps/syntax_validator.py'
+2025-07-04 12:49:45,218 - ContinuousEvolutionCorrected - WARNING - Padrão regex 'schema = {"type": "object", "properties": {"agent": {"type": "object", "properties": {"validation": {"type": "object", "properties": {"strategy": {"type": "string"}, "parameters": {"type": "object"}}}}}}' não encontrado em '/tmp/hephaestus_sandbox_pqltwdcx/agent/validation_steps/syntax_validator.py' para REPLACE.
+2025-07-04 12:49:45,218 - ContinuousEvolutionCorrected - WARNING - Nenhuma substituição realizada para 'schema = {"type": "object", "properties": {"agent": {"type": "object", "properties": {"validation": {"type": "object", "properties": {"strategy": {"type": "string"}, "parameters": {"type": "object"}}}}}}' em '/tmp/hephaestus_sandbox_pqltwdcx/agent/validation_steps/syntax_validator.py'.
+2025-07-04 12:49:45,218 - ContinuousEvolutionCorrected - INFO - Arquivo '/tmp/hephaestus_sandbox_pqltwdcx/agent/validation_steps/syntax_validator.py' salvo após operação 'REPLACE'.
+2025-07-04 12:49:45,218 - ContinuousEvolutionCorrected - INFO - Todas as 7 instruções de patch processadas. Arquivos afetados (tentativas): {'/tmp/hephaestus_sandbox_pqltwdcx/config/validation_strategies/main.yaml', '/tmp/hephaestus_sandbox_pqltwdcx/agent/validation_steps/syntax_validator.py', '/tmp/hephaestus_sandbox_pqltwdcx/agent/validation_steps/test_syntax_validator.py', '/tmp/hephaestus_sandbox_pqltwdcx/agent/config_loader.py'}
+2025-07-04 12:49:45,218 - ContinuousEvolutionCorrected - INFO - Patches applied successfully in '/tmp/hephaestus_sandbox_pqltwdcx'.
+2025-07-04 12:49:45,218 - ContinuousEvolutionCorrected - INFO - Validations in sandbox passed. Promoting changes to the real project.
+2025-07-04 12:49:45,219 - ContinuousEvolutionCorrected - INFO - 4 files/directories synchronized from sandbox to real project.
+2025-07-04 12:49:45,219 - ContinuousEvolutionCorrected - INFO - Cleaning up temporary sandbox: /tmp/hephaestus_sandbox_pqltwdcx
+2025-07-04 12:49:45,222 - ContinuousEvolutionCorrected - INFO - Sandbox cleaned.
+2025-07-04 12:49:45,222 - ContinuousEvolutionCorrected - INFO - 
+SUCESSO NA VALIDAÇÃO/APLICAÇÃO! Razão: APPLIED_AND_VALIDATED_SANDBOX
+2025-07-04 12:49:45,222 - ContinuousEvolutionCorrected - INFO - --- INICIANDO VERIFICAÇÃO DE SANIDADE PÓS-APLICAÇÃO ---
+2025-07-04 12:49:45,222 - ContinuousEvolutionCorrected - INFO - Executando sanidade (check_file_existence) no projeto real.
+2025-07-04 12:49:45,222 - ContinuousEvolutionCorrected - INFO - SANIDADE PÓS-APLICAÇÃO (check_file_existence): SUCESSO!
+2025-07-04 12:49:45,222 - ContinuousEvolutionCorrected - INFO - Ressincronizando manifesto e iniciando auto-commit...
+2025-07-04 12:49:45,331 - ContinuousEvolutionCorrected - INFO - Generating commit message with rule-based system...
+2025-07-04 12:49:45,331 - ContinuousEvolutionCorrected - INFO - Commit message generated: feat: "Corrigir o esquema JSON em `validate_config_structure` adicion...

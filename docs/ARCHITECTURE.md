@@ -4,21 +4,29 @@
 agente_autonomo/
     MCP_SETUP_GUIDE.md
     README.md
+    mcp_server.log
     PROPOSTA_SERVIDOR_MCP.md
+    CURSOR_MCP_GUIA_FINAL.md
     REVISAO_PROJETO_HEPHAESTUS.md
     hephaestus_mcp_server.py
     META_INTELLIGENCE_UPGRADE_SUMMARY.md
+    run_mcp.py
     mcp_server_example.py
     cli.py
     README_MCP_HEPHAESTUS.md
     poetry.lock
     main.py
     hephaestus_config.json
+    GUIA_MCP_CURSOR.md
     CHECKLIST_MCP_HEPHAESTUS.md
     requirements.txt
+    evolution_monitoring.txt
     requirements_mcp.txt
     demo_meta_intelligence.py
+    GUIA_CONFIGURACAO_CURSOR.md
+    start_mcp_server.sh
     setup_mcp.py
+    cursor_mcp_config.json
     pyproject.toml
     tools/
         app.py
@@ -81,6 +89,7 @@ agente_autonomo/
         default.yaml
         models/
             main.yaml
+            local.yaml
         validation_strategies/
             main.yaml
     reports/
@@ -95,8 +104,13 @@ agente_autonomo/
             night_report_20250704_004455.json
     logs/
         hephaestus.log
+        continuous_evolution_corrected.log
+        continuous_evolution.log
+        evolution_monitoring.log
         night_agent.log
+        hephaestus_corrected.log
         evolution_log.csv
+        continuous_evolution_fixed.log
 
 ## 2. RESUMO DAS INTERFACES (APIs Internas)
 
@@ -125,6 +139,14 @@ agente_autonomo/
   - *Acesso à memória do sistema*
 - **Função:** `main()`
   - *Função principal para executar o servidor MCP*
+- **Função:** `run_server()`
+  - *Função para executar o servidor sem conflitos de asyncio*
+
+### Arquivo: `run_mcp.py`
+- **Classe:** `MCPServerRunner`
+  - *Executa o servidor MCP de forma robusta*
+- **Função:** `main()`
+  - *Função principal*
 
 ### Arquivo: `mcp_server_example.py`
 - **Classe:** `HephaestusSimulator`

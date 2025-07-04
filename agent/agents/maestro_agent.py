@@ -7,6 +7,7 @@ from collections import OrderedDict
 
 from agent.utils.llm_client import call_llm_api
 from agent.utils.json_parser import parse_json_response # Import from new location
+from agent.validation_steps.syntax_validator import validate_config_structure
 
 class StrategyCache:
     """Cache LRU com TTL para decisões de estratégia"""
