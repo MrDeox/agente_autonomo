@@ -73,17 +73,37 @@ Em vez de simplesmente completar tarefas de desenvolvimento de software, o Hepha
     curl "http://localhost:8000/status"
     ```
 
-## Como Funciona? O Ciclo de Auto-Aprimoramento
+## Como Funciona? O Ciclo de Auto-Aprimoramento Avançado
 
-O Hephaestus opera em um ciclo contínuo, agora como um serviço em segundo plano, com foco em RSI:
+O Hephaestus opera em um ciclo contínuo altamente sofisticado, com **sistemas avançados de meta-inteligência** que permitem verdadeira auto-otimização:
 
-1.  **Serviço em Segundo Plano:** O Hephaestus agora é executado como um servidor FastAPI, permitindo a submissão assíncrona de objetivos via API. Um thread worker dedicado processa os objetivos de uma fila.
-2.  **Geração de Objetivo Estratégico:** O agente primeiro analisa o `docs/CAPABILITIES.md` e seu `docs/ROADMAP.md` para decidir qual capacidade aprimorar. Ele também revisa seu log de performance (`logs/evolution_log.csv`) para encontrar padrões de falha a serem corrigidos. As métricas de código são usadas como um fator de desempate ou suporte. **Agora, o LLM é instruído a considerar a otimização de seus próprios prompts e estratégias com base na análise de performance.**
-3.  **Planejamento Arquitetônico:** O `ArchitectAgent` cria um plano de modificação de código (patches) para alcançar o objetivo estratégico.
-4.  **Decisão Estratégica:** O `MaestroAgent` analisa o plano e escolhe a melhor forma de validar as alterações. Se o plano for muito arriscado ou exigir uma capacidade que o agente não possui, ele pode solicitar um novo objetivo de "capacitação".
-5.  **Execução e Validação:** As alterações são aplicadas em um ambiente seguro (sandbox) e validadas usando testes e verificação de sintaxe.
-6.  **Meta-Análise de Falha:** Se o ciclo falhar, o `ErrorAnalysisAgent` é ativado. Sua nova função é questionar não apenas o código, mas também o objetivo e a estratégia. **Ele pode sugerir uma abordagem completamente nova ou um objetivo de meta-análise para entender a causa raiz da falha, que será processado pelo 'Planejador Estratégico Avançado'.**
-7.  **Aplicação e Versionamento:** Se a validação for bem-sucedida, as alterações são aplicadas à base de código principal e um commit é feito automaticamente.
+### 🧠 **Meta-Intelligence Core Expandido**
+
+1.  **Serviço em Segundo Plano:** O Hephaestus é executado como um servidor FastAPI com thread worker dedicado para processamento assíncrono.
+2.  **Enhanced Self-Assessment:** Análise profunda das capacidades cognitivas com identificação de blind spots e oportunidades de melhoria.
+3.  **Advanced Root Cause Analysis:** Sistema multi-camada que identifica causas raiz sistêmicas usando metodologia "5 Whys" e análise temporal.
+4.  **Intelligent Knowledge Acquisition:** Busca inteligente multi-fonte (web, GitHub, documentação) com otimização de queries por IA.
+5.  **Model Performance Optimization:** Captura automática de dados de performance e geração de datasets para fine-tuning.
+6.  **Enhanced Agent Creation:** Criação de novos agentes baseada em pesquisa de melhores práticas externas.
+
+### 🎯 **Sistemas de Auto-Otimização**
+
+- **🔧 Model Optimizer:** Coleta dados de performance (40% sucesso, 30% qualidade, 20% eficiência, 10% contexto) e gera datasets JSONL para fine-tuning automático. Aplica algoritmos genéticos para evolução de prompts.
+
+- **🔍 Knowledge System:** Busca inteligente com ranking composto (50% relevância, 30% credibilidade, 20% recência). Cache TTL, análise semântica, e aprendizado contínuo baseado em feedback.
+
+- **⚡ Root Cause Analyzer:** Análise em 5 camadas causais (Immediate → Proximate → Systemic → Cultural → Environmental). Detecção automática de padrões temporais, falhas em cascata, e degradação sistêmica.
+
+### 🚀 **Ciclo Expandido de Meta-Cognição**
+
+1.  **Planejamento Arquitetônico:** O `ArchitectAgent` cria planos com prompts otimizados por dados de performance histórica.
+2.  **Decisão Estratégica Informada:** O `MaestroAgent` usa conhecimento externo pesquisado para escolher estratégias baseadas em evidências.
+3.  **Execução com Monitoramento:** Captura automática de métricas de performance durante execução.
+4.  **Meta-Análise Avançada:** Sistema de análise de causa raiz identifica problemas sistêmicos e gera recomendações acionáveis.
+5.  **Auto-Otimização Contínua:** Datasets de fine-tuning são gerados automaticamente para treinar versões melhoradas do sistema.
+6.  **Aplicação e Evolução:** Mudanças são aplicadas com versionamento Git e tracking de melhorias.
+
+**Resultado:** O sistema literalmente treina versões melhores de si mesmo, expande conhecimento através de fontes externas, e previne problemas identificando causas raiz sistêmicas.
 
 ## Estrutura do Projeto
 
