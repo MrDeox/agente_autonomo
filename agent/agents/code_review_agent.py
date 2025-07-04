@@ -122,20 +122,17 @@ Review the following code patches. Your review should focus on:
 [CODE PATCHES TO REVIEW]
 {patches_str}
 
-[YOUR DECISION]
-Respond ONLY with a JSON object in the following format:
-{{
-  "review_passed": boolean,
-  "feedback": "If the review failed, provide a CONCISE and ACTIONABLE list of required changes. If it passed, write 'OK'."
-}}
+[YOUR DECISION AND OUTPUT FORMAT]
+Your response MUST be a valid JSON object. There are only two valid formats for your response:
 
-Example of FAILED review feedback:
-"1. The function `my_func` should be split into smaller functions to reduce complexity.
- 2. Add docstrings explaining the purpose of the `process_data` function.
- 3. The variable `x` is too generic; rename it to `user_id` for clarity."
+1.  If the review PASSES, respond with:
+    `{{"review_passed": true, "feedback": "OK"}}`
 
-Example of PASSED review:
-"OK"
+2.  If the review FAILS, you MUST provide a detailed, actionable, and numbered list of required changes in the `feedback` field. The `review_passed` field MUST be `false`.
+    Example for a FAILED review:
+    `{{"review_passed": false, "feedback": "1. The function `my_func` should be split into smaller functions to reduce complexity.\\n2. Add docstrings explaining the purpose of the `process_data` function.\\n3. The variable `x` is too generic; rename it to `user_id` for clarity."}}`
+
+**Critically important: If `review_passed` is `false`, the `feedback` field CANNOT be empty or "OK". It MUST contain specific instructions.**
 """
         self.logger.info(f"CodeReviewAgent: Reviewing {len(patches_to_apply)} patches...")
         
@@ -167,7 +164,13 @@ Example of PASSED review:
             return False, f"Failed to parse review response: {raw_response}"
 
         review_passed = parsed.get("review_passed", False)
-        feedback = parsed.get("feedback", "No feedback provided.")
+        feedback = parsed.get("feedback", "").strip()
+
+        # Add validation logic
+        if not review_passed and (not feedback or feedback.upper() == "OK"):
+            error_message = f"CodeReviewAgent: LLM failed review but provided no actionable feedback. Response: {raw_response}"
+            self.logger.error(error_message)
+            return False, error_message
 
         if review_passed:
             self.logger.info("CodeReviewAgent: Review PASSED.")

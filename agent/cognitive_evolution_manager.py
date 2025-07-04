@@ -15,10 +15,11 @@ import logging
 import asyncio
 import threading
 from typing import Dict, Any, List, Optional
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from dataclasses import dataclass
 import time
 from collections import Counter
+import re
 
 from agent.meta_intelligence_core import get_meta_intelligence
 from agent.flow_self_modifier import get_flow_modifier
@@ -484,15 +485,19 @@ Focus on the philosophical and practical implications of an AI that can evolve i
         return real_metrics
     
     def _enumerate_current_capabilities(self) -> List[str]:
-        """List current system capabilities"""
-        return [
-            "code_generation",
-            "error_analysis",
-            "performance_optimization",
-            "self_reflection",
-            "prompt_evolution",
-            "agent_creation"
-        ]
+        """Dynamically lists current system capabilities from the CAPABILITIES.md file."""
+        try:
+            with open("docs/CAPABILITIES.md", "r", encoding="utf-8") as f:
+                content = f.read()
+                # Use regex to find markdown list items
+                capabilities = re.findall(r'^\s*-\s*(.+)', content, re.MULTILINE)
+                return [c.strip() for c in capabilities]
+        except FileNotFoundError:
+            self.logger.warning("docs/CAPABILITIES.md not found. Cannot enumerate capabilities.")
+            return ["capability_enumeration_failed"]
+        except Exception as e:
+            self.logger.error(f"Error reading CAPABILITIES.md: {e}")
+            return ["capability_enumeration_error"]
     
     def _identify_failure_patterns(self) -> List[Dict[str, Any]]:
         """Identifies patterns in system failures from real memory data."""
@@ -547,12 +552,42 @@ Focus on the philosophical and practical implications of an AI that can evolve i
         return summary
     
     def _calculate_learning_efficiency(self) -> float:
-        """Calculate how efficiently the system is learning"""
-        return 0.6  # Simplified
+        """Calculates learning efficiency based on successes vs. failures leading to new capabilities."""
+        total_failures = len(self.memory.failed_objectives)
+        new_capabilities = len(self.memory.acquired_capabilities)
+
+        if total_failures == 0:
+            return 1.0  # Perfect efficiency if no failures
+
+        # Efficiency is the ratio of new capabilities to failures.
+        # A value > 1 means we are learning more than we are failing.
+        # We cap it at 1.0 for the maturity calculation.
+        efficiency = new_capabilities / total_failures
+        
+        # Normalize to a 0-1 scale for maturity calculation
+        normalized_efficiency = min(1.0, efficiency / 2.0) # Assume an efficiency of 2.0 is "max" for normalization
+        
+        self.logger.debug(f"Learning efficiency calculated: {normalized_efficiency:.3f} (Capabilities: {new_capabilities}, Failures: {total_failures})")
+        return normalized_efficiency
     
     def _calculate_capability_growth_rate(self) -> float:
-        """Calculate the rate of capability growth"""
-        return 0.1  # Simplified
+        """Calculates the rate of capability growth over the last week."""
+        now = datetime.now(timezone.utc)
+        one_week_ago = now - timedelta(days=7)
+        
+        recent_capabilities = [
+            cap for cap in self.memory.acquired_capabilities 
+            if datetime.fromisoformat(cap['date']) > one_week_ago
+        ]
+        
+        # Growth rate as recent capabilities per day
+        growth_rate = len(recent_capabilities) / 7.0
+        
+        # Normalize the score (e.g., assuming 1 new capability per day is good progress)
+        normalized_rate = min(1.0, growth_rate)
+        
+        self.logger.debug(f"Capability growth rate calculated: {normalized_rate:.3f} ({len(recent_capabilities)} in last 7 days)")
+        return normalized_rate
     
     def _update_cognitive_maturity(self, results: Dict[str, Any]):
         """Update cognitive maturity based on evolution results"""

@@ -747,23 +747,33 @@ async def get_recent_logs(limit: int = 50, auth_user: dict = Depends(get_auth_us
 
 @app.post("/config/agent", tags=["Configuration"])
 async def update_agent_config(request: AgentConfigRequest, auth_user: dict = Depends(get_auth_user)):
-    """Update agent configuration"""
+    """Update agent configuration and persist it"""
     try:
         if hephaestus_agent_instance:
-            # Update configuration
-            config_updates = {
+            hephaestus_agent_instance.continuous_mode = request.continuous_mode
+            
+            # Persist the configuration to a file
+            config_path = "hephaestus_config.json"
+            current_config = {}
+            if os.path.exists(config_path):
+                with open(config_path, "r") as f:
+                    current_config = json.load(f)
+            
+            current_config.update({
                 "continuous_mode": request.continuous_mode,
                 "max_objectives": request.max_objectives,
                 "evolution_interval": request.evolution_interval
-            }
+            })
             
-            # Apply configuration (in a real implementation, this would update the agent)
-            logger.info(f"Updating agent configuration: {config_updates}")
+            with open(config_path, "w") as f:
+                json.dump(current_config, f, indent=4)
+
+            logger.info(f"Updating agent configuration: {request.dict()}")
             
             return {
                 "status": "success",
-                "message": "⚙️ Agent configuration updated successfully",
-                "updated_config": config_updates,
+                "message": "⚙️ Agent configuration updated and saved successfully",
+                "updated_config": request.dict(),
                 "timestamp": datetime.now().isoformat()
             }
         else:
@@ -774,7 +784,7 @@ async def update_agent_config(request: AgentConfigRequest, auth_user: dict = Dep
 
 @app.get("/config/current", tags=["Configuration"])
 async def get_current_config(auth_user: dict = Depends(get_auth_user)):
-    """Get current system configuration"""
+    """Get current agent configuration"""
     try:
         if hephaestus_agent_instance:
             config = {

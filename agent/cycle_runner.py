@@ -61,7 +61,8 @@ class CycleRunner:
                 logger=self.agent.logger,
                 project_root_dir=".",
                 config=self.agent.config,
-                memory_summary=self.agent.memory.get_full_history_for_prompt(),
+                memory=self.agent.memory,
+                model_optimizer=self.agent.model_optimizer
             )
             self.agent.logger.info(f"New objective generated for continuous mode: {new_objective}")
             
@@ -340,7 +341,8 @@ class CycleRunner:
                 logger=self.agent.logger,
                 project_root_dir=".",
                 config=self.agent.config,
-                memory_summary=self.agent.memory.get_full_history_for_prompt(),
+                memory=self.agent.memory,
+                model_optimizer=self.agent.model_optimizer
             )
             if initial_objective:
                 self.agent.objective_stack.append(initial_objective)

@@ -20,6 +20,7 @@ agente_autonomo/
     poetry.lock
     main.py
     API_REST_DOCUMENTATION.md
+    hephaestus_config.json
     GUIA_MCP_CURSOR.md
     CHECKLIST_MCP_HEPHAESTUS.md
     evolution_monitoring.txt
@@ -289,9 +290,9 @@ agente_autonomo/
 - **Função:** `get_recent_logs(limit: int=50, auth_user: dict=Depends(get_auth_user))`
   - *Get recent system logs*
 - **Função:** `update_agent_config(request: AgentConfigRequest, auth_user: dict=Depends(get_auth_user))`
-  - *Update agent configuration*
+  - *Update agent configuration and persist it*
 - **Função:** `get_current_config(auth_user: dict=Depends(get_auth_user))`
-  - *Get current system configuration*
+  - *Get current agent configuration*
 - **Função:** `legacy_orchestration_status()`
   - *Legacy endpoint for orchestration status*
 - **Função:** `legacy_enable_turbo_mode()`
@@ -347,8 +348,8 @@ agente_autonomo/
 - **Classe:** `AnalysisProcessor`
 
 ### Arquivo: `agent/brain.py`
-- **Função:** `generate_next_objective(model_config: Dict[str, str], current_manifest: str, logger: logging.Logger, project_root_dir: str, config: Optional[Dict[str, Any]]=None, memory_summary: Optional[str]=None, current_objective: Optional[str]=None)`
-  - *Generates the next evolutionary objective using a lightweight model and code analysis.*
+- **Função:** `generate_next_objective(model_config: Dict[str, str], current_manifest: str, logger: logging.Logger, project_root_dir: str, config: Optional[Dict[str, Any]]=None, memory: Optional[Memory]=None, model_optimizer: Optional[ModelOptimizer]=None, current_objective: Optional[str]=None)`
+  - *Generates the next evolutionary objective using code analysis and performance data.*
 - **Função:** `generate_capacitation_objective(model_config: Dict[str, str], engineer_analysis: str, memory_summary: Optional[str]=None, logger: Optional[logging.Logger]=None)`
   - *Generates an objective to create necessary new capabilities.*
 - **Função:** `generate_commit_message(analysis_summary: str, objective: str, logger: logging.Logger)`

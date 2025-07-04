@@ -58,11 +58,23 @@ class HephaestusAgent:
         """
         self.logger = logger_instance
         self.config = config # Use the passed config
-        self.continuous_mode = continuous_mode
+        self.continuous_mode = continuous_mode # Default value
         self.objective_stack_depth_for_testing = objective_stack_depth_for_testing
         self.state: AgentState = AgentState()
         self.queue_manager = queue_manager or QueueManager()
         self.objective_stack: list = []
+
+        # Load persisted config if it exists
+        config_path = "hephaestus_config.json"
+        if os.path.exists(config_path):
+            self.logger.info(f"Loading persistent configuration from {config_path}")
+            try:
+                with open(config_path, "r") as f:
+                    persisted_config = json.load(f)
+                    self.continuous_mode = persisted_config.get("continuous_mode", self.continuous_mode)
+                    self.logger.info(f"Continuous mode set to {self.continuous_mode} from config file.")
+            except Exception as e:
+                self.logger.error(f"Failed to load or parse {config_path}: {e}")
 
         # Inicialização da Memória Persistente
         memory_file_path = self.config.get("memory_file_path", "HEPHAESTUS_MEMORY.json")
@@ -977,7 +989,8 @@ class HephaestusAgent:
             # Use the factory to get the validation step class
             validation_step_class = get_validation_step(tool_name)
             if not validation_step_class:
-                 return False, tool_name, f"Unknown sanity check tool: {tool_name}"
+                self.logger.error(f"Unknown sanity check tool: {tool_name}")
+                return False, tool_name, f"Unknown sanity check tool: {tool_name}"
 
             step_instance = validation_step_class(
                 logger=self.logger,

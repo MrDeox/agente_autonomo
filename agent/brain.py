@@ -30,19 +30,22 @@ from agent.prompt_builder import (
     build_meta_analysis_objective_prompt,
     build_standard_objective_prompt
 )
+from agent.memory import Memory
+from agent.model_optimizer import ModelOptimizer
 
 
 def generate_next_objective(
     model_config: Dict[str, str],
     current_manifest: str,
-    logger: logging.Logger, # Changed type hint from Any
+    logger: logging.Logger,
     project_root_dir: str,
     config: Optional[Dict[str, Any]] = None,
-    memory_summary: Optional[str] = None,
-    current_objective: Optional[str] = None # Added parameter
+    memory: Optional[Memory] = None,
+    model_optimizer: Optional[ModelOptimizer] = None,
+    current_objective: Optional[str] = None
 ) -> str:
     """
-    Generates the next evolutionary objective using a lightweight model and code analysis.
+    Generates the next evolutionary objective using code analysis and performance data.
     """
     if logger: logger.info("Generating next objective...")
 
@@ -126,21 +129,29 @@ def generate_next_objective(
         if logger: logger.error(f"Error analyzing code metrics: {e}", exc_info=True)
         code_analysis_summary_str = "Error processing code analysis."
 
-    # 2. Analyze performance log
+    # 2. Analyze performance from ModelOptimizer
     performance_summary_str = ""
-    try:
-        if logger: logger.info("Analyzing performance log...")
-        # Instantiate PerformanceAnalysisAgent from its new location
-        performance_agent = PerformanceAnalysisAgent() # Constructor does not take a logger
-        performance_summary_str = performance_agent.analyze_performance()
-        if logger: logger.debug(f"Performance analysis summary:\n{performance_summary_str}")
-    except Exception as e:
-        if logger: logger.error(f"Error analyzing performance: {e}", exc_info=True)
-        performance_summary_str = "Error processing performance analysis."
+    if model_optimizer:
+        try:
+            if logger: logger.info("Analyzing agent performance from ModelOptimizer...")
+            agent_perf = model_optimizer.get_agent_performance_summary()
+            if agent_perf:
+                perf_lines = ["Agent Performance Summary (Success Rate | Avg. Quality Score):"]
+                for agent, stats in agent_perf.items():
+                    perf_lines.append(f"  - {agent}: {stats.get('success_rate', 'N/A')*100:.1f}% | {stats.get('average_quality_score', 'N/A'):.2f}")
+                performance_summary_str = "\\n".join(perf_lines)
+            else:
+                performance_summary_str = "No agent performance data available."
+            if logger: logger.debug(f"Performance analysis summary:\\n{performance_summary_str}")
+        except Exception as e:
+            if logger: logger.error(f"Error analyzing performance: {e}", exc_info=True)
+            performance_summary_str = "Error processing performance analysis."
 
     # 3. Prepare manifest and memory context
     current_manifest = current_manifest or "" # Ensure not None
-    memory_context_section = build_memory_context_section(memory_summary)
+    memory_context_section = ""
+    if memory:
+        memory_context_section = build_memory_context_section(memory.get_full_history_for_prompt())
 
     # 4. Build the prompt using functions from prompt_builder
     prompt: str
