@@ -75,6 +75,7 @@ agente_autonomo/
             capability_gap_detector.py
             __init__.py
             self_reflection_agent.py
+            log_analysis_agent.py
             architect_agent.py
             performance_analyzer.py
             error_correction.py
@@ -253,6 +254,8 @@ agente_autonomo/
   - *Initialize the system on startup*
 - **Função:** `shutdown_event()`
   - *Cleanup on shutdown*
+- **Função:** `periodic_log_analysis_task()`
+  - *A background task that periodically queues a log analysis objective.*
 - **Função:** `worker_thread()`
   - *Starts the agent's main execution loop.*
 - **Função:** `process_objective(objective_data: Any)`
@@ -657,6 +660,10 @@ agente_autonomo/
 - **Classe:** `SelfReflectionAgent`
   - *Agent that analyzes the Hephaestus codebase itself to identify patterns,*
 
+### Arquivo: `agent/agents/log_analysis_agent.py`
+- **Classe:** `LogAnalysisAgent`
+  - *An agent specialized in analyzing log files to identify issues and suggest improvements.*
+
 ### Arquivo: `agent/agents/architect_agent.py`
 - **Classe:** `ArchitectAgent`
 
@@ -681,6 +688,10 @@ agente_autonomo/
 - **Classe:** `StrategyCache`
   - *Cache LRU com TTL para decisões de estratégia*
 - **Classe:** `MaestroAgent`
+- **Classe:** `StrategyCache`
+  - *LRU cache with TTL for strategy decisions.*
+- **Classe:** `MaestroAgent`
+  - *Orchestrates strategy selection and execution for the Hephaestus agent system.*
 
 ### Arquivo: `agent/agents/prompt_optimizer.py`
 - **Classe:** `PromptOptimizer`

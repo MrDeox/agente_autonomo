@@ -22,6 +22,7 @@ from agent.config_loader import load_config
 from agent.arthur_interface_generator import ArthurInterfaceGenerator
 from agent.agents.error_detector_agent import ErrorDetectorAgent
 from agent.cycle_runner import CycleRunner
+from agent.async_orchestrator import AgentType, AgentTask
 
 # Configure logging
 logging.basicConfig(
@@ -114,6 +115,7 @@ hephaestus_agent_instance = None
 hephaestus_worker_thread = None
 interface_generator = None
 error_detector_agent = None
+log_analyzer_thread = None
 
 # === PYDANTIC MODELS === #
 
@@ -209,7 +211,7 @@ def get_auth_user(credentials: HTTPAuthorizationCredentials = Depends(security))
 @app.on_event("startup")
 async def startup_event():
     """Initialize the system on startup"""
-    global hephaestus_agent_instance, hephaestus_worker_thread, interface_generator, error_detector_agent
+    global hephaestus_agent_instance, hephaestus_worker_thread, interface_generator, error_detector_agent, log_analyzer_thread
     
     logger.info("🚀 Starting Hephaestus Meta-Intelligence API Server...")
     
@@ -239,6 +241,10 @@ async def startup_event():
         # Start the worker thread
         hephaestus_worker_thread = threading.Thread(target=worker_thread, daemon=True)
         hephaestus_worker_thread.start()
+
+        # Start the periodic log analysis thread
+        log_analyzer_thread = threading.Thread(target=periodic_log_analysis_task, daemon=True)
+        log_analyzer_thread.start()
         
         logger.info("✅ Hephaestus Meta-Intelligence API Server initialized successfully!")
         logger.info("🌐 API Documentation available at: http://localhost:8000/docs")
@@ -250,7 +256,7 @@ async def startup_event():
 @app.on_event("shutdown")
 async def shutdown_event():
     """Cleanup on shutdown"""
-    global hephaestus_agent_instance, hephaestus_worker_thread
+    global hephaestus_agent_instance, hephaestus_worker_thread, log_analyzer_thread
     
     logger.info("🔄 Shutting down Hephaestus Meta-Intelligence API Server...")
     
@@ -264,6 +270,47 @@ async def shutdown_event():
         
     except Exception as e:
         logger.error(f"❌ Error during shutdown: {e}")
+
+def periodic_log_analysis_task():
+    """A background task that periodically queues a log analysis objective."""
+    logger.info("📊 Periodic Log Analysis Task started.")
+    analysis_interval_seconds = 300 # 5 minutes
+
+    while True:
+        try:
+            logger.info(f"Log Analyzer is sleeping for {analysis_interval_seconds} seconds.")
+            time.sleep(analysis_interval_seconds)
+
+            if hephaestus_agent_instance and queue_manager:
+                logger.info("Queuing periodic log analysis task...")
+                log_analysis_task = AgentTask(
+                    agent_type=AgentType.LOG_ANALYSIS,
+                    task_id=f"log_analysis_{int(time.time())}",
+                    objective="Periodically analyze system logs for errors and improvement opportunities.",
+                    context={
+                        "log_file_path": "logs/app.log",
+                        "lines_to_analyze": 300
+                    }
+                )
+                
+                # We need to put the *task object* on the queue for the orchestrator
+                # This part of the architecture might need a refactor,
+                # for now, we put the objective string from it.
+                objective_to_queue = {
+                    "objective": log_analysis_task.objective,
+                    "is_log_analysis_task": True, # Flag to identify this special task
+                    "task_details": {
+                        "agent_type": "log_analysis",
+                        "context": log_analysis_task.context
+                    }
+                }
+                queue_manager.put_objective(objective_to_queue)
+                logger.info("Log analysis task queued successfully.")
+
+        except Exception as e:
+            logger.error(f"❌ Error in periodic log analysis task: {e}", exc_info=True)
+            # Wait a bit longer after an error before retrying
+            time.sleep(60)
 
 def worker_thread():
     """Starts the agent's main execution loop."""

@@ -549,3 +549,156 @@ Create a JSON strategy definition:
         description = new_strategy.get("description", "")
         
         return f"[STRATEGY IMPLEMENTATION] Implement the new validation strategy '{strategy_name}' in the configuration system. Strategy: {description[:100]}..."
+import logging
+from typing import Dict, Optional
+from dataclasses import dataclass
+from functools import lru_cache
+import time
+
+class StrategyCache:
+    """
+    LRU cache with TTL for strategy decisions.
+    
+    Attributes:
+        maxsize: Maximum number of items to cache
+        ttl: Time-to-live for cache entries in seconds
+    """
+    def __init__(self, maxsize: int = 128, ttl: int = 3600):
+        self.maxsize = maxsize
+        self.ttl = ttl
+        self._cache = {}
+        self._timestamps = {}
+
+    def get(self, key: str) -> Optional[Dict]:
+        """Get a cached strategy decision if it exists and is fresh."""
+        if key in self._cache:
+            if time.time() - self._timestamps[key] < self.ttl:
+                return self._cache[key]
+            self._cache.pop(key)
+            self._timestamps.pop(key)
+        return None
+
+    def set(self, key: str, value: Dict) -> None:
+        """Cache a strategy decision."""
+        if len(self._cache) >= self.maxsize:
+            oldest_key = min(self._timestamps, key=self._timestamps.get)
+            self._cache.pop(oldest_key)
+            self._timestamps.pop(oldest_key)
+        self._cache[key] = value
+        self._timestamps[key] = time.time()
+
+class MaestroAgent:
+    """
+    Orchestrates strategy selection and execution for the Hephaestus agent system.
+    
+    The refactored version modularizes strategy evaluation into focused sub-functions
+    for better maintainability and testability.
+    """
+    
+    def __init__(self):
+        self.logger = logging.getLogger(__name__)
+        self.strategy_cache = StrategyCache()
+        
+    def _evaluate_syntax_strategy(self, context: Dict) -> Dict:
+        """
+        Evaluate and select syntax validation strategies.
+        
+        Args:
+            context: Context dictionary with analysis data
+            
+        Returns:
+            Dictionary with selected strategy and parameters
+        """
+        # TODO: Implement syntax strategy evaluation logic
+        raise NotImplementedError("Syntax strategy evaluation not implemented")
+        
+    def _evaluate_test_strategy(self, context: Dict) -> Dict:
+        """
+        Evaluate and select testing strategies.
+        
+        Args:
+            context: Context dictionary with analysis data
+            
+        Returns:
+            Dictionary with selected strategy and parameters
+        """
+        # TODO: Implement test strategy evaluation logic
+        raise NotImplementedError("Test strategy evaluation not implemented")
+        
+    def _select_fallback_strategy(self, context: Dict) -> Dict:
+        """
+        Select a fallback strategy when primary strategies fail.
+        
+        Args:
+            context: Context dictionary with analysis data
+            
+        Returns:
+            Dictionary with fallback strategy and parameters
+        """
+        # TODO: Implement fallback strategy selection
+        raise NotImplementedError("Fallback strategy selection not implemented")
+        
+    def execute_strategy(self, context: Dict) -> Dict:
+        """
+        Main entry point for strategy execution.
+        
+        Args:
+            context: Context dictionary with analysis data
+            
+        Returns:
+            Dictionary with execution results
+        """
+        try:
+            # Check cache first
+            cache_key = self._generate_cache_key(context)
+            cached_strategy = self.strategy_cache.get(cache_key)
+            if cached_strategy:
+                return cached_strategy
+                
+            # Evaluate strategies
+            strategy = self._evaluate_primary_strategies(context)
+            
+            # Cache and return the strategy
+            self.strategy_cache.set(cache_key, strategy)
+            return strategy
+            
+        except Exception as e:
+            self.logger.error(f"Strategy execution failed: {str(e)}")
+            return self._select_fallback_strategy(context)
+    
+    def _evaluate_primary_strategies(self, context: Dict) -> Dict:
+        """
+        Evaluate all primary strategies and select the best one.
+        
+        Args:
+            context: Context dictionary with analysis data
+            
+        Returns:
+            Dictionary with selected strategy and parameters
+        """
+        strategies = []
+        
+        # Evaluate syntax strategy
+        try:
+            syntax_strategy = self._evaluate_syntax_strategy(context)
+            strategies.append(syntax_strategy)
+        except Exception as e:
+            self.logger.warning(f"Syntax strategy evaluation failed: {str(e)}")
+        
+        # Evaluate test strategy
+        try:
+            test_strategy = self._evaluate_test_strategy(context)
+            strategies.append(test_strategy)
+        except Exception as e:
+            self.logger.warning(f"Test strategy evaluation failed: {str(e)}")
+        
+        if not strategies:
+            raise ValueError("No valid strategies could be evaluated")
+            
+        # TODO: Implement strategy selection logic
+        return strategies[0]
+    
+    def _generate_cache_key(self, context: Dict) -> str:
+        """Generate a cache key from the context."""
+        # TODO: Implement proper cache key generation
+        return str(hash(frozenset(context.items())))

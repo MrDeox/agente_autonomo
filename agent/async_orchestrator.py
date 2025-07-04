@@ -12,12 +12,14 @@ import concurrent.futures
 from datetime import datetime
 
 from agent.agents import ArchitectAgent, MaestroAgent, CodeReviewAgent
+from agent.agents.log_analysis_agent import LogAnalysisAgent
 
 
 class AgentType(Enum):
     ARCHITECT = "architect"
     MAESTRO = "maestro"
     CODE_REVIEW = "code_review"
+    LOG_ANALYSIS = "log_analysis"
 
 
 @dataclass
@@ -93,6 +95,11 @@ class AsyncAgentOrchestrator:
             self.agent_pools[AgentType.CODE_REVIEW] = CodeReviewAgent(
                 model_config=self.config.get("models", {}).get("code_review_default", "gpt-4"),
                 logger=self.logger.getChild("CodeReviewAgent")
+            )
+            
+            self.agent_pools[AgentType.LOG_ANALYSIS] = LogAnalysisAgent(
+                model_config=self.config.get("models", {}).get("log_analyzer_default", self.config.get("models", {}).get("architect_default")),
+                logger=self.logger.getChild("LogAnalysisAgent")
             )
             
             self.logger.info("✅ Agent pools initialized successfully")
@@ -222,6 +229,15 @@ class AsyncAgentOrchestrator:
                 future = executor.submit(
                     agent.review_patches,
                     task.context.get('patches_to_apply', [])
+                )
+                return await loop.run_in_executor(None, future.result)
+        
+        elif task.agent_type == AgentType.LOG_ANALYSIS:
+            with concurrent.futures.ThreadPoolExecutor() as executor:
+                future = executor.submit(
+                    agent.analyze_logs,
+                    task.context.get('log_file_path', 'logs/app.log'),
+                    task.context.get('lines_to_analyze', 200)
                 )
                 return await loop.run_in_executor(None, future.result)
         

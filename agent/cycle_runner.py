@@ -6,6 +6,7 @@ import time
 from datetime import datetime
 from typing import TYPE_CHECKING, Optional
 from pathlib import Path
+import asyncio
 
 from agent.project_scanner import update_project_manifest
 from agent.brain import (
@@ -103,6 +104,12 @@ class CycleRunner:
 
     def _run_single_cycle(self, current_objective: str):
         """Executes the full logic for a single evolutionary cycle."""
+        # Handle special task types that don't need the full cycle
+        if isinstance(current_objective, dict) and current_objective.get("is_log_analysis_task"):
+            self.agent.logger.info("Handling special task: Log Analysis.")
+            self._run_log_analysis_task(current_objective)
+            return
+
         self.agent._reset_cycle_state()
         self.agent.state.current_objective = current_objective
 
@@ -130,6 +137,43 @@ class CycleRunner:
                 return
 
         self._run_validation_and_application(current_objective)
+
+    def _run_log_analysis_task(self, task_data: dict):
+        """Runs a log analysis task using the orchestrator."""
+        from agent.async_orchestrator import AgentTask, AgentType
+        
+        details = task_data.get("task_details", {})
+        context = details.get("context", {})
+
+        log_task = AgentTask(
+            agent_type=AgentType.LOG_ANALYSIS,
+            task_id=f"log_analysis_{int(time.time())}",
+            objective=task_data.get("objective"),
+            context=context
+        )
+
+        async def run_task():
+            results = await self.agent.async_orchestrator.submit_parallel_tasks([log_task])
+            self.agent.logger.info(f"Log analysis task completed with result: {results}")
+            # Here you could add logic to process the result, e.g., queue a new objective
+            if results and self.agent.async_orchestrator.completed_tasks:
+                task_result = self.agent.async_orchestrator.completed_tasks.get(results[0])
+                if task_result and task_result.success:
+                    analysis_output = task_result.result
+                    suggested_objective = analysis_output.get("suggested_objective")
+                    if suggested_objective:
+                        self.agent.logger.info(f"Log Analysis suggested a new objective: {suggested_objective}")
+                        self.queue_manager.put_objective(suggested_objective)
+
+        # Run the async function in the current thread's event loop
+        # Since CycleRunner runs in a sync thread, we need to manage the loop.
+        try:
+            loop = asyncio.get_running_loop()
+        except RuntimeError:  # No running loop
+            loop = asyncio.new_event_loop()
+            asyncio.set_event_loop(loop)
+
+        loop.run_until_complete(run_task())
 
     def _run_validation_and_application(self, current_objective: str):
         """Handles the strategy validation, retries, and application logic."""
