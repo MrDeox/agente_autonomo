@@ -22,6 +22,7 @@ SYNTAX_AND_PYTEST:
 FULL_VALIDATION:
   steps:
     - validate_syntax
+    - ValidateJsonSyntax
     - run_pytest
     - run_benchmark_validation
     - PatchApplicatorStep
@@ -36,10 +37,14 @@ DOC_UPDATE_STRATEGY:
 
 CONFIG_UPDATE_STRATEGY:
   steps:
-    - ValidateJsonSyntax # Assuming this is a valid step name
-    - validate_syntax
+    - ValidateJsonSyntax
     - PatchApplicatorStep
   sanity_check_step: "check_file_existence"
+
+CONFIG_SYNTAX_CHECK:
+  steps:
+    - ValidateJsonSyntax
+  sanity_check_step: "skip_sanity_check"
 
 # NEW EVOLUTION-FOCUSED STRATEGIES
 EVOLUTION_PERMISSIVE:

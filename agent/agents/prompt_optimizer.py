@@ -493,4 +493,53 @@ class PromptOptimizer:
             return f"[PROMPT ENHANCEMENT] Enhance agent prompts to prevent recurring '{target_opp['failure_reason']}' failures (occurs {target_opp['frequency']} times)."
         
         else:
-            return f"[PROMPT IMPROVEMENT] Improve system prompts to address {target_opp['type']} based on performance analysis." 
+            return f"[PROMPT IMPROVEMENT] Improve system prompts to address {target_opp['type']} based on performance analysis."
+
+    def optimize_prompt(self, original_prompt: str, failure_context: str) -> Optional[str]:
+        """
+        Takes a failing prompt and its failure context, and uses an LLM to generate a new, improved prompt.
+
+        Args:
+            original_prompt: The prompt/objective that has been failing.
+            failure_context: A description of how and why the prompt failed.
+
+        Returns:
+            A new, optimized prompt string, or None if optimization fails.
+        """
+        prompt = f"""
+[IDENTITY]
+You are a Prompt Engineering expert. Your task is to analyze a failing prompt (which is an objective for an autonomous agent) and its failure context, then rewrite it to be more precise, robust, and likely to succeed.
+
+[TASK]
+Analyze the provided original prompt and the context of its repeated failures. Rewrite the prompt to mitigate these failures.
+
+[RULES FOR REWRITING]
+1.  **Be More Specific:** If the original prompt is ambiguous, add concrete details.
+2.  **Add Constraints:** If the agent is making mistakes, add explicit constraints or rules to its task.
+3.  **Change the Approach:** If the fundamental approach seems wrong, suggest a different one. For example, instead of "fix the code", suggest "write a test that reproduces the bug first".
+4.  **Preserve the Core Goal:** The new prompt must still aim to solve the original problem.
+5.  **Output ONLY the new prompt text.** Do not add any preamble or explanation.
+
+[ORIGINAL PROMPT (OBJECTIVE)]
+{original_prompt}
+
+[FAILURE CONTEXT]
+{failure_context}
+
+[YOUR REWRITTEN PROMPT]
+"""
+        self.logger.info("PromptOptimizer: Attempting to optimize a failing prompt...")
+        self.logger.debug(f"Optimization prompt:\n{prompt}")
+
+        optimized_prompt, error = call_llm_api(self.model_config, prompt, 0.4, self.logger)
+
+        if error:
+            self.logger.error(f"PromptOptimizer: API call failed during optimization: {error}")
+            return None
+
+        if not optimized_prompt:
+            self.logger.error("PromptOptimizer: Received an empty response from the LLM.")
+            return None
+
+        self.logger.info("PromptOptimizer: Successfully generated an optimized prompt.")
+        return optimized_prompt.strip() 

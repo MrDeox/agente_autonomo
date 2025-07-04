@@ -12,11 +12,68 @@ class MaestroAgent:
         self.logger = logger
         self.created_strategies = {}  # Track dynamically created strategies
 
-    def choose_strategy(self, action_plan_data: Dict[str, Any], memory_summary: Optional[str] = None) -> List[Dict[str, Any]]:
+    def _classify_strategy_by_rules(self, action_plan_data: Dict[str, Any]) -> Optional[str]:
+        """
+        A rule-based classifier to quickly select a strategy for common cases.
+        Returns a strategy key if a rule matches, otherwise None.
+        """
+        patches = action_plan_data.get("patches_to_apply", [])
+        if not patches:
+            return "DISCARD"  # No patches, no action needed.
+
+        # Rule 1: If creating a new test file, use the dedicated strategy.
+        for patch in patches:
+            file_path = patch.get("file_path", "")
+            if "tests/" in file_path and patch.get("operation") in ["REPLACE", "INSERT"] and patch.get("block_to_replace") is None:
+                self.logger.info("Rule-based classification: Detected new test file creation.")
+                return "CREATE_NEW_TEST_FILE_STRATEGY"
+
+        # Rule 2: If modifying the agent's configuration, use the config update strategy.
+        for patch in patches:
+            if "hephaestus_config.json" in patch.get("file_path", "") or "config/" in patch.get("file_path", ""):
+                self.logger.info("Rule-based classification: Detected config file modification.")
+                return "CONFIG_UPDATE_STRATEGY"
+        
+        # Rule 3: If only documentation is being changed.
+        is_only_doc_changes = all(p.get("file_path", "").endswith(".md") for p in patches)
+        if is_only_doc_changes:
+            self.logger.info("Rule-based classification: Detected documentation-only change.")
+            return "DOC_UPDATE_STRATEGY"
+            
+        # Add more rules here as patterns emerge...
+
+        # Default: No rule matched
+        return None
+
+    def choose_strategy(self, action_plan_data: Dict[str, Any], memory_summary: Optional[str] = None, failed_strategy_context: Optional[Dict[str, str]] = None) -> List[Dict[str, Any]]:
         """
         Encapsulates the logic of get_maestro_decision.
         Consults the LLM to decide which validation strategy to adopt.
         """
+        # First, try to classify using rules
+        rule_based_strategy = self._classify_strategy_by_rules(action_plan_data)
+        if rule_based_strategy:
+            self.logger.info(f"MaestroAgent: Strategy '{rule_based_strategy}' chosen by rule-based classifier.")
+            return [{
+                "model": "rule_based_classifier",
+                "raw_response": f"Strategy '{rule_based_strategy}' selected by internal rules.",
+                "parsed_json": {"strategy_key": rule_based_strategy},
+                "success": True
+            }]
+            
+        # If no rules match, fall back to the LLM
+        self.logger.info("MaestroAgent: No rule matched. Falling back to LLM for strategy decision.")
+        
+        failure_context_str = ""
+        if failed_strategy_context:
+            self.logger.info(f"MaestroAgent: Re-evaluating strategy due to previous failure: {failed_strategy_context}")
+            failure_context_str = f"""
+[PREVIOUS ATTEMPT FAILED]
+The last strategy attempted ('{failed_strategy_context.get('strategy')}') failed with the reason: '{failed_strategy_context.get('reason')}'.
+Details: {failed_strategy_context.get('details')}
+Your task is to choose a DIFFERENT and potentially SAFER strategy to achieve the objective. For example, if a strategy with tests failed, consider one with only syntax validation.
+"""
+
         attempt_logs = []
         available_strategies = self.config.get("validation_strategies", {})
         available_keys = ", ".join(available_strategies.keys())
@@ -53,6 +110,7 @@ Considere esse histórico em sua decisão. Evite repetir estratégias que falhar
 You are the Maestro of the Hephaestus agent. Your task is to analyze the Engineer's proposal (patch plan) and recent history to decide the best course of action.
 
 [CONTEXT AND HISTORY]
+{failure_context_str}
 {memory_context_str}
 
 [ENGINEER'S PROPOSAL (PATCH PLAN)]

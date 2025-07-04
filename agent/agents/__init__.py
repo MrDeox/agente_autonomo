@@ -8,6 +8,7 @@ from .performance_analyzer import PerformanceAnalysisAgent
 from .self_reflection_agent import SelfReflectionAgent
 from .capability_gap_detector import CapabilityGapDetector
 from .prompt_optimizer import PromptOptimizer
+from .code_review_agent import CodeReviewAgent
 
 __all__ = [
     "ArchitectAgent",
@@ -18,4 +19,5 @@ __all__ = [
     "SelfReflectionAgent",
     "CapabilityGapDetector",
     "PromptOptimizer",
+    "CodeReviewAgent",
 ]

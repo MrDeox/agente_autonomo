@@ -15,7 +15,7 @@ from agent.brain import (
     generate_capacitation_objective,
     generate_commit_message
 )
-from agent.agents import ArchitectAgent, MaestroAgent
+from agent.agents import ArchitectAgent, MaestroAgent, CodeReviewAgent
 from agent.tool_executor import run_pytest, check_file_existence, run_git_command
 from agent.git_utils import initialize_git_repository
 from agent.cycle_runner import CycleRunner
@@ -57,7 +57,7 @@ class HephaestusAgent:
 
         # Inicialização da Memória Persistente
         memory_file_path = self.config.get("memory_file_path", "HEPHAESTUS_MEMORY.json")
-        self.memory = Memory(filepath=memory_file_path)
+        self.memory = Memory(filepath=memory_file_path, logger=self.logger.getChild("Memory"))
         self.logger.info(f"Carregando memória de {memory_file_path}...")
         self.memory.load()
         self.logger.info(f"Memória carregada. {len(self.memory.completed_objectives)} objetivos concluídos, {len(self.memory.failed_objectives)} falharam.")
@@ -77,6 +77,13 @@ class HephaestusAgent:
             logger=self.logger.getChild("MaestroAgent")
         )
         self.logger.info(f"MaestroAgent inicializado com a configuração: {maestro_model_config}")
+
+        code_review_model_config = self.config.get("models", {}).get("code_reviewer", architect_model_config) # Fallback to architect model
+        self.code_reviewer = CodeReviewAgent(
+            model_config=code_review_model_config,
+            logger=self.logger.getChild("CodeReviewAgent")
+        )
+        self.logger.info(f"CodeReviewAgent inicializado com a configuração: {code_review_model_config}")
 
         self.evolution_log_file = "evolution_log.csv"
         self._initialize_evolution_log()
@@ -145,7 +152,31 @@ class HephaestusAgent:
         self.logger.debug(f"Patches: {json.dumps(self.state.get_patches_to_apply(), indent=2)}")
         return True
 
-    def _run_maestro_phase(self) -> bool:
+    def _run_code_review_phase(self) -> bool:
+        """Runs the code review agent on the architect's plan."""
+        self.logger.info("\nSolicitando revisão do CodeReviewAgent...")
+        patches = self.state.get_patches_to_apply()
+        if not patches:
+            self.logger.info("Nenhum patch para revisar. Pulando fase de revisão.")
+            return True
+
+        review_passed, feedback = self.code_reviewer.review_patches(patches)
+        
+        if review_passed:
+            self.logger.info("Revisão de código aprovada.")
+            return True
+        
+        # If review fails, we will try to re-generate the plan
+        self.logger.warning(f"Revisão de código falhou. Feedback: {feedback}. Solicitando novo plano ao ArchitectAgent.")
+        
+        # We need to update the objective to include the feedback for the architect
+        original_objective = self.state.current_objective
+        self.state.current_objective = f"{original_objective}\n\n[CODE REVIEW FEEDBACK]\nPlease address the following issues in your new plan:\n{feedback}"
+        
+        # Re-run architect phase with the feedback
+        return self._run_architect_phase()
+
+    def _run_maestro_phase(self, failed_strategy_context: Optional[Dict[str, str]] = None) -> bool:
         self.logger.info("\nSolicitando decisão do MaestroAgent...")
         if not self.state.action_plan_data:
             self.logger.error("--- FALHA: Nenhum plano de ação (patches) disponível para o MaestroAgent avaliar. ---")
@@ -153,7 +184,8 @@ class HephaestusAgent:
 
         maestro_logs = self.maestro.choose_strategy(
             action_plan_data=self.state.action_plan_data,
-            memory_summary=self.memory.get_full_history_for_prompt()
+            memory_summary=self.memory.get_full_history_for_prompt(),
+            failed_strategy_context=failed_strategy_context
         )
 
         maestro_attempt = next((log for log in maestro_logs if log.get("success") and log.get("parsed_json")), None)

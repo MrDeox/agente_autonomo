@@ -230,6 +230,7 @@ agente_autonomo/
 - **Classe:** `BenchmarkValidator(ValidationStep)`
 - **Classe:** `CheckFileExistenceValidator(ValidationStep)`
 - **Classe:** `ValidateJsonSyntax(ValidationStep)`
+  - *Validates the syntax of JSON files mentioned in patches.*
 - **Função:** `get_validation_step(name: str)`
 
 ### Arquivo: `agent/validation_steps/base.py`
@@ -241,7 +242,10 @@ agente_autonomo/
   - *Applies patches to the specified base path.*
 
 ### Arquivo: `agent/validation_steps/syntax_validator.py`
-  - [ERRO] Erro na análise AST: expected an indented block after function definition on line 14 (<unknown>, line 15)
+- **Função:** `validate_config_structure(config: dict, logger: logging.Logger)`
+  - *Valida a estrutura do hephaestus_config.json contra um esquema definido.*
+- **Classe:** `SyntaxValidator(ValidationStep)`
+  - *Validates the syntax of Python and JSON files.*
 
 ### Arquivo: `agent/validation_steps/pytest_new_file_validator.py`
 - **Classe:** `PytestNewFileValidator(ValidationStep)`

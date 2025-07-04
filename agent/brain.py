@@ -258,39 +258,23 @@ The objective MUST start with "[CAPACITATION TASK]". For example: "[CAPACITATION
 
 
 def generate_commit_message(
-    model_config: Dict[str, str],
     analysis_summary: str,
     objective: str,
     logger: logging.Logger, # Changed type hint
 ) -> str:
     """
-    Generates a concise and informative commit message using an LLM.
-    (Currently simulated for this environment)
-
+    Generates a concise and informative commit message using a rule-based system.
+    
     Args:
-        model_config: Dictionary with model configuration.
-        analysis_summary: Summary of the analysis and implementation of the change.
+        analysis_summary: Summary of the analysis and implementation of the change. (Not currently used, but kept for API consistency)
         objective: The original objective of the change.
         logger: Logger instance for recording information.
 
     Returns:
         A string containing the generated commit message.
-        Returns a fallback message in case of error.
     """
-    prompt = f"""
-[Context] You are a software engineer writing a commit message for a change that has just been validated and applied.
-[Objective of the Change]
-{objective}
-[Analysis/Summary of Implementation]
-{analysis_summary}
-[Your Task]
-Based on the objective and analysis, write a clear and concise commit message following the 'Conventional Commits' standard. E.g., feat: Add benchmark tool or fix: Correct syntax validation for JSON. The message should be only the commit string, without prefixes or explanations.
-"""
 
-    logger.info(f"Generating commit message with model: {model_config.get('primary')}...")
-
-    # This part remains a simulation as per the original code's intent for this function.
-    # If direct LLM call is desired here, it should use call_llm_api.
+    logger.info("Generating commit message with rule-based system...")
 
     objective_lower = objective.lower()
     commit_type = "feat"  # Default
@@ -351,7 +335,7 @@ Based on the objective and analysis, write a clear and concise commit message fo
         trunc_len = max_summary_len - 3
         short_summary = short_summary[:trunc_len] + "..."
 
-    simulated_commit_message = f"{commit_type}: {short_summary}"
+    commit_message = f"{commit_type}: {short_summary}"
 
-    logger.info(f"Commit message generated (simulated): {simulated_commit_message}")
-    return simulated_commit_message
+    logger.info(f"Commit message generated: {commit_message}")
+    return commit_message

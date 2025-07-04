@@ -13,7 +13,7 @@ from agent.brain import (
     generate_commit_message,
 )
 from agent.tool_executor import run_pytest, check_file_existence, run_git_command
-from agent.agents import ErrorAnalysisAgent # Import ErrorAnalysisAgent from new location
+from agent.agents import ErrorAnalysisAgent, PromptOptimizer # Import ErrorAnalysisAgent and PromptOptimizer from new location
 
 if TYPE_CHECKING:  # pragma: no cover - for type checking only
     from agent.hephaestus_agent import HephaestusAgent
@@ -164,6 +164,14 @@ class CycleRunner:
                         break
                     continue
 
+                if not self.agent._run_code_review_phase():
+                    self.agent.logger.warning(
+                        "Falha na fase de Revisão de Código. O plano foi reenviado ao Arquiteto. Pulando para o próximo ciclo para reavaliar."
+                    )
+                    # The objective has been updated with feedback, so we can just continue to the next cycle
+                    # where the architect will get another chance with the updated objective.
+                    continue
+
                 # Check if current_objective is an auto-correction task
                 # If so, set strategy to AUTO_CORRECTION_STRATEGY and skip Maestro phase
                 is_correction_objective = False
@@ -199,24 +207,51 @@ class CycleRunner:
                         if not self.agent.objective_stack and not self.agent.continuous_mode:
                             break
                         continue
+                
+                max_retries = 2
+                for attempt in range(max_retries):
+                    if self.agent.state.strategy_key == "CAPACITATION_REQUIRED":
+                        self.agent.logger.info("Maestro identificou a necessidade de uma nova capacidade.")
+                        self.agent.objective_stack.append(current_objective)
+                        architect_analysis = self.agent.state.get_architect_analysis()
+                        model_config = self.agent.config.get("models", {}).get("capacitation_generator")
+                        capacitation_objective = generate_capacitation_objective(
+                            model_config=model_config,
+                            engineer_analysis=architect_analysis or "Analysis not available",
+                            logger=self.agent.logger,
+                            memory_summary=self.agent.memory.get_full_history_for_prompt(),
+                        )
+                        self.agent.logger.info(f"Gerado novo objetivo de capacitação: {capacitation_objective}")
+                        self.agent.objective_stack.append(capacitation_objective)
+                        # Break the retry loop to continue to the next main cycle
+                        success = True 
+                        break
+
+                    self.agent._execute_validation_strategy()
+                    success, reason, context = self.agent.state.validation_result
+
+                    if success:
+                        break # Strategy succeeded, exit retry loop
+                    
+                    self.agent.logger.warning(f"A estratégia '{self.agent.state.strategy_key}' falhou (tentativa {attempt + 1}/{max_retries}). Razão: {reason}")
+                    if attempt < max_retries - 1:
+                        self.agent.logger.info("Solicitando uma nova estratégia ao MaestroAgent.")
+                        
+                        failed_context = {
+                            "strategy": self.agent.state.strategy_key,
+                            "reason": reason,
+                            "details": context
+                        }
+                        # Re-run maestro phase with failure context
+                        if not self.agent._run_maestro_phase(failed_strategy_context=failed_context):
+                            self.agent.logger.error("Maestro falhou em fornecer uma estratégia de fallback. Encerrando ciclo para este objetivo.")
+                            success = False
+                            break 
+                    else:
+                        self.agent.logger.error(f"Atingido o número máximo de tentativas de estratégia para o objetivo. A falha final foi: {reason}")
 
                 if self.agent.state.strategy_key == "CAPACITATION_REQUIRED":
-                    self.agent.logger.info("Maestro identificou a necessidade de uma nova capacidade.")
-                    self.agent.objective_stack.append(current_objective)
-                    architect_analysis = self.agent.state.get_architect_analysis()
-                    model_config = self.agent.config.get("models", {}).get("capacitation_generator")
-                    capacitation_objective = generate_capacitation_objective(
-                        model_config=model_config,
-                        engineer_analysis=architect_analysis or "Analysis not available",
-                        logger=self.agent.logger,
-                        memory_summary=self.agent.memory.get_full_history_for_prompt(),
-                    )
-                    self.agent.logger.info(f"Gerado novo objetivo de capacitação: {capacitation_objective}")
-                    self.agent.objective_stack.append(capacitation_objective)
                     continue
-
-                self.agent._execute_validation_strategy()
-                success, reason, context = self.agent.state.validation_result
 
                 if success:
                     self.agent.logger.info(f"\nSUCESSO NA VALIDAÇÃO/APLICAÇÃO! Razão: {reason}")
@@ -279,9 +314,7 @@ class CycleRunner:
                                     self.agent.state.manifesto_content = f.read()
 
                                 analysis_summary_for_commit = self.agent.state.get_architect_analysis() or "N/A"
-                                model_config = self.agent.config.get("models", {}).get("commit_message_generator", self.agent.config.get("models", {}).get("architect_default"))
                                 commit_message = generate_commit_message(
-                                    model_config,
                                     analysis_summary_for_commit,
                                     self.agent.state.current_objective or "N/A",
                                     self.agent.logger,
@@ -346,6 +379,25 @@ class CycleRunner:
                             )
                             self.agent.objective_stack.append(next_obj)
                             self.agent.logger.info(f"Próximo objetivo: {next_obj}")
+
+                if self.agent.memory.has_degenerative_failure_pattern(current_objective, reason):
+                    self.agent.logger.warning(f"Otimizando o prompt para o objetivo que falhou repetidamente: '{current_objective}'")
+                    optimizer = PromptOptimizer(model_config=self.agent.config.get("models", {}).get("prompt_optimizer", model_config), logger=self.agent.logger.getChild("PromptOptimizer"))
+                    
+                    # We need to find the original prompt that generated the patches. This is tricky.
+                    # For now, we will use the objective itself as the "prompt" to be optimized.
+                    optimized_objective = optimizer.optimize_prompt(
+                        original_prompt=current_objective,
+                        failure_context=f"The objective failed multiple times with the reason: {reason}. Details: {context}"
+                    )
+                    
+                    if optimized_objective:
+                        self.agent.logger.info(f"Novo objetivo otimizado gerado: {optimized_objective}")
+                        # We discard the current objective and add the new, optimized one to the top of the stack.
+                        self.agent.objective_stack.append(optimized_objective)
+                        continue # End the current cycle and start a new one with the optimized objective
+                    else:
+                        self.agent.logger.error("Falha ao otimizar o prompt. O objetivo será descartado.")
 
                 if not success:
                     self.agent.logger.warning(

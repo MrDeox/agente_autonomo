@@ -7,6 +7,7 @@ from typing import List, Dict, Any, Optional, Set, Tuple
 from datetime import timezone # Adicionado
 from collections import defaultdict, Counter
 from dataclasses import dataclass, asdict
+import logging
 
 
 @dataclass
@@ -54,16 +55,18 @@ class Memory:
     Manages persistent memory for the Hephaestus agent, storing historical data
     about objectives, failures, and acquired capabilities.
     """
-    def __init__(self, filepath: str = "HEPHAESTUS_MEMORY.json", max_objectives_history: int = 20):
+    def __init__(self, filepath: str = "HEPHAESTUS_MEMORY.json", max_objectives_history: int = 20, logger: Optional[logging.Logger] = None):
         """
         Initializes the Memory module.
 
         Args:
             filepath: The path to the JSON file used for storing memory.
             max_objectives_history: The maximum number of objectives to keep in history.
+            logger: The logger instance.
         """
         self.filepath: str = filepath
         self.max_objectives_history: int = max_objectives_history
+        self.logger = logger or logging.getLogger(__name__) # Use provided logger or create a new one
         self.completed_objectives: List[Dict[str, Any]] = []
         self.failed_objectives: List[Dict[str, Any]] = []
         self.acquired_capabilities: List[Dict[str, Any]] = []
@@ -170,11 +173,12 @@ class Memory:
         self.completed_objectives.append(record)
         self._add_to_recent_objectives_log(objective, "success")
 
-    def _add_to_recent_objectives_log(self, objective: str, status: str) -> None:
+    def _add_to_recent_objectives_log(self, objective: str, status: str, reason: Optional[str] = None) -> None:
         """Helper method to add to the recent objectives log and keep it trimmed."""
         log_entry = {
             "objective": objective,
             "status": status,
+            "reason": reason, # Can be None for successes
             "date": self._get_timestamp()
         }
         self.recent_objectives_log.append(log_entry)
@@ -251,7 +255,7 @@ class Memory:
             "status": "failed"  # Adicionado status
         }
         self.failed_objectives.append(record)
-        self._add_to_recent_objectives_log(objective, "failure")
+        self._add_to_recent_objectives_log(objective, "failure", reason=reason)
 
     def add_capability(self, capability_description: str, related_objective: Optional[str] = None) -> None:
         """
@@ -336,6 +340,31 @@ class Memory:
 
         return "\n".join(prompt_lines).strip()
     
+    def has_degenerative_failure_pattern(self, objective: str, reason: str, threshold: int = 2) -> bool:
+        """
+        Checks if a specific objective has failed repeatedly for the same reason.
+
+        Args:
+            objective: The objective to check.
+            reason: The failure reason to check for.
+            threshold: The number of failures to be considered a degenerative pattern.
+
+        Returns:
+            True if the pattern is detected, False otherwise.
+        """
+        count = 0
+        for log_entry in reversed(self.recent_objectives_log):
+            if log_entry.get("objective") == objective and log_entry.get("status") == "failure" and log_entry.get("reason") == reason:
+                count += 1
+        
+        if count >= threshold:
+            self.logger.warning(
+                f"Degenerative failure pattern detected for objective '{objective}' with reason '{reason}'. Count: {count}"
+            )
+            return True
+            
+        return False
+
     # Advanced Memory Methods
     
     def analyze_semantic_patterns(self) -> Dict[str, Any]:

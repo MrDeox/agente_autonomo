@@ -1,6 +1,7 @@
 import unittest
 from unittest.mock import patch, MagicMock, ANY
 import logging
+import pytest
 
 # Functions to test
 from agent.brain import generate_next_objective, generate_capacitation_objective, generate_commit_message
@@ -237,6 +238,49 @@ class TestBrainFunctions(unittest.TestCase):
         expected_trunc_summary = "the entire authentication module to use new security protocol..."
         self.assertEqual(commit_message_trunc, f"refactor: {expected_trunc_summary}")
 
+@patch('agent.brain.call_llm_api')
+@patch('agent.brain.analyze_code_metrics')
+@patch('agent.brain.PerformanceAnalysisAgent.analyze_performance')
+@patch('builtins.open')
+def test_generate_next_objective_flow(
+    mock_open, mock_analyze_performance, mock_analyze_code_metrics, mock_call_llm_api
+):
+    """
+    Test the basic flow of generate_next_objective, ensuring all helper
+    functions are called and the LLM response is returned.
+    """
+    # Arrange
+    mock_analyze_performance.return_value = '{"perf": "data"}'
+    mock_analyze_code_metrics.return_value = {"summary": {"code": "metrics"}}
+    mock_call_llm_api.return_value = ("Test Objective", None)
+    
+    logger = MagicMock()
+    model_config = {"model": "test_model"}
+    config = {}
+    memory_summary = "Recent history"
+    current_manifest = "Test Manifest"
+
+    # Act
+    objective = generate_next_objective(
+        model_config=model_config,
+        current_manifest=current_manifest,
+        logger=logger,
+        project_root_dir=".",
+        config=config,
+        memory_summary=memory_summary,
+    )
+
+    # Assert
+    assert objective == "Test Objective"
+    mock_analyze_performance.assert_called_once()
+    mock_analyze_code_metrics.assert_called_once()
+    mock_call_llm_api.assert_called_once()
+    
+    # Check that the prompt contains all the gathered information
+    prompt_arg = mock_call_llm_api.call_args[1]['prompt']
+    assert "Test Manifest" in prompt_arg
+    assert '{"perf": "data"}' in prompt_arg
+    assert "Recent history" in prompt_arg
 
 if __name__ == '__main__':
     unittest.main()
