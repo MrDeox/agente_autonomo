@@ -62,9 +62,16 @@ class CycleRunner:
             estrategia_final = ""
             objetivo_do_ciclo = ""
 
-            if self.queue_manager.is_empty():
-                if self.agent.continuous_mode:
-                    self.agent.logger.info(f"\n{'='*20} MODO CONTÍNUO {'='*20}\nFila de objetivos vazia. Gerando novo objetivo...")
+            # Verificar se há objetivos na pilha principal
+            if not self.agent.objective_stack:
+                # Se não há objetivos na pilha, verificar se há na fila
+                if not self.queue_manager.is_empty():
+                    # Transferir da fila para a pilha
+                    objective_from_queue = self.queue_manager.get_objective()
+                    self.agent.objective_stack.append(objective_from_queue)
+                    self.agent.logger.info(f"Objetivo transferido da fila para a pilha: {objective_from_queue}")
+                elif self.agent.continuous_mode:
+                    self.agent.logger.info(f"\n{'='*20} MODO CONTÍNUO {'='*20}\nPilha de objetivos vazia. Gerando novo objetivo...")
                     model_config = self.agent.config.get("models", {}).get("objective_generator")
                     new_objective = generate_next_objective(
                         model_config=model_config,
@@ -75,14 +82,14 @@ class CycleRunner:
                         memory_summary=self.agent.memory.get_full_history_for_prompt(),
                         current_objective=None, # No current objective for the new generation
                     )
-                    self.queue_manager.put_objective(new_objective)
-                    self.agent.logger.info(f"Novo objetivo gerado para modo contínuo e adicionado à fila: {new_objective}")
+                    self.agent.objective_stack.append(new_objective)
+                    self.agent.logger.info(f"Novo objetivo gerado para modo contínuo: {new_objective}")
 
                     continuous_delay = self.agent.config.get("continuous_mode_delay_seconds", 5)
                     self.agent.logger.info(f"Aguardando {continuous_delay} segundos antes do próximo ciclo contínuo...")
                     time.sleep(continuous_delay)
                 else:
-                    self.agent.logger.info("Fila de objetivos vazia e modo contínuo desativado. Encerrando agente.")
+                    self.agent.logger.info("Pilha de objetivos vazia e modo contínuo desativado. Encerrando agente.")
                     break
 
             if self.agent.objective_stack_depth_for_testing is not None and self.cycle_count >= self.agent.objective_stack_depth_for_testing:
@@ -91,19 +98,9 @@ class CycleRunner:
                 )
                 break
 
+            # Verificação final antes do pop
             if not self.agent.objective_stack:
-                self.agent.logger.info("Fila de objetivos vazia. Verificando modo contínuo.")
-                if not self.agent.continuous_mode:
-                    break
-                else:
-                    # Lógica para modo contínuo
-                    pass # A lógica de modo contínuo já está sendo tratada acima
-
-            self.cycle_count += 1
-            
-            # Verificação segura antes do pop
-            if not self.agent.objective_stack:
-                self.agent.logger.info("Fila de objetivos vazia no momento do pop. Verificando modo contínuo.")
+                self.agent.logger.info("Pilha de objetivos vazia no momento do pop. Verificando modo contínuo.")
                 if not self.agent.continuous_mode:
                     break
                 else:
@@ -120,6 +117,8 @@ class CycleRunner:
                     )
                     self.agent.objective_stack.append(new_objective)
                     self.agent.logger.info(f"Novo objetivo gerado: {new_objective}")
+
+            self.cycle_count += 1
             
             current_objective = self.agent.objective_stack.pop()
             self.agent.logger.info(f"\n\n{'='*20} INÍCIO DO CICLO DE EVOLUÇÃO (Ciclo #{self.cycle_count}) {'='*20}")

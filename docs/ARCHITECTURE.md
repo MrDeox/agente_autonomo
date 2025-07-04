@@ -2,39 +2,15 @@
 
 ## 1. ESTRUTURA DE ARQUIVOS (OTIMIZADA)
 agente_autonomo/
-    NIGHT_WORK_SUMMARY.md
     README.md
-    hephaestus.log
-    META_INTELLIGENCE_SYSTEM.md
     cli.py
-    monitor_evolution.py
-    AGENTS.md
-    EXEMPLO_INTEGRACAO_FLOW_MODIFIER.md
     poetry.lock
-    CONTRIBUTING.md
-    app.py
-    HEPHAESTUS_MEMORY.json
     main.py
-    ROADMAP.md
-    ANALISE_OTIMIZACAO_LLM_CALLS.md
-    ANALISE_PROFUNDA_SISTEMA.md
-    night_agent.log
     hephaestus_config.json
     requirements.txt
-    run_agent.py
-    RESUMO_OTIMIZACOES_LLM.md
-    MANIFESTO.md
-    evolution_log.csv
-    CODE_OF_CONDUCT.md
-    ANALISE_PERFORMANCE_HEPHAESTUS.md
-    ISSUES.md
-    NIGHT_AGENT_README.md
-    night_agent.py
-    ANALISE_TECNICA_HEPHAESTUS.md
-    night_report_20250704_004455.json
-    Sugestões de Melhoria para o Projeto Agente Autônomo.md
-    CAPABILITIES.md
     pyproject.toml
+    tools/
+        app.py
     agent/
         brain.py
         __init__.py
@@ -93,6 +69,19 @@ agente_autonomo/
             main.yaml
         validation_strategies/
             main.yaml
+    reports/
+        night_work/
+            NIGHT_WORK_SUMMARY.md
+            NIGHT_AGENT_README.md
+        memory/
+            HEPHAESTUS_MEMORY.json
+        evolution/
+            evolution_report_20250704_085755.json
+            night_report_20250704_004455.json
+    logs/
+        hephaestus.log
+        night_agent.log
+        evolution_log.csv
 
 ## 2. RESUMO DAS INTERFACES (APIs Internas)
 
@@ -104,25 +93,13 @@ agente_autonomo/
 - **Função:** `status()`
   - *Check agent status*
 
-### Arquivo: `monitor_evolution.py`
-- **Classe:** `EvolutionMonitor`
-  - *Monitor inteligente para acompanhar a evolução do sistema*
-- **Função:** `main()`
-  - *Função principal*
+### Arquivo: `main.py`
 
-### Arquivo: `app.py`
+### Arquivo: `tools/app.py`
 - **Classe:** `Objective(BaseModel)`
 - **Função:** `startup_event()`
 - **Função:** `submit_objective(obj: Objective)`
 - **Função:** `get_status()`
-
-### Arquivo: `main.py`
-
-### Arquivo: `run_agent.py`
-
-### Arquivo: `night_agent.py`
-- **Classe:** `NightAgent`
-  - *Agente noturno que trabalha continuamente melhorando o sistema*
 
 ### Arquivo: `agent/brain.py`
 - **Função:** `generate_next_objective(model_config: Dict[str, str], current_manifest: str, logger: logging.Logger, project_root_dir: str, config: Optional[Dict[str, Any]]=None, memory_summary: Optional[str]=None, current_objective: Optional[str]=None)`
@@ -287,7 +264,7 @@ agente_autonomo/
 ### Arquivo: `agent/project_scanner.py`
 - **Função:** `_extract_elements(code_string: str)`
 - **Função:** `_extract_skeleton(code_string: str)`
-- **Função:** `update_project_manifest(root_dir: str, target_files: List[str], output_path: str='AGENTS.md', excluded_dir_patterns: Optional[List[str]]=None)`
+- **Função:** `update_project_manifest(root_dir: str, target_files: List[str], output_path: str='docs/ARCHITECTURE.md', excluded_dir_patterns: Optional[List[str]]=None)`
 - **Função:** `analyze_code_metrics(root_dir: str, excluded_dir_patterns: Optional[List[str]]=None, file_loc_threshold: int=300, func_loc_threshold: int=50, func_cc_threshold: int=10)`
   - *Analisa arquivos Python em um diretório para métricas de código como LOC e Complexidade Ciclomática.*
 
