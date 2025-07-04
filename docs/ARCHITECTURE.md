@@ -1,6 +1,7 @@
 # MANIFESTO DO PROJETO HEPHAESTUS
 
 ## 1. ESTRUTURA DE ARQUIVOS (OTIMIZADA)
+
 agente_autonomo/
     MCP_SETUP_GUIDE.md
     README.md
@@ -125,6 +126,7 @@ agente_autonomo/
         arthur_interface_1751661619.html
 
 ## 2. RESUMO DAS INTERFACES (APIs Internas)
+
 
 ### Arquivo: `demo_self_awareness.py`
 - **Função:** `create_demo_config()`
@@ -745,3 +747,4 @@ agente_autonomo/
   - *Sistema de melhorias contínuas*
 
 ## 3. CONTEÚDO COMPLETO DOS ARQUIVOS ALVO
+
