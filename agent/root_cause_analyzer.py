@@ -1,14 +1,3 @@
-"""
-Root Cause Analyzer: Deep Problem Analysis System
-
-This system provides sophisticated root cause analysis capabilities:
-1. Multi-layered failure analysis
-2. Pattern recognition across time and contexts
-3. Systemic issue identification
-4. Causal chain reconstruction
-5. Solution recommendation based on root causes
-"""
-
 import json
 import logging
 from typing import Dict, Any, List, Optional, Tuple
@@ -20,7 +9,6 @@ from enum import Enum
 
 from agent.utils.llm_client import call_llm_api
 from agent.utils.json_parser import parse_json_response
-
 
 class FailureType(Enum):
     """Types of failures the system can experience"""
@@ -35,7 +23,6 @@ class FailureType(Enum):
     DEPENDENCY_FAILURE = "dependency_failure"
     UNKNOWN = "unknown"
 
-
 class CausalLayer(Enum):
     """Different layers of causality"""
     IMMEDIATE = "immediate"      # Direct cause
@@ -43,7 +30,6 @@ class CausalLayer(Enum):
     SYSTEMIC = "systemic"       # System-level cause
     CULTURAL = "cultural"       # Process/methodology cause
     ENVIRONMENTAL = "environmental"  # External factors
-
 
 @dataclass
 class FailureEvent:
@@ -60,7 +46,6 @@ class FailureEvent:
     resolution_strategy: Optional[str] = None
     lessons_learned: List[str] = field(default_factory=list)
 
-
 @dataclass
 class CausalFactor:
     """A factor that contributes to failures"""
@@ -71,7 +56,6 @@ class CausalFactor:
     frequency: int  # How often this factor appears
     correlation_strength: float  # Correlation with failures
     mitigation_strategies: List[str] = field(default_factory=list)
-
 
 @dataclass
 class RootCauseAnalysis:
@@ -87,13 +71,12 @@ class RootCauseAnalysis:
     confidence_score: float
     analysis_depth: str  # "surface", "intermediate", "deep"
 
-
 class RootCauseAnalyzer:
     """
     Advanced root cause analysis system that can identify deep, systemic
     issues and provide actionable recommendations for improvement.
     """
-    
+
     def __init__(self, model_config: Dict[str, str], logger: logging.Logger):
         self.model_config = model_config
         self.logger = logger
@@ -119,7 +102,7 @@ class RootCauseAnalyzer:
         self.successful_mitigations = {}
         
         self.logger.info("🔍 RootCauseAnalyzer initialized - Ready for deep analysis!")
-    
+
     def record_failure(self, agent_type: str, objective: str, error_message: str,
                       failure_type: FailureType, context: Optional[Dict[str, Any]] = None,
                       severity: float = 0.5, impact_scope: Optional[List[str]] = None) -> str:
@@ -148,7 +131,7 @@ class RootCauseAnalyzer:
         failure_id = f"failure_{len(self.failure_history)}"
         self.logger.info(f"📝 Failure recorded: {failure_id} ({failure_type.value} in {agent_type})")
         return failure_id
-    
+
     def analyze_failure_patterns(self, depth: str = "intermediate") -> RootCauseAnalysis:
         """
         Perform comprehensive root cause analysis of failure patterns.
@@ -201,7 +184,7 @@ class RootCauseAnalyzer:
         self._log_analysis_results(analysis)
         
         return analysis
-    
+
     def _analyze_causal_chain(self, failures: List[FailureEvent]) -> List[CausalFactor]:
         """
         Analyze the causal chain leading to failures using AI-powered analysis.
@@ -221,7 +204,7 @@ Analyze these failure patterns to identify the causal chain.
 [ANALYSIS FRAMEWORK]
 Use the "5 Whys" methodology and systems thinking to identify:
 1. Immediate causes (what directly caused the failure)
-2. Proximate causes (what led to the immediate cause)  
+2. Proximate causes (what led to the immediate cause)
 3. Systemic causes (system-level issues)
 4. Cultural causes (process/methodology issues)
 5. Environmental causes (external factors)
@@ -242,7 +225,7 @@ Use the "5 Whys" methodology and systems thinking to identify:
   "causal_relationships": [
     {{
       "cause": "factor_id",
-      "effect": "factor_id", 
+      "effect": "factor_id",
       "strength": 0.9
     }}
   ]
@@ -290,7 +273,7 @@ Use the "5 Whys" methodology and systems thinking to identify:
         except Exception as e:
             self.logger.error(f"Causal chain analysis failed: {e}")
             return self._fallback_causal_analysis(failures)
-    
+
     def _prepare_failure_summary(self, failures: List[FailureEvent]) -> str:
         """Prepare a concise summary of failures for AI analysis."""
         summary_parts = []
@@ -317,8 +300,8 @@ Use the "5 Whys" methodology and systems thinking to identify:
             summary_parts.append(f"\nTemporal Patterns: {time_patterns}")
         
         return "\n".join(summary_parts)
-    
-    def _identify_primary_root_causes(self, failures: List[FailureEvent], 
+
+    def _identify_primary_root_causes(self, failures: List[FailureEvent],
                                     causal_chain: List[CausalFactor]) -> List[str]:
         """
         Identify the primary root causes from the causal chain.
@@ -339,8 +322,8 @@ Use the "5 Whys" methodology and systems thinking to identify:
             root_causes = [f.description for f in proximate_causes[:3]]
         
         return root_causes
-    
-    def _identify_systemic_issues(self, failures: List[FailureEvent], 
+
+    def _identify_systemic_issues(self, failures: List[FailureEvent],
                                 causal_chain: List[CausalFactor]) -> List[str]:
         """
         Identify broader systemic issues affecting the system.
@@ -370,9 +353,9 @@ Use the "5 Whys" methodology and systems thinking to identify:
         systemic_issues.extend(temporal_issues)
         
         return systemic_issues
-    
+
     def _generate_action_recommendations(self, failures: List[FailureEvent],
-                                       root_causes: List[str], 
+                                       root_causes: List[str],
                                        systemic_issues: List[str]) -> List[Dict[str, Any]]:
         """
         Generate specific, actionable recommendations based on the analysis.
@@ -437,13 +420,13 @@ Based on this root cause analysis, generate specific, actionable recommendations
         except Exception as e:
             self.logger.error(f"Recommendation generation failed: {e}")
             return self._fallback_recommendations(root_causes, systemic_issues)
-    
+
     def _fallback_causal_analysis(self, failures: List[FailureEvent]) -> List[CausalFactor]:
         """Fallback causal analysis using heuristics."""
         factors = []
         
         # Analyze error message patterns
-        error_patterns = Counter(f.error_message.split()[0] if f.error_message else "unknown" 
+        error_patterns = Counter(f.error_message.split()[0] if f.error_message else "unknown"
                                for f in failures)
         
         for pattern, frequency in error_patterns.most_common(3):
@@ -457,8 +440,8 @@ Based on this root cause analysis, generate specific, actionable recommendations
             ))
         
         return factors
-    
-    def _fallback_recommendations(self, root_causes: List[str], 
+
+    def _fallback_recommendations(self, root_causes: List[str],
                                 systemic_issues: List[str]) -> List[Dict[str, Any]]:
         """Generate fallback recommendations."""
         recommendations = []
@@ -478,7 +461,7 @@ Based on this root cause analysis, generate specific, actionable recommendations
         
         if systemic_issues:
             recommendations.append({
-                "id": "rec_002", 
+                "id": "rec_002",
                 "title": "Address Systemic Issues",
                 "description": f"Resolve system-wide problems: {', '.join(systemic_issues[:2])}",
                 "priority": "medium",
@@ -490,7 +473,7 @@ Based on this root cause analysis, generate specific, actionable recommendations
             })
         
         return recommendations
-    
+
     def _calculate_analysis_confidence(self, failures: List[FailureEvent],
                                      causal_chain: List[CausalFactor],
                                      root_causes: List[str]) -> float:
@@ -514,7 +497,7 @@ Based on this root cause analysis, generate specific, actionable recommendations
         factors.append(pattern_consistency * 0.2)
         
         return sum(factors)
-    
+
     def _calculate_pattern_consistency(self, failures: List[FailureEvent]) -> float:
         """Calculate how consistent failure patterns are."""
         if len(failures) < 2:
@@ -531,12 +514,12 @@ Based on this root cause analysis, generate specific, actionable recommendations
         agent_consistency = most_common_agent / len(failures)
         
         return (type_consistency + agent_consistency) / 2
-    
+
     def _get_recent_failures(self, hours: int = 24) -> List[FailureEvent]:
         """Get failures from the last N hours."""
         cutoff = datetime.now() - timedelta(hours=hours)
         return [f for f in self.failure_history if f.timestamp >= cutoff]
-    
+
     def _analyze_temporal_patterns(self, failures: List[FailureEvent]) -> Dict[str, Any]:
         """Analyze temporal patterns in failures."""
         if len(failures) < 3:
@@ -544,7 +527,7 @@ Based on this root cause analysis, generate specific, actionable recommendations
         
         # Time clustering
         timestamps = [f.timestamp for f in failures]
-        time_diffs = [(timestamps[i+1] - timestamps[i]).total_seconds() 
+        time_diffs = [(timestamps[i+1] - timestamps[i]).total_seconds()
                      for i in range(len(timestamps)-1)]
         
         avg_interval = statistics.mean(time_diffs)
@@ -556,7 +539,7 @@ Based on this root cause analysis, generate specific, actionable recommendations
             patterns["frequent_pattern"] = "High frequency failure pattern"
         
         return patterns
-    
+
     def _analyze_systemic_temporal_issues(self, failures: List[FailureEvent]) -> List[str]:
         """Analyze systemic issues related to timing."""
         issues = []
@@ -586,8 +569,8 @@ Based on this root cause analysis, generate specific, actionable recommendations
                 break
         
         return issues
-    
-    def _calculate_factor_frequency(self, factor_data: Dict[str, Any], 
+
+    def _calculate_factor_frequency(self, factor_data: Dict[str, Any],
                                   failures: List[FailureEvent]) -> int:
         """Calculate how frequently a causal factor appears."""
         # Simple heuristic - in practice would be more sophisticated
@@ -600,7 +583,7 @@ Based on this root cause analysis, generate specific, actionable recommendations
                 frequency += 1
         
         return frequency
-    
+
     def _extract_contributing_factors(self, causal_chain: List[CausalFactor]) -> List[str]:
         """Extract contributing factors from causal chain."""
         contributing = []
@@ -610,8 +593,8 @@ Based on this root cause analysis, generate specific, actionable recommendations
                 contributing.append(factor.description)
         
         return contributing
-    
-    def _create_minimal_analysis(self, failures: List[FailureEvent], 
+
+    def _create_minimal_analysis(self, failures: List[FailureEvent],
                                depth: str) -> RootCauseAnalysis:
         """Create minimal analysis when insufficient data."""
         return RootCauseAnalysis(
@@ -633,7 +616,7 @@ Based on this root cause analysis, generate specific, actionable recommendations
             confidence_score=0.1,
             analysis_depth=depth
         )
-    
+
     def _log_analysis_results(self, analysis: RootCauseAnalysis):
         """Log key findings from the analysis."""
         self.logger.info(f"🔬 Root Cause Analysis Complete: {analysis.analysis_id}")
@@ -651,7 +634,7 @@ Based on this root cause analysis, generate specific, actionable recommendations
                 self.logger.info(f"  • {issue}")
         
         self.logger.info(f"💡 Generated {len(analysis.recommended_actions)} recommendations")
-    
+
     def get_analysis_report(self) -> Dict[str, Any]:
         """Get comprehensive analysis report."""
         recent_analyses = self.analysis_history[-5:]
@@ -674,7 +657,7 @@ Based on this root cause analysis, generate specific, actionable recommendations
             "top_root_causes": self._get_top_root_causes(),
             "improvement_trends": self._calculate_improvement_trends()
         }
-    
+
     def _get_failure_statistics(self) -> Dict[str, Any]:
         """Get failure statistics."""
         if not self.failure_history:
@@ -689,7 +672,7 @@ Based on this root cause analysis, generate specific, actionable recommendations
             "agent_types": dict(Counter(f.agent_type for f in recent_failures)),
             "average_severity": statistics.mean(f.severity for f in recent_failures) if recent_failures else 0
         }
-    
+
     def _get_top_root_causes(self) -> List[Dict[str, Any]]:
         """Get most common root causes from analysis history."""
         all_causes = []
@@ -697,9 +680,9 @@ Based on this root cause analysis, generate specific, actionable recommendations
             all_causes.extend(analysis.primary_root_causes)
         
         cause_counts = Counter(all_causes)
-        return [{"cause": cause, "frequency": count} 
+        return [{"cause": cause, "frequency": count}
                 for cause, count in cause_counts.most_common(5)]
-    
+
     def _calculate_improvement_trends(self) -> Dict[str, Any]:
         """Calculate if things are improving over time."""
         if len(self.analysis_history) < 2:
@@ -717,7 +700,6 @@ Based on this root cause analysis, generate specific, actionable recommendations
             "earlier_confidence": earlier_avg,
             "confidence_change": recent_avg - earlier_avg
         }
-
 
 # Global instance
 _root_cause_analyzer = None
