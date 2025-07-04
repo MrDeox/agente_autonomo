@@ -2,26 +2,35 @@
 
 ## 1. ESTRUTURA DE ARQUIVOS (OTIMIZADA)
 agente_autonomo/
+    NIGHT_WORK_SUMMARY.md
     README.md
     hephaestus.log
+    META_INTELLIGENCE_SYSTEM.md
     cli.py
     AGENTS.md
+    EXEMPLO_INTEGRACAO_FLOW_MODIFIER.md
     poetry.lock
     CONTRIBUTING.md
     app.py
     HEPHAESTUS_MEMORY.json
     main.py
     ROADMAP.md
+    ANALISE_OTIMIZACAO_LLM_CALLS.md
     ANALISE_PROFUNDA_SISTEMA.md
+    night_agent.log
     hephaestus_config.json
     requirements.txt
     run_agent.py
+    RESUMO_OTIMIZACOES_LLM.md
     MANIFESTO.md
     evolution_log.csv
     CODE_OF_CONDUCT.md
     ANALISE_PERFORMANCE_HEPHAESTUS.md
     ISSUES.md
+    NIGHT_AGENT_README.md
+    night_agent.py
     ANALISE_TECNICA_HEPHAESTUS.md
+    night_report_20250704_004455.json
     Sugestões de Melhoria para o Projeto Agente Autônomo.md
     CAPABILITIES.md
     pyproject.toml
@@ -32,10 +41,14 @@ agente_autonomo/
         hephaestus_agent.py
         hephaestus_config.json
         git_utils.py
+        meta_cognitive_controller.py
         code_validator.py
+        meta_intelligence_core.py
+        flow_self_modifier.py
         patch_applicator.py
         cycle_runner.py
         memory.py
+        cognitive_evolution_manager.py
         prompt_builder.py
         tool_executor.py
         project_scanner.py
@@ -63,7 +76,14 @@ agente_autonomo/
         utils/
             __init__.py
             json_parser.py
+            smart_validator.py
             llm_client.py
+            llm_optimizer.py
+            advanced_logging.py
+            error_handling.py
+            intelligent_cache.py
+            ux_enhancer.py
+            night_improvements.py
     config/
         example_config.yaml
         base_config.yaml
@@ -92,6 +112,10 @@ agente_autonomo/
 ### Arquivo: `main.py`
 
 ### Arquivo: `run_agent.py`
+
+### Arquivo: `night_agent.py`
+- **Classe:** `NightAgent`
+  - *Agente noturno que trabalha continuamente melhorando o sistema*
 
 ### Arquivo: `agent/brain.py`
 - **Função:** `generate_next_objective(model_config: Dict[str, str], current_manifest: str, logger: logging.Logger, project_root_dir: str, config: Optional[Dict[str, Any]]=None, memory_summary: Optional[str]=None, current_objective: Optional[str]=None)`
@@ -123,6 +147,16 @@ agente_autonomo/
 - **Função:** `initialize_git_repository(logger: logging.Logger)`
   - *Ensure a git repository exists and is configured.*
 
+### Arquivo: `agent/meta_cognitive_controller.py`
+- **Classe:** `FlowModificationType(Enum)`
+  - *Types of modifications the system can make to LLM flows*
+- **Classe:** `LLMCallPoint`
+  - *Represents a point in the code where an LLM call is made*
+- **Classe:** `FlowModification`
+  - *Represents a proposed modification to the LLM flow*
+- **Classe:** `MetaCognitiveController`
+  - *Controller that monitors and modifies LLM call flows dynamically.*
+
 ### Arquivo: `agent/code_validator.py`
 - **Função:** `perform_deep_validation(file_path: Path, logger: logging.Logger)`
   - *Realiza uma análise profunda da qualidade do código Python.*
@@ -130,6 +164,34 @@ agente_autonomo/
   - *Valida se o código Python em um arquivo é sintaticamente correto e, opcionalmente, realiza uma análise profunda.*
 - **Função:** `validate_json_syntax(file_path: str | Path, logger: logging.Logger)`
   - *Valida se um arquivo contém JSON válido.*
+
+### Arquivo: `agent/meta_intelligence_core.py`
+- **Classe:** `PromptGene`
+  - *A genetic component of a prompt*
+- **Classe:** `AgentBlueprint`
+  - *Blueprint for creating a new agent*
+- **Classe:** `CognitiveArchitecture`
+  - *Defines how an agent thinks and processes information*
+- **Classe:** `PromptEvolutionEngine`
+  - *Evolves prompts using genetic algorithms and performance feedback*
+- **Classe:** `AgentGenesisFactory`
+  - *Creates new agents when capability gaps are detected*
+- **Classe:** `MetaIntelligenceCore`
+  - *The ultimate meta-cognitive controller that orchestrates all self-improvement*
+- **Função:** `get_meta_intelligence(model_config: Dict[str, str], logger: logging.Logger)`
+  - *Get or create the global meta-intelligence instance*
+
+### Arquivo: `agent/flow_self_modifier.py`
+- **Classe:** `CallContext`
+  - *Context for an LLM call*
+- **Classe:** `CallDecision`
+  - *Decision about whether and how to make an LLM call*
+- **Classe:** `FlowSelfModifier`
+  - *A practical implementation of dynamic flow modification.*
+- **Função:** `get_flow_modifier(model_config: Dict[str, str], logger: logging.Logger)`
+  - *Get or create the global flow modifier instance.*
+- **Função:** `optimize_llm_call(agent_type: str)`
+  - *Decorator to automatically optimize LLM calls.*
 
 ### Arquivo: `agent/patch_applicator.py`
 - **Classe:** `PatchOperationHandler(ABC)`
@@ -160,6 +222,16 @@ agente_autonomo/
   - *Groups similar objectives/strategies for pattern recognition.*
 - **Classe:** `Memory`
   - *Manages persistent memory for the Hephaestus agent, storing historical data*
+
+### Arquivo: `agent/cognitive_evolution_manager.py`
+- **Classe:** `EvolutionEvent`
+  - *Represents a significant evolutionary event in the system*
+- **Classe:** `CognitiveEvolutionManager`
+  - *The master controller for cognitive evolution.*
+- **Função:** `get_evolution_manager(model_config: Dict[str, str], logger: logging.Logger)`
+  - *Get or create the global evolution manager*
+- **Função:** `start_cognitive_evolution(model_config: Dict[str, str], logger: logging.Logger)`
+  - *Start the cognitive evolution process*
 
 ### Arquivo: `agent/prompt_builder.py`
 - **Função:** `build_memory_context_section(memory_summary: Optional[str])`
@@ -277,6 +349,8 @@ agente_autonomo/
 - **Classe:** `CodeReviewAgent`
 
 ### Arquivo: `agent/agents/maestro_agent.py`
+- **Classe:** `StrategyCache`
+  - *Cache LRU com TTL para decisões de estratégia*
 - **Classe:** `MaestroAgent`
 
 ### Arquivo: `agent/agents/prompt_optimizer.py`
@@ -292,6 +366,10 @@ agente_autonomo/
 - **Função:** `parse_json_response(raw_str: str, logger: logging.Logger)`
   - *Analisa uma string bruta que se espera conter JSON, limpando-a e decodificando-a.*
 
+### Arquivo: `agent/utils/smart_validator.py`
+- **Classe:** `SmartValidator`
+  - *Validador inteligente para diferentes tipos de dados*
+
 ### Arquivo: `agent/utils/llm_client.py`
 - **Função:** `call_gemini_api(model: str, prompt: str, temperature: float, max_tokens: Optional[int], logger: logging.Logger)`
   - *Calls the Google Gemini API.*
@@ -299,5 +377,33 @@ agente_autonomo/
   - *Calls a generic OpenAI-compatible API (like OpenRouter).*
 - **Função:** `call_llm_with_fallback(model_config: Dict[str, Any], prompt: str, temperature: float, logger: logging.Logger)`
   - *Orchestrates LLM calls with a primary and fallback model.*
+
+### Arquivo: `agent/utils/llm_optimizer.py`
+- **Classe:** `LLMCallOptimizer`
+  - *Otimizador inteligente para chamadas LLM*
+
+### Arquivo: `agent/utils/advanced_logging.py`
+- **Função:** `setup_advanced_logging(name: str, level: int=logging.INFO)`
+  - *Setup advanced logging configuration*
+
+### Arquivo: `agent/utils/error_handling.py`
+- **Função:** `safe_execute(func: Callable, *args, **kwargs)`
+  - *Execute function safely with error handling*
+- **Função:** `retry_with_backoff(func: Callable, max_retries: int=3, backoff_factor: int=2)`
+  - *Retry function with exponential backoff*
+
+### Arquivo: `agent/utils/intelligent_cache.py`
+- **Classe:** `IntelligentCache`
+  - *Cache inteligente com TTL e LRU*
+- **Função:** `cached(ttl: int=3600)`
+  - *Decorator para cache automático*
+
+### Arquivo: `agent/utils/ux_enhancer.py`
+- **Classe:** `UXEnhancer`
+  - *Melhorador de experiência do usuário*
+
+### Arquivo: `agent/utils/night_improvements.py`
+- **Classe:** `ContinuousImprovement`
+  - *Sistema de melhorias contínuas*
 
 ## 3. CONTEÚDO COMPLETO DOS ARQUIVOS ALVO

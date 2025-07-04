@@ -138,6 +138,141 @@ class PromptEvolutionEngine:
         
         return genes
     
+    def _extract_section(self, prompt: str, markers: List[str]) -> str:
+        """Extract a section from a prompt based on markers"""
+        for marker in markers:
+            if marker in prompt:
+                lines = prompt.split('\n')
+                start_idx = -1
+                for i, line in enumerate(lines):
+                    if marker in line:
+                        start_idx = i
+                        break
+                
+                if start_idx >= 0:
+                    section_lines = []
+                    for i in range(start_idx + 1, len(lines)):
+                        line = lines[i].strip()
+                        if line and not line.startswith('[') and not line.startswith('#'):
+                            section_lines.append(line)
+                        elif line.startswith('[') and i > start_idx + 1:
+                            break
+                    return '\n'.join(section_lines)
+        return ""
+    
+    def _estimate_gene_effectiveness(self, content: str, section_type: str) -> float:
+        """Estimate the effectiveness of a prompt gene"""
+        base_score = 0.5
+        
+        # Length-based scoring
+        if len(content) < 50:
+            base_score -= 0.1
+        elif len(content) > 500:
+            base_score -= 0.05
+        
+        # Content quality indicators
+        quality_indicators = [
+            "specific", "clear", "detailed", "example", "format",
+            "step", "analyze", "evaluate", "consider", "ensure"
+        ]
+        
+        content_lower = content.lower()
+        quality_score = sum(1 for indicator in quality_indicators if indicator in content_lower)
+        base_score += min(quality_score * 0.05, 0.3)
+        
+        return min(max(base_score, 0.1), 1.0)
+    
+    def _generate_gene_id(self, gene: PromptGene) -> str:
+        """Generate a unique ID for a prompt gene"""
+        import hashlib
+        content_hash = hashlib.md5(gene.content.encode()).hexdigest()[:8]
+        return f"{gene.section_type}_{content_hash}"
+    
+    def _identify_weak_genes(self, genes: List[PromptGene], performance_data: Dict[str, Any]) -> List[PromptGene]:
+        """Identify genes that are performing poorly"""
+        weak_genes = []
+        
+        for gene in genes:
+            if gene.effectiveness_score < 0.6:
+                weak_genes.append(gene)
+        
+        # If no obviously weak genes, pick the bottom 30%
+        if not weak_genes and genes:
+            sorted_genes = sorted(genes, key=lambda g: g.effectiveness_score)
+            weak_count = max(1, len(genes) // 3)
+            weak_genes = sorted_genes[:weak_count]
+        
+        return weak_genes
+    
+    def _crossover_with_successful_agents(self, agent_type: str, current_genes: List[PromptGene]) -> List[PromptGene]:
+        """Perform crossover with genes from successful agents"""
+        crossover_genes = []
+        
+        # For now, simulate crossover by creating variations
+        for gene in current_genes[:2]:  # Take top 2 genes
+            if gene.effectiveness_score > 0.7:
+                # Create a variation
+                new_gene = PromptGene(
+                    section_type=gene.section_type,
+                    content=gene.content + " (optimized)",
+                    effectiveness_score=gene.effectiveness_score + 0.1,
+                    parent_genes=[self._generate_gene_id(gene)]
+                )
+                crossover_genes.append(new_gene)
+        
+        return crossover_genes
+    
+    def _mutate_genes(self, genes: List[PromptGene]) -> List[PromptGene]:
+        """Mutate genes for exploration"""
+        mutated_genes = []
+        
+        for gene in genes[:3]:  # Mutate top 3 genes
+            if gene.effectiveness_score > 0.5:
+                # Simple mutation: add emphasis
+                mutated_content = gene.content.replace(".", ". Be specific and thorough.")
+                mutated_gene = PromptGene(
+                    section_type=gene.section_type,
+                    content=mutated_content,
+                    effectiveness_score=gene.effectiveness_score * 0.95,  # Slightly lower initially
+                    mutations=gene.mutations + 1,
+                    parent_genes=[self._generate_gene_id(gene)]
+                )
+                mutated_genes.append(mutated_gene)
+        
+        return mutated_genes
+    
+    def _select_best_genes(self, candidate_genes: List[PromptGene], agent_type: str) -> List[PromptGene]:
+        """Select the best genes from candidates"""
+        # Sort by effectiveness score
+        sorted_genes = sorted(candidate_genes, key=lambda g: g.effectiveness_score, reverse=True)
+        
+        # Select top genes for each section type
+        selected_genes = []
+        section_types = set(gene.section_type for gene in sorted_genes)
+        
+        for section_type in section_types:
+            section_genes = [g for g in sorted_genes if g.section_type == section_type]
+            if section_genes:
+                selected_genes.append(section_genes[0])  # Best gene for this section
+        
+        return selected_genes
+    
+    def _assemble_prompt_from_genes(self, genes: List[PromptGene]) -> str:
+        """Assemble a complete prompt from selected genes"""
+        prompt_parts = []
+        
+        # Order sections logically
+        section_order = ["identity", "task", "context", "rules", "examples", "output"]
+        
+        for section_type in section_order:
+            section_genes = [g for g in genes if g.section_type == section_type]
+            if section_genes:
+                gene = section_genes[0]
+                section_header = f"[{section_type.upper()}]"
+                prompt_parts.append(f"{section_header}\n{gene.content}\n")
+        
+        return "\n".join(prompt_parts)
+    
     def _generate_new_genes(self, agent_type: str, weak_genes: List[PromptGene],
                            performance_data: Dict[str, Any]) -> List[PromptGene]:
         """Generate new genetic material using LLM creativity"""
@@ -181,7 +316,7 @@ Generate 3-5 new prompt genes that could improve performance. Be creative and th
                 logger=self.logger
             )
             
-            if error:
+            if error or not response:
                 return []
             
             parsed, _ = parse_json_response(response, self.logger)
@@ -755,6 +890,144 @@ Generate 3-5 profound insights as a JSON array of strings.
         ]
         
         return predictions[:3]  # Return top 3 predictions
+
+    def _identify_improvement_opportunities(self, self_assessment: Dict[str, Any]) -> List[str]:
+        """Identify specific improvement opportunities based on self-assessment"""
+        opportunities = []
+        
+        if not self_assessment or "error" in self_assessment:
+            return ["basic_system_health_check"]
+        
+        assessment = self_assessment.get("cognitive_assessment", {})
+        
+        # Check each dimension for improvement opportunities
+        if assessment.get("flexibility_score", 0) < 0.7:
+            opportunities.append("improve_cognitive_flexibility")
+        
+        if assessment.get("learning_efficiency", 0) < 0.7:
+            opportunities.append("optimize_learning_algorithms")
+        
+        if assessment.get("creativity_index", 0) < 0.7:
+            opportunities.append("enhance_creative_capabilities")
+        
+        if assessment.get("self_awareness", 0) < 0.7:
+            opportunities.append("develop_self_awareness")
+        
+        if assessment.get("integration_coherence", 0) < 0.7:
+            opportunities.append("improve_system_integration")
+        
+        # Check for specific enhancement opportunities
+        enhancement_opps = self_assessment.get("enhancement_opportunities", [])
+        opportunities.extend(enhancement_opps[:3])  # Take top 3
+        
+        return opportunities
+    
+    def _get_current_prompt(self, agent_type: str) -> str:
+        """Get the current prompt for an agent type"""
+        # This would normally retrieve from the actual agent
+        # For now, return a default prompt
+        default_prompts = {
+            "architect": """
+[IDENTITY]
+You are an ArchitectAgent responsible for creating action plans.
+
+[TASK]
+Analyze the objective and create a structured plan with patches to apply.
+
+[OUTPUT FORMAT]
+Return a JSON with analysis and patches_to_apply.
+""",
+            "maestro": """
+[IDENTITY]
+You are a MaestroAgent responsible for choosing strategies.
+
+[TASK]
+Evaluate the action plan and choose the best validation strategy.
+
+[OUTPUT FORMAT]
+Return a JSON with strategy_key and reasoning.
+""",
+            "code_review": """
+[IDENTITY]
+You are a CodeReviewAgent responsible for reviewing code patches.
+
+[TASK]
+Review the provided patches for quality, security, and correctness.
+
+[OUTPUT FORMAT]
+Return approval status and detailed feedback.
+"""
+        }
+        
+        return default_prompts.get(agent_type, "You are a helpful AI assistant.")
+    
+    def _deploy_evolved_prompt(self, agent_type: str, evolved_prompt: str):
+        """Deploy an evolved prompt to the actual agent"""
+        # This would normally update the actual agent's prompt
+        # For now, just log the deployment
+        self.logger.info(f"Deploying evolved prompt for {agent_type}")
+        self.logger.debug(f"New prompt: {evolved_prompt[:200]}...")
+        
+        # Store in agent_prompts for future reference
+        self.prompt_evolution.agent_prompts[agent_type] = evolved_prompt
+    
+    def _calculate_intelligence_delta(self, cycle_results: Dict[str, Any]) -> float:
+        """Calculate the change in intelligence level based on cycle results"""
+        delta = 0.0
+        
+        # Positive contributions
+        delta += cycle_results.get("prompt_evolutions", 0) * 0.01
+        delta += cycle_results.get("new_agents_created", 0) * 0.05
+        delta += cycle_results.get("insights_generated", 0) * 0.02
+        
+        # Diminishing returns as intelligence level increases
+        current_level = self.intelligence_level
+        if current_level > 1.5:
+            delta *= 0.5
+        elif current_level > 2.0:
+            delta *= 0.2
+        
+        return min(delta, 0.1)  # Cap at 0.1 per cycle
+
+    def _register_new_agent(self, blueprint: 'AgentBlueprint'):
+        """Register a new agent in the system"""
+        self.agent_genesis.created_agents[blueprint.name] = {
+            "blueprint": blueprint,
+            "created_at": datetime.now().isoformat(),
+            "status": "implemented"
+        }
+        
+        self.logger.info(f"Registered new agent: {blueprint.name}")
+    
+    def _generate_agent_tests(self, blueprint: 'AgentBlueprint') -> str:
+        """Generate test code for a new agent"""
+        test_code = f'''"""
+Tests for {blueprint.name}
+Auto-generated by AgentGenesisFactory
+"""
+
+import pytest
+from unittest.mock import Mock, patch
+from agent.agents.{blueprint.name.lower().replace('agent', '_agent')} import {blueprint.name}
+
+class Test{blueprint.name}:
+    def setup_method(self):
+        self.mock_logger = Mock()
+        self.mock_config = {{"model": "test-model", "api_key": "test-key"}}
+        self.agent = {blueprint.name}(self.mock_config, self.mock_logger)
+    
+    def test_initialization(self):
+        assert self.agent is not None
+        assert self.agent.logger == self.mock_logger
+    
+    def test_main_method(self):
+        # Test the main functionality
+        result = self.agent.main_method("test_input")
+        assert result is not None
+    
+    # Add more specific tests based on the agent's capabilities
+'''
+        return test_code
 
 
 # Global meta-intelligence instance
