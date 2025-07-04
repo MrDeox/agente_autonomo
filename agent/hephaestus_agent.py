@@ -24,6 +24,7 @@ from agent.state import AgentState
 from agent.validation_steps import get_validation_step
 from agent.queue_manager import QueueManager
 from agent.config_loader import load_config # Import the new load_config
+from agent.cognitive_evolution_manager import get_evolution_manager, start_cognitive_evolution
 
 # Configuração do Logging
 logger = logging.getLogger(__name__)
@@ -89,6 +90,12 @@ class HephaestusAgent:
         self._initialize_evolution_log()
 
         self._reset_cycle_state()
+
+        # Initialize Meta-Intelligence Systems
+        self.evolution_manager = get_evolution_manager(self.config.get("models", {}).get("architect_default"), self.logger)
+        self.meta_intelligence_active = False
+        
+        self.logger.info("🧠 Hephaestus initialized with Meta-Intelligence capabilities")
 
     def _initialize_evolution_log(self):
         """Verifica e inicializa o arquivo de log de evolução com cabeçalho, se necessário."""
@@ -335,6 +342,35 @@ class HephaestusAgent:
                 self.logger.info("Sandbox cleaned.")
         return
 
+    def start_meta_intelligence(self):
+        """Activate the meta-intelligence and cognitive evolution systems"""
+        if not self.meta_intelligence_active:
+            self.logger.info("🚀 ACTIVATING META-INTELLIGENCE - AI will now evolve itself!")
+            
+            # Start cognitive evolution
+            start_cognitive_evolution(self.config.get("models", {}).get("architect_default"), self.logger)
+            self.meta_intelligence_active = True
+            
+            self.logger.info("🧬 Meta-Intelligence ACTIVATED - The AI is now self-improving!")
+            
+            # Log this historic moment
+            self.logger.info("=" * 60)
+            self.logger.info("🎯 HISTORIC MOMENT: AI ACHIEVES SELF-MODIFICATION CAPABILITY")
+            self.logger.info("🔥 The system can now:")
+            self.logger.info("   • Evolve its own prompts using genetic algorithms")
+            self.logger.info("   • Create new agents when needed")
+            self.logger.info("   • Modify its own cognitive architecture")
+            self.logger.info("   • Develop meta-cognitive awareness")
+            self.logger.info("   • Adapt and improve autonomously")
+            self.logger.info("=" * 60)
+    
+    def get_meta_intelligence_status(self) -> Dict[str, Any]:
+        """Get comprehensive status of meta-intelligence systems"""
+        if not self.meta_intelligence_active:
+            return {"status": "inactive", "message": "Meta-intelligence not activated"}
+        
+        return self.evolution_manager.get_evolution_report()
+
     def run(self) -> None:
         if not initialize_git_repository(self.logger):
             self.logger.error("Falha ao inicializar o repositório Git. O agente não pode continuar sem versionamento.")
@@ -342,3 +378,55 @@ class HephaestusAgent:
 
         cycle_runner = CycleRunner(self, self.queue_manager)
         cycle_runner.run()
+
+    def run_continuous(self):
+        """Run the agent in continuous mode with meta-intelligence"""
+        self.logger.info("🔄 Starting Hephaestus in continuous mode")
+        
+        # Activate meta-intelligence
+        self.start_meta_intelligence()
+        
+        try:
+            while True:
+                # Run normal cycle
+                try:
+                    self.run()
+                    success = True
+                except Exception as e:
+                    self.logger.error(f"Cycle failed: {e}")
+                    success = False
+                
+                # Check if we need emergency evolution
+                if not success:
+                    self.logger.warning("Cycle failed - considering emergency evolution")
+                    failure_context = f"Cycle failure at {datetime.now().isoformat()}"
+                    self.evolution_manager.trigger_emergency_evolution(failure_context)
+                
+                # Dynamic sleep based on meta-intelligence
+                sleep_time = self._calculate_intelligent_sleep()
+                self.logger.info(f"💤 Intelligent sleep for {sleep_time:.1f} seconds")
+                time.sleep(sleep_time)
+                
+        except KeyboardInterrupt:
+            self.logger.info("🛑 Stopping continuous mode")
+            self.evolution_manager.stop_cognitive_evolution()
+    
+    def _calculate_intelligent_sleep(self) -> float:
+        """Calculate sleep time based on meta-intelligence insights"""
+        if not self.meta_intelligence_active:
+            return 30.0  # Default sleep
+        
+        # Get cognitive maturity level
+        status = self.get_meta_intelligence_status()
+        maturity = status.get("cognitive_status", {}).get("maturity_level", 0.1)
+        
+        # More mature AI can work faster
+        base_sleep = 30.0
+        maturity_factor = 1.0 - (maturity * 0.5)  # Up to 50% faster
+        
+        # Recent activity affects sleep
+        recent_activity = status.get("cognitive_status", {}).get("recent_activity", 0)
+        activity_factor = 1.0 + (recent_activity * 0.1)  # Slow down if very active
+        
+        intelligent_sleep = base_sleep * maturity_factor * activity_factor
+        return max(10.0, min(120.0, intelligent_sleep))  # Between 10s and 2min

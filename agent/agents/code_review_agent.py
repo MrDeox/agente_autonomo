@@ -1,5 +1,6 @@
 import logging
 from typing import Optional, Dict, Any, Tuple
+import re
 
 from agent.utils.llm_client import call_llm_api
 from agent.utils.json_parser import parse_json_response
@@ -8,6 +9,83 @@ class CodeReviewAgent:
     def __init__(self, model_config: Dict[str, str], logger: logging.Logger):
         self.model_config = model_config
         self.logger = logger
+
+    def needs_review(self, patches: list[dict]) -> bool:
+        """
+        Determina se os patches precisam de revisão LLM baseado em regras.
+        
+        Args:
+            patches: Lista de patches para avaliar
+            
+        Returns:
+            True se precisa de revisão LLM, False se pode pular
+        """
+        if not patches:
+            return False
+            
+        # Padrões que indicam mudanças triviais
+        trivial_patterns = [
+            r'^import\s+',           # Apenas imports
+            r'^from\s+.*\s+import',  # Apenas imports
+            r'^#.*$',                # Apenas comentários
+            r'^\s*$',                # Linhas vazias
+            r'^""".*"""$',           # Docstrings simples
+            r"^'''.*'''$",           # Docstrings simples
+            r'^\s*pass\s*$',         # Apenas pass
+        ]
+        
+        # Padrões que sempre precisam de revisão
+        critical_patterns = [
+            r'exec\s*\(',            # Código dinâmico perigoso
+            r'eval\s*\(',            # Código dinâmico perigoso
+            r'__import__',           # Import dinâmico
+            r'subprocess',           # Execução de processos
+            r'os\.system',           # Comandos do sistema
+            r'open\s*\(',            # Operações de arquivo
+            r'\.write\s*\(',         # Escrita em arquivos
+            r'\.delete\s*\(',        # Deleção
+        ]
+        
+        total_patches = len(patches)
+        trivial_count = 0
+        
+        for patch in patches:
+            content = patch.get('content', '')
+            operation = patch.get('operation', '')
+            
+            # DELETE sempre precisa de revisão
+            if operation == 'DELETE_BLOCK':
+                self.logger.debug("Patch contains DELETE operation - needs review")
+                return True
+            
+            # Verifica padrões críticos
+            for pattern in critical_patterns:
+                if re.search(pattern, content, re.MULTILINE):
+                    self.logger.debug(f"Patch contains critical pattern '{pattern}' - needs review")
+                    return True
+            
+            # Conta patches triviais
+            is_trivial = False
+            for pattern in trivial_patterns:
+                if re.match(pattern, content.strip()):
+                    is_trivial = True
+                    break
+            
+            if is_trivial:
+                trivial_count += 1
+        
+        # Se todos os patches são triviais, não precisa de revisão
+        if trivial_count == total_patches:
+            self.logger.info(f"All {total_patches} patches are trivial - skipping LLM review")
+            return False
+        
+        # Se a maioria é trivial e não há padrões críticos, pode pular
+        trivial_ratio = trivial_count / total_patches
+        if trivial_ratio > 0.8:
+            self.logger.info(f"{trivial_ratio:.0%} of patches are trivial - skipping LLM review")
+            return False
+            
+        return True
 
     def review_patches(self, patches_to_apply: list[dict]) -> Tuple[bool, str]:
         """
@@ -23,6 +101,10 @@ class CodeReviewAgent:
         """
         if not patches_to_apply:
             return True, "No patches to review."
+
+        # Verifica se precisa de revisão LLM
+        if not self.needs_review(patches_to_apply):
+            return True, "Patches are trivial - auto-approved without LLM review."
 
         patches_str = "\n".join([f"--- PATCH FOR {p.get('file_path')} ---\n{p.get('content', '')}\n" for p in patches_to_apply])
 
@@ -74,9 +156,9 @@ Example of PASSED review:
         review_passed = parsed.get("review_passed", False)
         feedback = parsed.get("feedback", "No feedback provided.")
 
-        if not review_passed:
-            self.logger.warning(f"CodeReviewAgent: Review FAILED. Feedback: {feedback}")
-        else:
+        if review_passed:
             self.logger.info("CodeReviewAgent: Review PASSED.")
-            
+        else:
+            self.logger.warning(f"CodeReviewAgent: Review FAILED. Feedback: {feedback}")
+
         return review_passed, feedback 

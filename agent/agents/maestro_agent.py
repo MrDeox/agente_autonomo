@@ -1,9 +1,73 @@
 import json # For json.dumps
 import logging
 from typing import Optional, Dict, Any, List, Tuple # List is used by choose_strategy return type
+import hashlib
+import time
+from collections import OrderedDict
 
 from agent.utils.llm_client import call_llm_api
 from agent.utils.json_parser import parse_json_response # Import from new location
+
+class StrategyCache:
+    """Cache LRU com TTL para decisões de estratégia"""
+    
+    def __init__(self, maxsize: int = 100, ttl_seconds: int = 3600):
+        self.cache = OrderedDict()
+        self.maxsize = maxsize
+        self.ttl = ttl_seconds
+        self.hits = 0
+        self.misses = 0
+    
+    def _generate_key(self, action_plan_data: Dict[str, Any], memory_summary: str = "") -> str:
+        """Gera chave única para o cache baseada no contexto"""
+        # Cria string representativa do contexto
+        context_str = json.dumps({
+            'patches_count': len(action_plan_data.get('patches_to_apply', [])),
+            'patch_operations': [p.get('operation') for p in action_plan_data.get('patches_to_apply', [])],
+            'target_files': sorted([p.get('file_path') for p in action_plan_data.get('patches_to_apply', [])]),
+            'memory_hash': hashlib.md5(memory_summary.encode()).hexdigest()[:8] if memory_summary else ""
+        }, sort_keys=True)
+        
+        return hashlib.md5(context_str.encode()).hexdigest()
+    
+    def get(self, action_plan_data: Dict[str, Any], memory_summary: str = "") -> Optional[str]:
+        """Busca estratégia no cache"""
+        key = self._generate_key(action_plan_data, memory_summary)
+        
+        if key in self.cache:
+            timestamp, strategy = self.cache[key]
+            if time.time() - timestamp < self.ttl:
+                # Move para o final (LRU)
+                self.cache.move_to_end(key)
+                self.hits += 1
+                return strategy
+            else:
+                # Expirado
+                del self.cache[key]
+        
+        self.misses += 1
+        return None
+    
+    def put(self, action_plan_data: Dict[str, Any], memory_summary: str, strategy: str):
+        """Adiciona estratégia ao cache"""
+        key = self._generate_key(action_plan_data, memory_summary)
+        
+        # Remove item mais antigo se necessário
+        if len(self.cache) >= self.maxsize:
+            self.cache.popitem(last=False)
+        
+        self.cache[key] = (time.time(), strategy)
+    
+    def get_stats(self) -> Dict[str, Any]:
+        """Retorna estatísticas do cache"""
+        total = self.hits + self.misses
+        return {
+            'hits': self.hits,
+            'misses': self.misses,
+            'hit_rate': self.hits / total if total > 0 else 0,
+            'size': len(self.cache),
+            'maxsize': self.maxsize
+        }
 
 class MaestroAgent:
     def __init__(self, model_config: Dict[str, str], config: Dict[str, Any], logger: logging.Logger):
@@ -11,6 +75,7 @@ class MaestroAgent:
         self.config = config
         self.logger = logger
         self.created_strategies = {}  # Track dynamically created strategies
+        self.strategy_cache = StrategyCache()
 
     def _classify_strategy_by_rules(self, action_plan_data: Dict[str, Any]) -> Optional[str]:
         """
@@ -50,13 +115,30 @@ class MaestroAgent:
         Encapsulates the logic of get_maestro_decision.
         Consults the LLM to decide which validation strategy to adopt.
         """
+        attempt_logs = []
+        
+        # Verifica cache primeiro (apenas se não há contexto de falha)
+        if not failed_strategy_context:
+            cached_strategy = self.strategy_cache.get(action_plan_data, memory_summary or "")
+            if cached_strategy:
+                self.logger.info(f"MaestroAgent: Cache hit! Using cached strategy: {cached_strategy}")
+                self.logger.debug(f"Cache stats: {self.strategy_cache.get_stats()}")
+                return [{
+                    "model": "cache",
+                    "raw_response": f'{{"strategy_key": "{cached_strategy}"}}',
+                    "parsed_json": {"strategy_key": cached_strategy},
+                    "success": True
+                }]
+        
         # First, try to classify using rules
         rule_based_strategy = self._classify_strategy_by_rules(action_plan_data)
         if rule_based_strategy:
             self.logger.info(f"MaestroAgent: Strategy '{rule_based_strategy}' chosen by rule-based classifier.")
+            # Adiciona ao cache
+            self.strategy_cache.put(action_plan_data, memory_summary or "", rule_based_strategy)
             return [{
                 "model": "rule_based_classifier",
-                "raw_response": f"Strategy '{rule_based_strategy}' selected by internal rules.",
+                "raw_response": f'{{"strategy_key": "{rule_based_strategy}"}}',
                 "parsed_json": {"strategy_key": rule_based_strategy},
                 "success": True
             }]
@@ -186,6 +268,11 @@ Example: {{"strategy_key": "CAPACITATION_REQUIRED"}}
         attempt_log["parsed_json"] = parsed_json
         attempt_log["success"] = True
         attempt_logs.append(attempt_log)
+        
+        # Adiciona ao cache se não for contexto de falha
+        if not failed_strategy_context and parsed_json.get("strategy_key"):
+            self.strategy_cache.put(action_plan_data, memory_summary or "", parsed_json["strategy_key"])
+            self.logger.debug(f"Added strategy to cache. Cache stats: {self.strategy_cache.get_stats()}")
 
         return attempt_logs
     
