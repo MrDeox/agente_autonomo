@@ -14,9 +14,11 @@ agente_autonomo/
     run_mcp.py
     mcp_server_example.py
     cli.py
+    HOT_RELOAD_DOCUMENTATION.md
     README_MCP_HEPHAESTUS.md
     poetry.lock
     main.py
+    API_REST_DOCUMENTATION.md
     GUIA_MCP_CURSOR.md
     CHECKLIST_MCP_HEPHAESTUS.md
     evolution_monitoring.txt
@@ -24,14 +26,17 @@ agente_autonomo/
     GUIA_CONFIGURACAO_CURSOR.md
     start_mcp_server.sh
     setup_mcp.py
+    ERROR_DETECTOR_DOCUMENTATION.md
     cursor_mcp_config.json
     pyproject.toml
     tools/
         app.py
     agent/
+        async_orchestrator.py
         analysis_processor.py
         brain.py
         __init__.py
+        arthur_interface_generator.py
         code_metrics.py
         model_optimizer.py
         hephaestus_agent.py
@@ -39,6 +44,7 @@ agente_autonomo/
         git_utils.py
         meta_cognitive_controller.py
         root_cause_analyzer.py
+        hot_reload_manager.py
         code_validator.py
         meta_intelligence_core.py
         llm_performance_booster.py
@@ -63,7 +69,6 @@ agente_autonomo/
             patch_applicator.py
             syntax_validator.py
             pytest_new_file_validator.py
-            models/
         agents/
             capability_gap_detector.py
             __init__.py
@@ -71,6 +76,7 @@ agente_autonomo/
             architect_agent.py
             performance_analyzer.py
             error_correction.py
+            error_detector_agent.py
             code_review_agent.py
             maestro_agent.py
             prompt_optimizer.py
@@ -115,6 +121,8 @@ agente_autonomo/
         hephaestus_corrected.log
         evolution_log.csv
         continuous_evolution_fixed.log
+    generated_interfaces/
+        arthur_interface_1751661619.html
 
 ## 2. RESUMO DAS INTERFACES (APIs Internas)
 
@@ -229,27 +237,107 @@ agente_autonomo/
   - *Função principal do setup*
 
 ### Arquivo: `tools/app.py`
-- **Classe:** `Objective(BaseModel)`
-- **Classe:** `SelfReflectionRequest(BaseModel)`
+- **Classe:** `ObjectiveRequest(BaseModel)`
+- **Classe:** `DeepReflectionRequest(BaseModel)`
+- **Classe:** `AsyncEvolutionRequest(BaseModel)`
+- **Classe:** `InterfaceGenerationRequest(BaseModel)`
+- **Classe:** `AgentConfigRequest(BaseModel)`
+- **Classe:** `SystemStatusResponse(BaseModel)`
+- **Função:** `add_process_time_header(request: Request, call_next)`
+- **Função:** `rate_limiting_middleware(request: Request, call_next)`
+- **Função:** `get_auth_user(credentials: HTTPAuthorizationCredentials=Depends(security))`
 - **Função:** `startup_event()`
-- **Função:** `submit_objective(obj: Objective)`
-  - *Submit a new objective for the agent to process*
-- **Função:** `get_status()`
-  - *Get basic status of the agent and meta-intelligence*
-- **Função:** `get_comprehensive_meta_intelligence_status()`
-  - *Get comprehensive status of all meta-intelligence systems*
-- **Função:** `perform_deep_self_reflection(request: SelfReflectionRequest)`
-  - *Trigger deep self-reflection and introspection*
-- **Função:** `get_self_awareness_report()`
-  - *Get comprehensive self-awareness report*
-- **Função:** `get_knowledge_system_status()`
-  - *Get status of the knowledge acquisition system*
-- **Função:** `get_model_optimizer_status()`
-  - *Get status of the model optimization system*
-- **Função:** `get_root_cause_analyzer_status()`
-  - *Get status of the root cause analysis system*
+  - *Initialize the system on startup*
+- **Função:** `shutdown_event()`
+  - *Cleanup on shutdown*
+- **Função:** `worker_thread()`
+  - *Enhanced worker thread that processes objectives from the queue*
+- **Função:** `root()`
+  - *API Root - Welcome page with navigation*
 - **Função:** `health_check()`
-  - *Health check endpoint*
+  - *Enhanced health check with comprehensive system status*
+- **Função:** `get_status()`
+  - *Get detailed system status including all subsystems*
+- **Função:** `submit_objective(request: ObjectiveRequest, auth_user: dict=Depends(get_auth_user))`
+  - *Submit a new objective to the agent with priority and metadata*
+- **Função:** `get_queue_status(auth_user: dict=Depends(get_auth_user))`
+  - *Get current queue status and pending objectives*
+- **Função:** `enable_turbo_mode(auth_user: dict=Depends(get_auth_user))`
+  - *Enable turbo evolution mode with maximum parallelism*
+- **Função:** `start_async_evolution(request: AsyncEvolutionRequest, auth_user: dict=Depends(get_auth_user))`
+  - *Start async evolution with parallel multi-agent orchestration*
+- **Função:** `get_orchestration_status(auth_user: dict=Depends(get_auth_user))`
+  - *Get detailed async orchestration status*
+- **Função:** `perform_deep_reflection(request: DeepReflectionRequest, auth_user: dict=Depends(get_auth_user))`
+  - *Perform deep self-reflection and introspection*
+- **Função:** `get_comprehensive_meta_intelligence_status(auth_user: dict=Depends(get_auth_user))`
+  - *Get comprehensive meta-intelligence status*
+- **Função:** `trigger_evolution_cycle(auth_user: dict=Depends(get_auth_user))`
+  - *Manually trigger a meta-intelligence evolution cycle*
+- **Função:** `generate_arthur_interface(request: InterfaceGenerationRequest, auth_user: dict=Depends(get_auth_user))`
+  - *Generate personalized interface for Arthur*
+- **Função:** `serve_arthur_interface()`
+  - *Serve the latest generated interface for Arthur*
+- **Função:** `list_generated_interfaces(auth_user: dict=Depends(get_auth_user))`
+  - *List all generated interfaces*
+- **Função:** `get_system_metrics(auth_user: dict=Depends(get_auth_user))`
+  - *Get comprehensive system metrics*
+- **Função:** `get_recent_logs(limit: int=50, auth_user: dict=Depends(get_auth_user))`
+  - *Get recent system logs*
+- **Função:** `update_agent_config(request: AgentConfigRequest, auth_user: dict=Depends(get_auth_user))`
+  - *Update agent configuration*
+- **Função:** `get_current_config(auth_user: dict=Depends(get_auth_user))`
+  - *Get current system configuration*
+- **Função:** `legacy_orchestration_status()`
+  - *Legacy endpoint for orchestration status*
+- **Função:** `legacy_enable_turbo_mode()`
+  - *Legacy endpoint for enabling turbo mode*
+- **Função:** `legacy_start_async_evolution(request: AsyncEvolutionRequest)`
+  - *Legacy endpoint for async evolution*
+- **Função:** `legacy_arthur_interface()`
+  - *Legacy endpoint for Arthur interface*
+- **Função:** `enable_hot_reload(auth_user: dict=Depends(get_auth_user))`
+  - *Habilitar hot reload para evolução em tempo real*
+- **Função:** `disable_hot_reload(auth_user: dict=Depends(get_auth_user))`
+  - *Desabilitar hot reload*
+- **Função:** `get_hot_reload_status(auth_user: dict=Depends(get_auth_user))`
+  - *Obter status do hot reload*
+- **Classe:** `SelfModificationRequest(BaseModel)`
+- **Função:** `self_modify_code(request: SelfModificationRequest, auth_user: dict=Depends(get_auth_user))`
+  - *Permitir que o sistema modifique seu próprio código*
+- **Classe:** `DynamicImportRequest(BaseModel)`
+- **Função:** `dynamic_import_code(request: DynamicImportRequest, auth_user: dict=Depends(get_auth_user))`
+  - *Importar código dinamicamente em tempo de execução*
+- **Função:** `trigger_self_evolution(auth_user: dict=Depends(get_auth_user))`
+  - *Disparar auto-evolução baseada em performance*
+- **Função:** `get_evolution_history(limit: int=20, auth_user: dict=Depends(get_auth_user))`
+  - *Obter histórico de evoluções em tempo real*
+- **Função:** `get_error_detector_status(auth_user: dict=Depends(get_auth_user))`
+  - *Get current status of the error detector agent*
+- **Função:** `get_error_report(auth_user: dict=Depends(get_auth_user))`
+  - *Get detailed error analysis report*
+- **Função:** `inject_test_error(error_message: str=Body(..., description='Error message to inject for testing'), auth_user: dict=Depends(get_auth_user))`
+  - *Inject a test error for testing the error detection system*
+- **Função:** `start_error_monitoring(auth_user: dict=Depends(get_auth_user))`
+  - *Start error monitoring*
+- **Função:** `stop_error_monitoring(auth_user: dict=Depends(get_auth_user))`
+  - *Stop error monitoring*
+- **Função:** `get_real_time_analysis(auth_user: dict=Depends(get_auth_user))`
+  - *Get real-time analysis of system errors and health*
+- **Função:** `capture_agent_error(agent_name: str=Body(..., description='Name of the agent that generated the error'), error_message: str=Body(..., description='Error message from the agent'), context: Optional[Dict[str, Any]]=Body(None, description='Additional error context'), auth_user: dict=Depends(get_auth_user))`
+  - *Capture and analyze an error from a specific agent*
+- **Função:** `global_exception_handler(request: Request, exc: Exception)`
+  - *Global exception handler that reports errors to the detector*
+- **Função:** `worker()`
+
+### Arquivo: `agent/async_orchestrator.py`
+- **Classe:** `AgentType(Enum)`
+- **Classe:** `AgentTask`
+  - *Representa uma tarefa para um agente específico*
+- **Classe:** `AgentResult`
+  - *Resultado de uma tarefa de agente*
+- **Classe:** `AsyncAgentOrchestrator`
+  - *Orquestrador assíncrono para múltiplos agentes*
 
 ### Arquivo: `agent/analysis_processor.py`
 - **Classe:** `AnalysisProcessor`
@@ -263,6 +351,12 @@ agente_autonomo/
   - *Generates a concise and informative commit message using a rule-based system.*
 
 ### Arquivo: `agent/__init__.py`
+
+### Arquivo: `agent/arthur_interface_generator.py`
+- **Classe:** `InterfaceElement`
+  - *Elemento da interface gerada*
+- **Classe:** `ArthurInterfaceGenerator`
+  - *Gerador de interfaces personalizadas para o Arthur*
 
 ### Arquivo: `agent/code_metrics.py`
 - **Função:** `analyze_complexity(code_string: str)`
@@ -284,7 +378,7 @@ agente_autonomo/
 - **Classe:** `ModelOptimizer`
   - *Advanced system for model self-optimization through performance data collection*
 - **Função:** `get_model_optimizer(model_config: Dict[str, str], logger: logging.Logger)`
-  - *Get or create the global model optimizer instance.*
+  - *Factory function to get a singleton instance of the ModelOptimizer.*
 
 ### Arquivo: `agent/hephaestus_agent.py`
 - **Classe:** `HephaestusAgent`
@@ -319,6 +413,12 @@ agente_autonomo/
   - *Advanced root cause analysis system that can identify deep, systemic*
 - **Função:** `get_root_cause_analyzer(model_config: Dict[str, str], logger: logging.Logger)`
   - *Get or create the global root cause analyzer instance.*
+
+### Arquivo: `agent/hot_reload_manager.py`
+- **Classe:** `HotReloadManager`
+  - *Sistema de hot reload para evolução em tempo real*
+- **Classe:** `SelfEvolutionEngine`
+  - *Engine para auto-evolução do sistema*
 
 ### Arquivo: `agent/code_validator.py`
 - **Função:** `perform_deep_validation(file_path: Path, logger: logging.Logger)`
@@ -415,10 +515,10 @@ agente_autonomo/
   - *Represents a significant evolutionary event in the system*
 - **Classe:** `CognitiveEvolutionManager`
   - *The master controller for cognitive evolution.*
-- **Função:** `get_evolution_manager(model_config: Dict[str, str], logger: logging.Logger)`
-  - *Get or create the global evolution manager*
-- **Função:** `start_cognitive_evolution(model_config: Dict[str, str], logger: logging.Logger)`
-  - *Start the cognitive evolution process*
+- **Função:** `get_evolution_manager(model_config: Dict[str, str], logger: logging.Logger, memory: Memory, model_optimizer: ModelOptimizer)`
+  - *Factory function to get a singleton instance of the CognitiveEvolutionManager.*
+- **Função:** `start_cognitive_evolution(model_config: Dict[str, str], logger: logging.Logger, memory: Memory, model_optimizer: ModelOptimizer)`
+  - *Utility function to start the cognitive evolution process*
 
 ### Arquivo: `agent/prompt_builder.py`
 - **Função:** `build_memory_context_section(memory_summary: Optional[str])`
@@ -546,6 +646,12 @@ agente_autonomo/
 ### Arquivo: `agent/agents/error_correction.py`
 - **Classe:** `ErrorCorrectionAgent`
   - *Agent for analyzing errors and generating corrective actions.*
+
+### Arquivo: `agent/agents/error_detector_agent.py`
+- **Classe:** `ErrorPattern`
+  - *Representa um padrão de erro detectado*
+- **Classe:** `ErrorDetectorAgent`
+  - *Agente que monitora erros da API REST e implementa correções automáticas*
 
 ### Arquivo: `agent/agents/code_review_agent.py`
 - **Classe:** `CodeReviewAgent`

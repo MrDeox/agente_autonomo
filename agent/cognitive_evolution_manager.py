@@ -18,10 +18,13 @@ from typing import Dict, Any, List, Optional
 from datetime import datetime, timedelta
 from dataclasses import dataclass
 import time
+from collections import Counter
 
 from agent.meta_intelligence_core import get_meta_intelligence
 from agent.flow_self_modifier import get_flow_modifier
 from agent.utils.llm_client import call_llm_api
+from agent.memory import Memory
+from agent.model_optimizer import ModelOptimizer
 
 
 @dataclass
@@ -41,9 +44,11 @@ class CognitiveEvolutionManager:
     This is where the magic of self-improving AI happens!
     """
     
-    def __init__(self, model_config: Dict[str, str], logger: logging.Logger):
+    def __init__(self, model_config: Dict[str, str], logger: logging.Logger, memory: Memory, model_optimizer: ModelOptimizer):
         self.model_config = model_config
         self.logger = logger
+        self.memory = memory
+        self.model_optimizer = model_optimizer
         
         # Core systems
         self.meta_intelligence = get_meta_intelligence(model_config, logger)
@@ -453,13 +458,30 @@ Focus on the philosophical and practical implications of an AI that can evolve i
     
     # Helper methods (simplified implementations)
     def _analyze_recent_performance(self) -> Dict[str, Any]:
-        """Analyze recent performance metrics"""
-        return {
-            "success_rate": 0.75,
-            "average_response_time": 2.3,
-            "error_rate": 0.05,
-            "improvement_trend": "positive"
+        """Analyze recent performance metrics from real memory data."""
+        self.logger.debug("Analyzing real performance from memory...")
+        
+        completed = len(self.memory.completed_objectives)
+        failed = len(self.memory.failed_objectives)
+        total = completed + failed
+        
+        success_rate = completed / total if total > 0 else 0
+        
+        # Simulação de outras métricas por enquanto
+        # TODO: Implementar coleta real para response_time e improvement_trend
+        
+        real_metrics = {
+            "total_objectives_processed": total,
+            "completed_objectives": completed,
+            "failed_objectives": failed,
+            "success_rate": success_rate,
+            "average_response_time": 2.3,  # Placeholder
+            "error_rate": 1.0 - success_rate if total > 0 else 0,
+            "improvement_trend": "positive" # Placeholder
         }
+        
+        self.logger.debug(f"Real performance metrics calculated: {real_metrics}")
+        return real_metrics
     
     def _enumerate_current_capabilities(self) -> List[str]:
         """List current system capabilities"""
@@ -473,19 +495,56 @@ Focus on the philosophical and practical implications of an AI that can evolve i
         ]
     
     def _identify_failure_patterns(self) -> List[Dict[str, Any]]:
-        """Identify patterns in system failures"""
-        return [
-            {"pattern": "timeout_errors", "frequency": 0.1, "impact": "medium"},
-            {"pattern": "parsing_failures", "frequency": 0.05, "impact": "low"}
-        ]
+        """Identifies patterns in system failures from real memory data."""
+        self.logger.debug("Identifying failure patterns from memory...")
+        
+        if not self.memory.failed_objectives:
+            return []
+            
+        reason_counts = Counter(obj['reason'] for obj in self.memory.failed_objectives)
+        
+        patterns = []
+        total_failures = len(self.memory.failed_objectives)
+        
+        for reason, count in reason_counts.items():
+            frequency = count / total_failures
+            # A "simples" heurística para o impacto
+            impact_map = {
+                "REGRESSION": "high",
+                "CRITICAL": "high",
+                "SANITY": "high",
+                "PYTEST": "medium",
+                "SYNTAX": "low"
+            }
+            impact = "medium" # default
+            for key, impact_level in impact_map.items():
+                if key in reason:
+                    impact = impact_level
+                    break
+            
+            pattern = {
+                "pattern": reason,
+                "frequency": round(frequency, 3),
+                "impact": impact,
+                "count": count
+            }
+            patterns.append(pattern)
+            
+        # Ordena por frequência e depois por impacto (simplesmente)
+        sorted_patterns = sorted(patterns, key=lambda p: (p['frequency'], p['impact']), reverse=True)
+        
+        self.logger.debug(f"Identified {len(sorted_patterns)} failure patterns.")
+        return sorted_patterns
     
     def _get_agent_performance_data(self) -> Dict[str, Any]:
-        """Get performance data for each agent"""
-        return {
-            "architect": {"success_rate": 0.8, "needs_evolution": False},
-            "maestro": {"success_rate": 0.7, "needs_evolution": True},
-            "code_review": {"success_rate": 0.9, "needs_evolution": False}
-        }
+        """Get performance data for each agent from the ModelOptimizer."""
+        self.logger.debug("Getting agent performance data from ModelOptimizer...")
+        summary = self.model_optimizer.get_agent_performance_summary()
+        # A estrutura já é muito parecida com o que a simulação retornava.
+        # Podemos adicionar a chave "needs_evolution" se quisermos, ou ajustar o consumidor.
+        # Por enquanto, vamos retornar o sumário como está.
+        self.logger.debug(f"Agent performance summary: {summary}")
+        return summary
     
     def _calculate_learning_efficiency(self) -> float:
         """Calculate how efficiently the system is learning"""
@@ -498,22 +557,23 @@ Focus on the philosophical and practical implications of an AI that can evolve i
     def _update_cognitive_maturity(self, results: Dict[str, Any]):
         """Update cognitive maturity based on evolution results"""
         intelligence_boost = results.get("intelligence_delta", 0)
-        self.cognitive_maturity = min(1.0, self.cognitive_maturity + intelligence_boost * 0.1)
+        # Placeholder for more complex logic
+        self.cognitive_maturity += intelligence_boost * 0.1
+        self.cognitive_maturity = min(1.0, self.cognitive_maturity)
 
 
 # Global evolution manager
 _evolution_manager = None
 
-def get_evolution_manager(model_config: Dict[str, str], logger: logging.Logger) -> CognitiveEvolutionManager:
-    """Get or create the global evolution manager"""
+def get_evolution_manager(model_config: Dict[str, str], logger: logging.Logger, memory: Memory, model_optimizer: ModelOptimizer) -> CognitiveEvolutionManager:
+    """Factory function to get a singleton instance of the CognitiveEvolutionManager."""
     global _evolution_manager
     if _evolution_manager is None:
-        _evolution_manager = CognitiveEvolutionManager(model_config, logger)
+        _evolution_manager = CognitiveEvolutionManager(model_config, logger, memory, model_optimizer)
     return _evolution_manager
 
-
-def start_cognitive_evolution(model_config: Dict[str, str], logger: logging.Logger):
-    """Start the cognitive evolution process"""
-    manager = get_evolution_manager(model_config, logger)
-    manager.start_cognitive_evolution()
-    return manager
+def start_cognitive_evolution(model_config: Dict[str, str], logger: logging.Logger, memory: Memory, model_optimizer: ModelOptimizer):
+    """Utility function to start the cognitive evolution process"""
+    manager = get_evolution_manager(model_config, logger, memory, model_optimizer)
+    if not manager.evolution_active:
+        manager.start_cognitive_evolution()

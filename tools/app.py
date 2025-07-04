@@ -13,6 +13,9 @@ from datetime import datetime
 import json
 import os
 
+from dotenv import load_dotenv
+load_dotenv() # Carrega as variáveis de ambiente do arquivo .env
+
 from agent.queue_manager import QueueManager
 from agent.hephaestus_agent import HephaestusAgent
 from agent.config_loader import load_config
@@ -270,8 +273,17 @@ def worker_thread():
     while True:
         try:
             # Get objective from queue (blocking)
-            objective = queue_manager.get_objective()
-            logger.info(f"📋 Processing objective: {objective}")
+            objective_data = queue_manager.get_objective()
+            logger.info(f"📋 Processing objective: {objective_data}")
+
+            # Extract objective string, handling both dict and str formats
+            if isinstance(objective_data, dict):
+                objective_str = objective_data.get("objective")
+                if not objective_str:
+                    logger.error(f"Objective dictionary is missing 'objective' key: {objective_data}")
+                    continue
+            else:
+                objective_str = str(objective_data)
             
             # Ensure agent is initialized
             if not hephaestus_agent_instance:
@@ -279,15 +291,15 @@ def worker_thread():
                 continue
             
             # Add objective to agent's stack and run a single cycle
-            hephaestus_agent_instance.objective_stack.append(objective)
+            hephaestus_agent_instance.objective_stack.append(objective_str)
             
             # Create cycle runner and run single cycle
             from agent.cycle_runner import CycleRunner
             cycle_runner = CycleRunner(hephaestus_agent_instance, queue_manager)
-            cycle_runner._run_single_cycle(objective)
+            cycle_runner._run_single_cycle(objective_str)
             
         except Exception as e:
-            logger.error(f"❌ Error in worker thread: {e}")
+            logger.error(f"❌ Error in worker thread: {e}", exc_info=True)
             time.sleep(5)  # Wait before retrying
 
 # === CORE OPERATIONS ENDPOINTS === #

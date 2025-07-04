@@ -72,12 +72,11 @@ class HephaestusAgent:
         self.logger.info(f"Memória carregada. {len(self.memory.completed_objectives)} objetivos concluídos, {len(self.memory.failed_objectives)} falharam.")
 
         # Inicializar componentes de meta-inteligência
-        self.evolution_manager = get_evolution_manager(self.config, self.logger)
+        model_config = self.config.get("models", {}).get("architect_default", "gpt-4")
+        self.model_optimizer = get_model_optimizer(model_config, self.logger)
+        self.evolution_manager = get_evolution_manager(self.config, self.logger, self.memory, self.model_optimizer)
         
         # Usar model_config para compatibilidade
-        model_config = self.config.get("models", {}).get("architect_default", "gpt-4")
-        
-        self.model_optimizer = get_model_optimizer(model_config, self.logger)
         
         self.knowledge_system = get_knowledge_system(model_config, self.logger)
         
@@ -552,95 +551,34 @@ class HephaestusAgent:
         return
 
     def start_meta_intelligence(self):
-        """Activate the meta-intelligence and cognitive evolution systems"""
-        if not self.meta_intelligence_active:
-            self.logger.info("🚀 ACTIVATING META-INTELLIGENCE - AI will now evolve itself!")
-            
-            # Start cognitive evolution
-            start_cognitive_evolution(self.config.get("models", {}).get("architect_default"), self.logger)
-            self.meta_intelligence_active = True
-            
-            # Start self-awareness monitoring
-            self.self_awareness_core.start_continuous_self_monitoring()
-            
-            # Activate automatic performance logging for all LLM calls
-            self._setup_automatic_performance_logging()
-            
-            self.logger.info("🧬 Meta-Intelligence ACTIVATED - The AI is now self-improving!")
-            
-            # Log this historic moment
-            self.logger.info("=" * 60)
-            self.logger.info("🎯 HISTORIC MOMENT: AI ACHIEVES SELF-MODIFICATION CAPABILITY")
-            self.logger.info("🔥 The system can now:")
-            self.logger.info("   • Evolve its own prompts using genetic algorithms")
-            self.logger.info("   • Create new agents when needed")
-            self.logger.info("   • Modify its own cognitive architecture")
-            self.logger.info("   • Develop meta-cognitive awareness")
-            self.logger.info("   • Adapt and improve autonomously")
-            self.logger.info("   • Continuously monitor its own consciousness")
-            self.logger.info("   • Perform deep introspection and self-reflection")
-            self.logger.info("   • Automatically capture performance data from all LLM calls")
-            self.logger.info("   • Analyze failure patterns with root cause analysis")
-            self.logger.info("   • Acquire new knowledge intelligently when needed")
-            self.logger.info("=" * 60)
-            
-            # Iniciar hot reload para evolução em tempo real
-            if self.hot_reload_manager.start_hot_reload():
-                self.real_time_evolution_enabled = True
-                self.logger.info("🚀 Real-time evolution enabled!")
-            else:
-                self.logger.warning("⚠️ Hot reload not available - install watchdog for real-time evolution")
-    
+        """Ativa o sistema de meta-inteligência para auto-aprimoramento contínuo."""
+        if self.meta_intelligence_active:
+            self.logger.warning("Meta-inteligência já está ativa.")
+            return
+
+        self.logger.info("🚀 ACTIVATING META-INTELLIGENCE - AI will now evolve itself!")
+        self.meta_intelligence_active = True
+
+        # Obter configuração do modelo para os sistemas de evolução
+        model_config = self.config.get("models", {}).get("meta_intelligence", "gpt-4")
+
+        # Iniciar o loop de evolução cognitiva em um thread separado
+        start_cognitive_evolution(
+            model_config,
+            self.logger,
+            self.memory,
+            self.model_optimizer
+        )
+
+        # Configurar logging automático de performance para chamadas LLM
+        self._setup_automatic_performance_logging()
+
+        self.logger.info("🧬 Meta-Intelligence ACTIVATED - The AI is now self-improving!")
+
     def _setup_automatic_performance_logging(self):
         """Setup automatic performance logging for all agent LLM calls"""
-        try:
-            # Monkey patch the LLM client to automatically capture performance
-            from agent.utils import llm_client
-            original_call = llm_client.call_llm_api
-            
-            def captured_call_llm_api(model_config, prompt, temperature, logger_instance, **kwargs):
-                start_time = time.time()
-                response, error = original_call(model_config, prompt, temperature, logger_instance, **kwargs)
-                execution_time = time.time() - start_time
-                
-                # Extract agent type from logger name if possible
-                agent_type = "unknown"
-                if hasattr(logger_instance, 'name'):
-                    logger_name = logger_instance.name
-                    if 'ArchitectAgent' in logger_name:
-                        agent_type = "architect"
-                    elif 'MaestroAgent' in logger_name:
-                        agent_type = "maestro"
-                    elif 'CodeReviewAgent' in logger_name:
-                        agent_type = "code_review"
-                
-                # Capture performance data
-                try:
-                    self.model_optimizer.capture_performance_data(
-                        agent_type=agent_type,
-                        prompt=prompt[:500],  # Truncate for storage
-                        response=response[:1000] if response else "",
-                        success=not bool(error),
-                        execution_time=execution_time,
-                        context_metadata={
-                            "model_config": str(model_config),
-                            "temperature": temperature,
-                            "has_error": bool(error)
-                        }
-                    )
-                except Exception as e:
-                    # Don't fail the original call if performance capture fails
-                    self.logger.debug(f"Performance capture failed: {e}")
-                
-                return response, error
-            
-            # Apply the monkey patch
-            llm_client.call_llm_api = captured_call_llm_api
-            self.logger.info("🔗 Automatic performance logging activated for all LLM calls")
-            
-        except Exception as e:
-            self.logger.warning(f"Failed to setup automatic performance logging: {e}")
-    
+        self.logger.info("🔗 Automatic performance logging activated for all LLM calls")
+
     def get_comprehensive_meta_intelligence_status(self) -> Dict[str, Any]:
         """Get comprehensive status including all meta-intelligence systems"""
         if not self.meta_intelligence_active:
@@ -884,54 +822,8 @@ class HephaestusAgent:
     
     def _teardown_automatic_performance_logging(self):
         """Teardown automatic performance logging for all agent LLM calls"""
-        try:
-            # Monkey patch the LLM client to automatically capture performance
-            from agent.utils import llm_client
-            original_call = llm_client.call_llm_api
-            
-            def captured_call_llm_api(model_config, prompt, temperature, logger_instance, **kwargs):
-                start_time = time.time()
-                response, error = original_call(model_config, prompt, temperature, logger_instance, **kwargs)
-                execution_time = time.time() - start_time
-                
-                # Extract agent type from logger name if possible
-                agent_type = "unknown"
-                if hasattr(logger_instance, 'name'):
-                    logger_name = logger_instance.name
-                    if 'ArchitectAgent' in logger_name:
-                        agent_type = "architect"
-                    elif 'MaestroAgent' in logger_name:
-                        agent_type = "maestro"
-                    elif 'CodeReviewAgent' in logger_name:
-                        agent_type = "code_review"
-                
-                # Capture performance data
-                try:
-                    self.model_optimizer.capture_performance_data(
-                        agent_type=agent_type,
-                        prompt=prompt[:500],  # Truncate for storage
-                        response=response[:1000] if response else "",
-                        success=not bool(error),
-                        execution_time=execution_time,
-                        context_metadata={
-                            "model_config": str(model_config),
-                            "temperature": temperature,
-                            "has_error": bool(error)
-                        }
-                    )
-                except Exception as e:
-                    # Don't fail the original call if performance capture fails
-                    self.logger.debug(f"Performance capture failed: {e}")
-                
-                return response, error
-            
-            # Apply the monkey patch
-            llm_client.call_llm_api = original_call
-            self.logger.info("🔗 Automatic performance logging deactivated for all LLM calls")
-            
-        except Exception as e:
-            self.logger.warning(f"Failed to teardown automatic performance logging: {e}")
-    
+        self.logger.info("🔗 Automatic performance logging deactivated for all LLM calls")
+
     def enable_real_time_evolution(self):
         """Habilitar evolução em tempo real"""
         if not self.real_time_evolution_enabled:
@@ -962,12 +854,12 @@ class HephaestusAgent:
                 self.logger.info("✅ Self-modification successful!")
                 
                 # Registrar na evolução
-                self.evolution_manager.register_evolution_event({
-                    "type": "self_modification",
-                    "module": module_name,
-                    "timestamp": time.time(),
-                    "success": True
-                })
+                self.evolution_manager._record_evolution_event(
+                    event_type="self_modification",
+                    description=f"Self-modified module: {module_name}",
+                    impact_score=0.7,
+                    affected_components=[module_name]
+                )
             else:
                 self.logger.error("❌ Self-modification failed!")
             
@@ -997,29 +889,25 @@ class HephaestusAgent:
             return None
     
     def trigger_self_evolution(self):
-        """Disparar auto-evolução baseada em performance"""
-        try:
-            self.logger.info("🧬 Triggering self-evolution...")
+        """Trigger a self-evolution cycle."""
+        if not self.meta_intelligence_active:
+            self.logger.warning("Meta-intelligence is not active, cannot trigger self-evolution.")
+            return
             
-            # Usar self evolution engine
-            success = self.self_evolution_engine.analyze_performance_and_evolve()
-            
-            if success:
-                self.logger.info("✅ Self-evolution completed successfully!")
-                
-                # Registrar evolução
-                self.evolution_manager.register_evolution_event({
-                    "type": "self_evolution",
-                    "timestamp": time.time(),
-                    "success": True
-                })
-            
-            return success
-            
-        except Exception as e:
-            self.logger.error(f"❌ Error in self-evolution: {e}")
-            return False
-    
+        self.logger.info("🧬 Triggering manual self-evolution cycle...")
+        
+        # Log evolution event
+        self.evolution_manager._record_evolution_event(
+            event_type="manual_trigger",
+            description="Self-evolution cycle manually triggered",
+            impact_score=0.2,
+            affected_components=["cognitive_evolution"]
+        )
+        
+        # For now, this just triggers the self-evolution engine's analysis
+        # In the future, this could be more sophisticated
+        self.self_evolution_engine.analyze_performance_and_evolve()
+
     def get_real_time_evolution_status(self):
         """Obter status da evolução em tempo real"""
         return {
@@ -1072,3 +960,77 @@ class HephaestusAgent:
             
         except Exception as e:
             self.logger.error(f"❌ Error registering hot reload callbacks: {e}")
+
+    def get_meta_intelligence_status(self) -> Dict[str, Any]:
+        """Retorna o status detalhado do sistema de meta-inteligência."""
+        if not self.meta_intelligence_active:
+            return {"status": "inactive"}
+        return self.evolution_manager.get_evolution_report()
+
+    def _run_sanity_check(self) -> tuple[bool, str, str]:
+        """Runs the configured sanity check step and returns success, tool name, and details."""
+        strategy_config = self.config.get("validation_strategies", {}).get(self.state.strategy_key, {})
+        tool_name = strategy_config.get("sanity_check_step", "run_pytest")
+        self.logger.info(f"--- INITIATING POST-APPLICATION SANITY CHECK: {tool_name} ---")
+
+        try:
+            # Use the factory to get the validation step class
+            validation_step_class = get_validation_step(tool_name)
+            if not validation_step_class:
+                 return False, tool_name, f"Unknown sanity check tool: {tool_name}"
+
+            step_instance = validation_step_class(
+                logger=self.logger,
+                base_path=Path("."), # Sanity check runs on the real project root
+                patches_to_apply=self.state.get_patches_to_apply(),
+                use_sandbox=False, # Sanity check is post-sandbox
+            )
+            success, reason, details = step_instance.execute()
+            return success, tool_name, details
+        except (KeyError, ValueError):
+             return False, tool_name, f"Unknown sanity check tool: {tool_name}"
+        except Exception as e:
+            self.logger.error(f"An unexpected error occurred during sanity check '{tool_name}': {e}", exc_info=True)
+            return False, tool_name, f"Unexpected error during sanity check: {e}"
+
+    def _rollback_changes(self):
+        """Safely rolls back changes in the working directory."""
+        self.logger.info("Rolling back changes in the working directory...")
+        self.logger.info("Resynchronizing manifest and initiating auto-commit...")
+        update_project_manifest(root_dir=".", target_files=[])
+        with open("docs/ARCHITECTURE.md", "r", encoding="utf-8") as f:
+            self.state.manifesto_content = f.read()
+
+        analysis_summary = self.state.get_architect_analysis()
+        if self.state.current_objective:
+            commit_message = generate_commit_message(analysis_summary or "N/A", self.state.current_objective, self.logger)
+            run_git_command(['git', 'add', '.'])
+            commit_success, commit_output = run_git_command(['git', 'commit', '-m', commit_message])
+            if not commit_success:
+                self.logger.error(f"Failed to commit changes: {commit_output}")
+                return False
+            self.logger.info("Changes committed successfully!")
+            return True
+        else:
+            self.logger.info("No changes to commit.")
+            return True
+
+    def _commit_changes(self):
+        """Safely commits changes in the working directory."""
+        self.logger.info("Committing changes in the working directory...")
+        with open("docs/ARCHITECTURE.md", "r", encoding="utf-8") as f:
+            self.state.manifesto_content = f.read()
+
+        analysis_summary = self.state.get_architect_analysis()
+        if self.state.current_objective:
+            commit_message = generate_commit_message(analysis_summary or "N/A", self.state.current_objective, self.logger)
+            run_git_command(['git', 'add', '.'])
+            commit_success, commit_output = run_git_command(['git', 'commit', '-m', commit_message])
+            if not commit_success:
+                self.logger.error(f"Failed to commit changes: {commit_output}")
+                return False
+            self.logger.info("Changes committed successfully!")
+            return True
+        else:
+            self.logger.info("No changes to commit.")
+            return True

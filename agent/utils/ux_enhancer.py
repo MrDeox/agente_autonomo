@@ -32,3 +32,14 @@ class UXEnhancer:
     def show_error_message(self, message: str):
         """Mostrar mensagem de erro"""
         print(f"❌ {message}")
+
+    def format_welcome_message(self, name: str) -> str:
+        """Format a personalized welcome message
+        
+        Args:
+            name: The name to include in the welcome message
+            
+        Returns:
+            A formatted welcome string
+        """
+        return f"✨ Welcome, {name}! Hephaestus is ready to assist you with your AI needs. ✨"

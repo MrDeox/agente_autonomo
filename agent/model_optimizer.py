@@ -514,7 +514,7 @@ class ModelOptimizer:
             return "stable"
     
     def _generate_optimization_recommendations(self) -> List[str]:
-        """Generate specific recommendations for optimization."""
+        """Generate recommendations based on performance data."""
         recommendations = []
         
         # Check each agent type
@@ -540,6 +540,8 @@ class ModelOptimizer:
         
         if total_high_quality >= 500:
             recommendations.append("🚀 Sufficient high-quality data for comprehensive model optimization")
+        
+        recommendations.append(" regularly to improve system performance.")
         
         return recommendations
 
@@ -614,12 +616,46 @@ Focus on:
             self.logger.error(f"Prompt optimization failed: {e}")
             return current_prompt
 
+    def get_agent_performance_summary(self) -> Dict[str, Dict[str, Any]]:
+        """
+        Retrieves and summarizes performance data for each agent from the database.
+        """
+        summary = {}
+        try:
+            with sqlite3.connect(self.db_path) as conn:
+                cursor = conn.cursor()
+                cursor.execute("""
+                    SELECT
+                        agent_type,
+                        COUNT(*),
+                        SUM(CASE WHEN success = 1 THEN 1 ELSE 0 END),
+                        AVG(quality_score)
+                    FROM performance_data
+                    GROUP BY agent_type
+                """)
+                rows = cursor.fetchall()
+                
+                for row in rows:
+                    agent_type, total_calls, success_calls, avg_quality = row
+                    success_rate = (success_calls / total_calls) if total_calls > 0 else 0
+                    summary[agent_type] = {
+                        "total_calls": total_calls,
+                        "success_calls": success_calls,
+                        "success_rate": round(success_rate, 3),
+                        "average_quality_score": round(avg_quality, 3),
+                        "needs_evolution": success_rate < 0.8 or avg_quality < 0.75
+                    }
+            return summary
+        except Exception as e:
+            self.logger.error(f"Failed to get agent performance summary from DB: {e}")
+            return {}
+
 
 # Global instance
 _model_optimizer = None
 
 def get_model_optimizer(model_config: Dict[str, str], logger: logging.Logger) -> ModelOptimizer:
-    """Get or create the global model optimizer instance."""
+    """Factory function to get a singleton instance of the ModelOptimizer."""
     global _model_optimizer
     if _model_optimizer is None:
         _model_optimizer = ModelOptimizer(model_config, logger)
