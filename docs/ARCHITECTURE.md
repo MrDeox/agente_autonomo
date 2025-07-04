@@ -2,12 +2,23 @@
 
 ## 1. ESTRUTURA DE ARQUIVOS (OTIMIZADA)
 agente_autonomo/
+    MCP_SETUP_GUIDE.md
     README.md
+    PROPOSTA_SERVIDOR_MCP.md
+    REVISAO_PROJETO_HEPHAESTUS.md
+    hephaestus_mcp_server.py
+    META_INTELLIGENCE_UPGRADE_SUMMARY.md
+    mcp_server_example.py
     cli.py
+    README_MCP_HEPHAESTUS.md
     poetry.lock
     main.py
     hephaestus_config.json
+    CHECKLIST_MCP_HEPHAESTUS.md
     requirements.txt
+    requirements_mcp.txt
+    demo_meta_intelligence.py
+    setup_mcp.py
     pyproject.toml
     tools/
         app.py
@@ -15,10 +26,12 @@ agente_autonomo/
         brain.py
         __init__.py
         code_metrics.py
+        model_optimizer.py
         hephaestus_agent.py
         hephaestus_config.json
         git_utils.py
         meta_cognitive_controller.py
+        root_cause_analyzer.py
         code_validator.py
         meta_intelligence_core.py
         flow_self_modifier.py
@@ -32,6 +45,7 @@ agente_autonomo/
         queue_manager.py
         state.py
         config_loader.py
+        advanced_knowledge_system.py
         validation_steps/
             pytest_validator.py
             __init__.py
@@ -70,6 +84,7 @@ agente_autonomo/
         validation_strategies/
             main.yaml
     reports/
+        model_performance.db
         night_work/
             NIGHT_WORK_SUMMARY.md
             NIGHT_AGENT_README.md
@@ -85,6 +100,54 @@ agente_autonomo/
 
 ## 2. RESUMO DAS INTERFACES (APIs Internas)
 
+### Arquivo: `hephaestus_mcp_server.py`
+- **Classe:** `HephaestusMCPServer`
+  - *Servidor MCP principal que gerencia todas as funcionalidades do Hephaestus*
+- **Função:** `analyze_code(code: str, context: str='')`
+  - *Analisa código usando as capacidades avançadas de RSI do Hephaestus.*
+- **Função:** `generate_objective(context: str, type: str='standard')`
+  - *Gera objetivos inteligentes usando o sistema Brain do Hephaestus.*
+- **Função:** `execute_rsi_cycle(objective: str, area: str='general')`
+  - *Executa um ciclo completo de auto-aprimoramento recursivo.*
+- **Função:** `meta_intelligence_report()`
+  - *Gera relatório completo da meta-inteligência do sistema.*
+- **Função:** `performance_analysis()`
+  - *Análise profunda de performance usando múltiplos sistemas.*
+- **Função:** `evolve_capabilities(focus_area: str='general')`
+  - *Evolui as capacidades do sistema usando meta-inteligência.*
+- **Função:** `system_status()`
+  - *Status geral do sistema Hephaestus.*
+- **Função:** `hephaestus_status()`
+  - *Status detalhado do sistema Hephaestus*
+- **Função:** `hephaestus_capabilities()`
+  - *Capacidades detalhadas do sistema*
+- **Função:** `hephaestus_memory()`
+  - *Acesso à memória do sistema*
+- **Função:** `main()`
+  - *Função principal para executar o servidor MCP*
+
+### Arquivo: `mcp_server_example.py`
+- **Classe:** `HephaestusSimulator`
+  - *Simulador das capacidades do Hephaestus para demonstração*
+- **Função:** `analyze_code(code: str)`
+  - *Analisa código usando as capacidades avançadas do Hephaestus RSI.*
+- **Função:** `generate_objective(context: str)`
+  - *Gera um objetivo de aprimoramento baseado no contexto fornecido.*
+- **Função:** `self_improve(area: str)`
+  - *Executa um ciclo de auto-aprimoramento em uma área específica.*
+- **Função:** `performance_analysis()`
+  - *Retorna análise completa de performance do sistema Hephaestus.*
+- **Função:** `capability_assessment()`
+  - *Avalia as capacidades atuais do sistema Hephaestus.*
+- **Função:** `system_status()`
+  - *Status atual do sistema Hephaestus*
+- **Função:** `capabilities_resource()`
+  - *Configuração detalhada das capacidades*
+- **Função:** `analyze_and_improve_prompt(code: str, focus_area: str='general')`
+  - *Prompt para análise e aprimoramento de código.*
+- **Função:** `main()`
+  - *Função principal para executar o servidor MCP*
+
 ### Arquivo: `cli.py`
 - **Função:** `run(continuous: bool=typer.Option(False, '--continuous', '-c', help='Run in continuous mode'), max_cycles: int=typer.Option(None, '--max-cycles', '-m', help='Maximum number of evolution cycles'))`
   - *Run the Hephaestus agent*
@@ -94,6 +157,34 @@ agente_autonomo/
   - *Check agent status*
 
 ### Arquivo: `main.py`
+
+### Arquivo: `demo_meta_intelligence.py`
+- **Função:** `setup_logging()`
+  - *Setup comprehensive logging for the demo*
+- **Função:** `demo_model_optimizer(logger)`
+  - *Demonstrate the Model Optimizer system*
+- **Função:** `demo_knowledge_system(logger)`
+  - *Demonstrate the Advanced Knowledge System*
+- **Função:** `demo_root_cause_analyzer(logger)`
+  - *Demonstrate the Root Cause Analyzer*
+- **Função:** `demo_meta_intelligence_integration(logger, optimizer, knowledge_system, analyzer)`
+  - *Demonstrate the integrated Meta-Intelligence Core*
+- **Função:** `main()`
+  - *Main demonstration function*
+
+### Arquivo: `setup_mcp.py`
+- **Função:** `run_command(cmd: str, description: str='')`
+  - *Executa um comando e retorna o resultado*
+- **Função:** `install_dependencies()`
+  - *Instala as dependências do MCP*
+- **Função:** `create_cursor_config()`
+  - *Cria configuração para Cursor*
+- **Função:** `create_claude_config()`
+  - *Cria configuração para Claude Desktop*
+- **Função:** `create_test_client()`
+  - *Cria cliente de teste para o servidor MCP*
+- **Função:** `main()`
+  - *Função principal do setup*
 
 ### Arquivo: `tools/app.py`
 - **Classe:** `Objective(BaseModel)`
@@ -123,6 +214,16 @@ agente_autonomo/
 - **Função:** `detect_code_duplication(code_string: str, min_lines: int=4, strip_comments_and_blanks: bool=True)`
   - *Detects duplicated code blocks in the given Python code string.*
 
+### Arquivo: `agent/model_optimizer.py`
+- **Classe:** `ModelPerformanceData`
+  - *Performance data for a specific model call*
+- **Classe:** `FineTuningDataset`
+  - *A dataset prepared for fine-tuning*
+- **Classe:** `ModelOptimizer`
+  - *Advanced system for model self-optimization through performance data collection*
+- **Função:** `get_model_optimizer(model_config: Dict[str, str], logger: logging.Logger)`
+  - *Get or create the global model optimizer instance.*
+
 ### Arquivo: `agent/hephaestus_agent.py`
 - **Classe:** `HephaestusAgent`
   - *Classe principal que encapsula a lógica do agente autônomo.*
@@ -140,6 +241,22 @@ agente_autonomo/
   - *Represents a proposed modification to the LLM flow*
 - **Classe:** `MetaCognitiveController`
   - *Controller that monitors and modifies LLM call flows dynamically.*
+
+### Arquivo: `agent/root_cause_analyzer.py`
+- **Classe:** `FailureType(Enum)`
+  - *Types of failures the system can experience*
+- **Classe:** `CausalLayer(Enum)`
+  - *Different layers of causality*
+- **Classe:** `FailureEvent`
+  - *A single failure event with comprehensive metadata*
+- **Classe:** `CausalFactor`
+  - *A factor that contributes to failures*
+- **Classe:** `RootCauseAnalysis`
+  - *Complete root cause analysis result*
+- **Classe:** `RootCauseAnalyzer`
+  - *Advanced root cause analysis system that can identify deep, systemic*
+- **Função:** `get_root_cause_analyzer(model_config: Dict[str, str], logger: logging.Logger)`
+  - *Get or create the global root cause analyzer instance.*
 
 ### Arquivo: `agent/code_validator.py`
 - **Função:** `perform_deep_validation(file_path: Path, logger: logging.Logger)`
@@ -278,6 +395,16 @@ agente_autonomo/
 ### Arquivo: `agent/config_loader.py`
 - **Função:** `load_config()`
   - *Load configuration using Hydra.*
+
+### Arquivo: `agent/advanced_knowledge_system.py`
+- **Classe:** `KnowledgeEntry`
+  - *A single piece of knowledge with metadata*
+- **Classe:** `SearchResult`
+  - *Enhanced search result with intelligence metadata*
+- **Classe:** `AdvancedKnowledgeSystem`
+  - *Advanced knowledge acquisition and processing system that can learn*
+- **Função:** `get_knowledge_system(model_config: Dict[str, str], logger: logging.Logger)`
+  - *Get or create the global knowledge system instance.*
 
 ### Arquivo: `agent/validation_steps/pytest_validator.py`
 - **Classe:** `PytestValidator(ValidationStep)`
