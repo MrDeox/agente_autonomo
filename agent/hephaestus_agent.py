@@ -63,8 +63,32 @@ class HephaestusAgent:
         self.memory.load()
         self.logger.info(f"Memória carregada. {len(self.memory.completed_objectives)} objetivos concluídos, {len(self.memory.failed_objectives)} falharam.")
 
-        # Inicialização dos Agentes Especializados
+        # Initialize Meta-Intelligence Systems FIRST
         architect_model_config = self.config.get("models", {}).get("architect_default")
+        self.evolution_manager = get_evolution_manager(architect_model_config, self.logger)
+        self.meta_intelligence_active = False
+        
+        # Initialize Model Optimizer for automatic performance capture
+        from agent.model_optimizer import get_model_optimizer
+        self.model_optimizer = get_model_optimizer(architect_model_config, self.logger)
+        
+        # Initialize Advanced Knowledge System
+        from agent.advanced_knowledge_system import get_knowledge_system
+        self.knowledge_system = get_knowledge_system(architect_model_config, self.logger)
+        
+        # Initialize Root Cause Analyzer
+        from agent.root_cause_analyzer import get_root_cause_analyzer
+        self.root_cause_analyzer = get_root_cause_analyzer(architect_model_config, self.logger)
+        
+        # Initialize Self-Awareness Core
+        from agent.self_awareness_core import get_self_awareness_core
+        self.self_awareness_core = get_self_awareness_core(architect_model_config, self.logger)
+        
+        # Initialize Infrastructure Manager
+        from agent.utils.infrastructure_manager import get_infrastructure_manager
+        self.infrastructure_manager = get_infrastructure_manager(self.logger)
+
+        # Inicialização dos Agentes Especializados COM INTEGRAÇÃO DE META-INTELIGÊNCIA
         self.architect = ArchitectAgent(
             model_config=architect_model_config,
             logger=self.logger.getChild("ArchitectAgent")
@@ -90,24 +114,16 @@ class HephaestusAgent:
         self._initialize_evolution_log()
 
         self._reset_cycle_state()
-
-        # Initialize Meta-Intelligence Systems
-        self.evolution_manager = get_evolution_manager(self.config.get("models", {}).get("architect_default"), self.logger)
-        self.meta_intelligence_active = False
-        
-        # Initialize Self-Awareness Core
-        from agent.self_awareness_core import get_self_awareness_core
-        self.self_awareness_core = get_self_awareness_core(self.config.get("models", {}).get("architect_default"), self.logger)
-        
-        # Initialize Infrastructure Manager
-        from agent.utils.infrastructure_manager import get_infrastructure_manager
-        self.infrastructure_manager = get_infrastructure_manager(self.logger)
         
         # Ensure infrastructure is ready
         if not self.infrastructure_manager.ensure_infrastructure():
             self.logger.warning("⚠️ Infrastructure issues detected - system may not function optimally")
         
-        self.logger.info("🧠 Hephaestus initialized with Meta-Intelligence, Self-Awareness, and Infrastructure Management capabilities")
+        self.logger.info("🧠 Hephaestus initialized with FULL Meta-Intelligence Integration!")
+        self.logger.info("🚀 Performance data will be automatically captured for all LLM calls")
+        self.logger.info("🔍 Knowledge system ready for intelligent search")
+        self.logger.info("⚡ Root cause analysis will detect failure patterns")
+        self.logger.info("🧬 Self-awareness core monitoring cognitive state")
 
     def _initialize_evolution_log(self):
         """Verifica e inicializa o arquivo de log de evolução com cabeçalho, se necessário."""
@@ -181,22 +197,113 @@ class HephaestusAgent:
             
         return True
 
+    def _capture_agent_performance(self, agent_type: str, prompt: str, response: str, 
+                                  success: bool, execution_time: float, 
+                                  context_metadata: Optional[Dict[str, Any]] = None) -> float:
+        """
+        Captura automaticamente dados de performance dos agentes para meta-inteligência.
+        
+        Returns:
+            Quality score calculado pelo ModelOptimizer
+        """
+        try:
+            quality_score = self.model_optimizer.capture_performance_data(
+                agent_type=agent_type,
+                prompt=prompt,
+                response=response,
+                success=success,
+                execution_time=execution_time,
+                context_metadata=context_metadata or {"objective": self.state.current_objective}
+            )
+            
+            self.logger.debug(f"📊 Performance captured for {agent_type}: quality={quality_score:.3f}, success={success}")
+            return quality_score
+            
+        except Exception as e:
+            self.logger.warning(f"Failed to capture performance data for {agent_type}: {e}")
+            return 0.5  # Default score
+
+    def _record_failure_for_analysis(self, agent_type: str, objective: str, error_message: str, 
+                                   failure_type: str = "unknown", severity: float = 0.5):
+        """
+        Registra falhas para análise de causa raiz automática.
+        """
+        try:
+            from agent.root_cause_analyzer import FailureType
+            
+            # Map string to FailureType enum
+            failure_type_map = {
+                "validation": FailureType.VALIDATION_FAILURE,
+                "syntax": FailureType.SYNTAX_ERROR,
+                "timeout": FailureType.TIMEOUT,
+                "unknown": FailureType.UNKNOWN
+            }
+            
+            failure_type_enum = failure_type_map.get(failure_type, FailureType.UNKNOWN)
+            
+            failure_id = self.root_cause_analyzer.record_failure(
+                agent_type=agent_type,
+                objective=objective,
+                error_message=error_message,
+                failure_type=failure_type_enum,
+                severity=severity
+            )
+            
+            self.logger.debug(f"🔍 Failure recorded for analysis: {failure_id}")
+            
+            # Trigger analysis if enough failures accumulated
+            analysis = self.root_cause_analyzer.analyze_failure_patterns("surface")
+            if analysis and analysis.primary_root_causes:
+                self.logger.info(f"⚡ Root cause analysis identified {len(analysis.primary_root_causes)} root causes")
+                
+        except Exception as e:
+            self.logger.warning(f"Failed to record failure for analysis: {e}")
+
     def _run_architect_phase(self) -> bool:
         self.logger.info("\nSolicitando plano de ação do ArchitectAgent...")
         if not self.state.current_objective:
             self.logger.error("--- FALHA: _run_architect_phase chamado sem um objetivo atual definido no estado. ---")
             return False
 
+        start_time = time.time()
+        
         action_plan_data, error_msg = self.architect.plan_action(
             objective=self.state.current_objective,
             manifest=self.state.manifesto_content,
             file_content_context=getattr(self.state, 'file_content_context', '')
+        )
+        
+        execution_time = time.time() - start_time
+        success = bool(not error_msg and action_plan_data and "patches_to_apply" in action_plan_data)
+
+        # Capturar dados de performance automaticamente
+        self._capture_agent_performance(
+            agent_type="architect",
+            prompt=f"Objective: {self.state.current_objective[:200]}...",  # Truncated for storage
+            response=str(action_plan_data) if action_plan_data else str(error_msg),
+            success=success,
+            execution_time=execution_time,
+            context_metadata={
+                "objective": self.state.current_objective,
+                "manifest_size": len(self.state.manifesto_content) if self.state.manifesto_content else 0,
+                "has_file_context": bool(getattr(self.state, 'file_content_context', ''))
+            }
         )
 
         if error_msg or not action_plan_data or "patches_to_apply" not in action_plan_data:
             self.logger.error(
                 f"--- FALHA: ArchitectAgent não conseguiu gerar um plano de ação válido. Erro: {error_msg} ---"
             )
+            
+            # Registrar falha para análise
+            self._record_failure_for_analysis(
+                agent_type="architect",
+                objective=self.state.current_objective,
+                error_message=error_msg or "No action plan generated",
+                failure_type="validation",
+                severity=0.8
+            )
+            
             self.state.action_plan_data = {"analysis": "", "patches_to_apply": []}
         else:
             self.state.action_plan_data = action_plan_data
@@ -236,18 +343,48 @@ class HephaestusAgent:
             self.logger.error("--- FALHA: Nenhum plano de ação (patches) disponível para o MaestroAgent avaliar. ---")
             return False
 
+        start_time = time.time()
+        
         maestro_logs = self.maestro.choose_strategy(
             action_plan_data=self.state.action_plan_data,
             memory_summary=self.memory.get_full_history_for_prompt(),
             failed_strategy_context=failed_strategy_context
         )
 
+        execution_time = time.time() - start_time
         maestro_attempt = next((log for log in maestro_logs if log.get("success") and log.get("parsed_json")), None)
+
+        # Capturar dados de performance
+        success = bool(maestro_attempt)
+        response_content = str(maestro_attempt.get("parsed_json", {})) if maestro_attempt else "No valid response"
+        
+        self._capture_agent_performance(
+            agent_type="maestro",
+            prompt=f"Action Plan Analysis: {str(self.state.action_plan_data)[:200]}...",
+            response=response_content,
+            success=success,
+            execution_time=execution_time,
+            context_metadata={
+                "objective": self.state.current_objective,
+                "has_failed_strategy_context": bool(failed_strategy_context),
+                "available_strategies": len(self.config.get("validation_strategies", {}))
+            }
+        )
 
         if not maestro_attempt:
             self.logger.error("--- FALHA: MaestroAgent não retornou uma resposta JSON válida e bem-sucedida após todas as tentativas. ---")
             raw_resp_list = [log.get('raw_response', 'No raw response') for log in maestro_logs]
             self.logger.debug(f"Respostas brutas do MaestroAgent: {raw_resp_list}")
+            
+            # Registrar falha para análise
+            self._record_failure_for_analysis(
+                agent_type="maestro",
+                objective=self.state.current_objective or "Unknown objective",
+                error_message="No valid JSON response from MaestroAgent",
+                failure_type="validation",
+                severity=0.7
+            )
+            
             fallback_strategy = self.config.get("validation_strategies", {}).get("NO_OP_STRATEGY")
             if fallback_strategy is None:
                 return False
@@ -264,6 +401,16 @@ class HephaestusAgent:
         if strategy_key not in valid_strategies:
             self.logger.error(f"--- FALHA: MaestroAgent escolheu uma estratégia inválida ou desconhecida: '{strategy_key}' ---")
             self.logger.debug(f"Estratégias válidas são: {valid_strategies}. Decisão do Maestro: {decision}")
+            
+            # Registrar falha para análise
+            self._record_failure_for_analysis(
+                agent_type="maestro",
+                objective=self.state.current_objective or "Unknown objective",
+                error_message=f"Invalid strategy chosen: {strategy_key}",
+                failure_type="validation",
+                severity=0.6
+            )
+            
             return False
 
         self.logger.info(f"Estratégia escolhida pelo MaestroAgent ({maestro_attempt.get('model', 'N/A')}): {strategy_key}")
@@ -401,6 +548,9 @@ class HephaestusAgent:
             # Start self-awareness monitoring
             self.self_awareness_core.start_continuous_self_monitoring()
             
+            # Activate automatic performance logging for all LLM calls
+            self._setup_automatic_performance_logging()
+            
             self.logger.info("🧬 Meta-Intelligence ACTIVATED - The AI is now self-improving!")
             
             # Log this historic moment
@@ -414,14 +564,84 @@ class HephaestusAgent:
             self.logger.info("   • Adapt and improve autonomously")
             self.logger.info("   • Continuously monitor its own consciousness")
             self.logger.info("   • Perform deep introspection and self-reflection")
+            self.logger.info("   • Automatically capture performance data from all LLM calls")
+            self.logger.info("   • Analyze failure patterns with root cause analysis")
+            self.logger.info("   • Acquire new knowledge intelligently when needed")
             self.logger.info("=" * 60)
     
-    def get_meta_intelligence_status(self) -> Dict[str, Any]:
-        """Get comprehensive status of meta-intelligence systems"""
+    def _setup_automatic_performance_logging(self):
+        """Setup automatic performance logging for all agent LLM calls"""
+        try:
+            # Monkey patch the LLM client to automatically capture performance
+            from agent.utils import llm_client
+            original_call = llm_client.call_llm_api
+            
+            def captured_call_llm_api(model_config, prompt, temperature, logger_instance, **kwargs):
+                start_time = time.time()
+                response, error = original_call(model_config, prompt, temperature, logger_instance, **kwargs)
+                execution_time = time.time() - start_time
+                
+                # Extract agent type from logger name if possible
+                agent_type = "unknown"
+                if hasattr(logger_instance, 'name'):
+                    logger_name = logger_instance.name
+                    if 'ArchitectAgent' in logger_name:
+                        agent_type = "architect"
+                    elif 'MaestroAgent' in logger_name:
+                        agent_type = "maestro"
+                    elif 'CodeReviewAgent' in logger_name:
+                        agent_type = "code_review"
+                
+                # Capture performance data
+                try:
+                    self.model_optimizer.capture_performance_data(
+                        agent_type=agent_type,
+                        prompt=prompt[:500],  # Truncate for storage
+                        response=response[:1000] if response else "",
+                        success=not bool(error),
+                        execution_time=execution_time,
+                        context_metadata={
+                            "model_config": str(model_config),
+                            "temperature": temperature,
+                            "has_error": bool(error)
+                        }
+                    )
+                except Exception as e:
+                    # Don't fail the original call if performance capture fails
+                    self.logger.debug(f"Performance capture failed: {e}")
+                
+                return response, error
+            
+            # Apply the monkey patch
+            llm_client.call_llm_api = captured_call_llm_api
+            self.logger.info("🔗 Automatic performance logging activated for all LLM calls")
+            
+        except Exception as e:
+            self.logger.warning(f"Failed to setup automatic performance logging: {e}")
+    
+    def get_comprehensive_meta_intelligence_status(self) -> Dict[str, Any]:
+        """Get comprehensive status including all meta-intelligence systems"""
         if not self.meta_intelligence_active:
             return {"status": "inactive", "message": "Meta-intelligence not activated"}
         
-        return self.evolution_manager.get_evolution_report()
+        try:
+            return {
+                "evolution_manager": self.evolution_manager.get_evolution_report(),
+                "model_optimizer": self.model_optimizer.get_optimization_report(),
+                "knowledge_system": self.knowledge_system.get_knowledge_report(),
+                "root_cause_analyzer": self.root_cause_analyzer.get_analysis_report(),
+                "self_awareness": self.self_awareness_core.get_self_awareness_report(),
+                "integration_status": {
+                    "automatic_performance_capture": True,
+                    "failure_analysis": True,
+                    "knowledge_acquisition": True,
+                    "self_monitoring": True,
+                    "infrastructure_ready": self.infrastructure_manager.ensure_infrastructure()
+                }
+            }
+        except Exception as e:
+            self.logger.error(f"Failed to get comprehensive status: {e}")
+            return {"status": "error", "message": str(e)}
     
     def perform_deep_self_reflection(self, focus_area: str = "general") -> Dict[str, Any]:
         """Perform deep self-reflection and introspection"""
@@ -486,15 +706,15 @@ class HephaestusAgent:
             return 30.0  # Default sleep
         
         # Get cognitive maturity level
-        status = self.get_meta_intelligence_status()
-        maturity = status.get("cognitive_status", {}).get("maturity_level", 0.1)
+        status = self.get_comprehensive_meta_intelligence_status()
+        maturity = status.get("evolution_manager", {}).get("cognitive_status", {}).get("maturity_level", 0.1)
         
         # More mature AI can work faster
         base_sleep = 30.0
         maturity_factor = 1.0 - (maturity * 0.5)  # Up to 50% faster
         
         # Recent activity affects sleep
-        recent_activity = status.get("cognitive_status", {}).get("recent_activity", 0)
+        recent_activity = status.get("evolution_manager", {}).get("cognitive_status", {}).get("recent_activity", 0)
         activity_factor = 1.0 + (recent_activity * 0.1)  # Slow down if very active
         
         intelligent_sleep = base_sleep * maturity_factor * activity_factor
