@@ -1,0 +1,5 @@
+- name: validate_config_structure
+  module: syntax_validator
+  function: validate_config_structure
+  description: "Validates JSON config structure against strict schema with additionalProperties: False"
+  required: [config]

@@ -57,6 +57,7 @@ agente_autonomo/
         validation_steps/
             pytest_validator.py
             __init__.py
+            main.yaml
             base.py
             patch_applicator.py
             syntax_validator.py
