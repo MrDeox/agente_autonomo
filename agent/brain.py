@@ -51,26 +51,26 @@ def generate_next_objective(
     # Read strategic documents
     capabilities_content = ""
     try:
-        with open("CAPABILITIES.md", "r", encoding="utf-8") as f:
+        with open("docs/CAPABILITIES.md", "r", encoding="utf-8") as f:
             capabilities_content = f.read()
-        if logger: logger.info("CAPABILITIES.md lido com sucesso.")
+        if logger: logger.info("docs/CAPABILITIES.md lido com sucesso.")
     except FileNotFoundError:
-        if logger: logger.warning("CAPABILITIES.md não encontrado.")
+        if logger: logger.warning("docs/CAPABILITIES.md não encontrado.")
         capabilities_content = "CAPABILITIES.md não encontrado."
     except Exception as e:
-        if logger: logger.error(f"Erro ao ler CAPABILITIES.md: {e}")
+        if logger: logger.error(f"Erro ao ler docs/CAPABILITIES.md: {e}")
         capabilities_content = f"Erro ao ler CAPABILITIES.md: {e}"
 
     roadmap_content = ""
     try:
-        with open("ROADMAP.md", "r", encoding="utf-8") as f:
+        with open("docs/ROADMAP.md", "r", encoding="utf-8") as f:
             roadmap_content = f.read()
-        if logger: logger.info("ROADMAP.md lido com sucesso.")
+        if logger: logger.info("docs/ROADMAP.md lido com sucesso.")
     except FileNotFoundError:
-        if logger: logger.warning("ROADMAP.md não encontrado.")
+        if logger: logger.warning("docs/ROADMAP.md não encontrado.")
         roadmap_content = "ROADMAP.md não encontrado."
     except Exception as e:
-        if logger: logger.error(f"Erro ao ler ROADMAP.md: {e}")
+        if logger: logger.error(f"Erro ao ler docs/ROADMAP.md: {e}")
         roadmap_content = f"Erro ao ler ROADMAP.md: {e}"
 
     # 1. Analyze code metrics using thresholds from config

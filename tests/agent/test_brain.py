@@ -184,7 +184,6 @@ class TestBrainFunctions(unittest.TestCase):
         objective = "feat: Add new feature Y for enhanced performance" # Objective starts with type
 
         commit_message = generate_commit_message(
-            model_config=self.model_config,
             analysis_summary=analysis_summary, objective=objective,
             logger=self.logger
         )
@@ -195,7 +194,7 @@ class TestBrainFunctions(unittest.TestCase):
         # Check if it respects length limits for the summary part
         long_objective = "feat: Implement a very long and detailed feature description that will certainly exceed the typical subject line length for a commit message"
         commit_message_long = generate_commit_message(
-            self.model_config, analysis_summary, long_objective, self.logger
+            analysis_summary, long_objective, self.logger
         )
         # Expected summary: "Implement a very long and detailed feature description that will cert..."
         # Expected full: "feat: Implement a very long and detailed feature desc..." (type + summary)
@@ -209,7 +208,7 @@ class TestBrainFunctions(unittest.TestCase):
 
         objective_fix = "fix: Resolve critical bug in module X causing data corruption"
         commit_message_fix = generate_commit_message(
-            self.model_config, "Fixed the bug.", objective_fix, self.logger
+            "Fixed the bug.", objective_fix, self.logger
         )
         # max_summary_len for "fix" is 72 - (3 + 2) = 67.
         # Summary part: "Resolve critical bug in module X causing data corruption" (56 chars). No truncation.
@@ -220,7 +219,7 @@ class TestBrainFunctions(unittest.TestCase):
         # Test a simple objective without a type prefix - heuristic should apply
         simple_objective = "Improve the logging system for better debuggability" # 50 chars.
         commit_message_simple = generate_commit_message(
-            self.model_config, "Added more logs.", simple_objective, self.logger
+            "Added more logs.", simple_objective, self.logger
         )
         # Heuristic defaults to "feat". max_summary_len for "feat" is 66. No truncation.
         self.assertEqual(commit_message_simple, f"feat: {simple_objective}") # This should be fine
@@ -233,7 +232,7 @@ class TestBrainFunctions(unittest.TestCase):
         # summary_part[:59] = "the entire authentication module to use new security protocol"
         # expected_trunc_summary = "the entire authentication module to use new security protocol..." # This should be fine
         commit_message_trunc = generate_commit_message(
-            self.model_config, "Refactored auth.", objective_for_trunc, self.logger
+            "Refactored auth.", objective_for_trunc, self.logger
         )
         expected_trunc_summary = "the entire authentication module to use new security protocol..."
         self.assertEqual(commit_message_trunc, f"refactor: {expected_trunc_summary}")

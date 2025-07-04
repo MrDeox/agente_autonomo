@@ -1,23 +1,74 @@
 import pytest
-from agent.validation_steps.syntax_validator import ValidateJsonSyntax
+from agent.validation_steps import ValidateJsonSyntax
 import json
 import logging
+from pathlib import Path
+import tempfile
+import os
 
 def test_validate_json_syntax_success():
     """Teste de validação de sintaxe JSON bem-sucedida."""
-    validator = ValidateJsonSyntax()
-    valid_config = {"key": "value"}
+    logger = logging.getLogger("test")
     
-    # Simule a validação com um arquivo válido
-    with open('test_valid.json', 'w') as f:
-        json.dump(valid_config, f)
-    assert validator.execute(Path('test_valid.json'), logging.getLogger())
+    with tempfile.TemporaryDirectory() as temp_dir:
+        # Criar arquivo JSON válido
+        test_file = Path(temp_dir) / "test_valid.json"
+        valid_config = {"key": "value"}
+        
+        with open(test_file, 'w') as f:
+            json.dump(valid_config, f)
+        
+        # Criar patch que referencia este arquivo
+        patches = [{"file_path": "test_valid.json", "operation": "REPLACE"}]
+        
+        validator = ValidateJsonSyntax(
+            logger=logger,
+            base_path=temp_dir,
+            patches_to_apply=patches,
+            use_sandbox=False
+        )
+        
+        success, reason, details = validator.execute()
+        assert success
+        assert reason == "JSON_SYNTAX_VALIDATION_SUCCESS"
 
 def test_validate_json_syntax_failure():
     """Teste de falha na validação de sintaxe JSON."""
-    validator = ValidateJsonSyntax()
+    logger = logging.getLogger("test")
     
-    # Simule a validação com um arquivo inválido
-    with open('test_invalid.json', 'w') as f:
-        f.write('{invalid: config}')
-    assert not validator.execute(Path('test_invalid.json'), logging.getLogger())
+    with tempfile.TemporaryDirectory() as temp_dir:
+        # Criar arquivo JSON inválido
+        test_file = Path(temp_dir) / "test_invalid.json"
+        
+        with open(test_file, 'w') as f:
+            f.write('{invalid: config}')  # JSON inválido
+        
+        # Criar patch que referencia este arquivo
+        patches = [{"file_path": "test_invalid.json", "operation": "REPLACE"}]
+        
+        validator = ValidateJsonSyntax(
+            logger=logger,
+            base_path=temp_dir,
+            patches_to_apply=patches,
+            use_sandbox=False
+        )
+        
+        success, reason, details = validator.execute()
+        assert not success
+        assert "JSON_SYNTAX_VALIDATION_FAILED" in reason
+
+def test_validate_json_syntax_no_patches():
+    """Teste com nenhum patch para validar."""
+    logger = logging.getLogger("test")
+    
+    with tempfile.TemporaryDirectory() as temp_dir:
+        validator = ValidateJsonSyntax(
+            logger=logger,
+            base_path=temp_dir,
+            patches_to_apply=[],
+            use_sandbox=False
+        )
+        
+        success, reason, details = validator.execute()
+        assert success
+        assert reason == "JSON_SYNTAX_VALIDATION_SKIPPED"
