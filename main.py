@@ -11,9 +11,11 @@ sys.path.insert(0, os.path.abspath('.'))
 
 if __name__ == "__main__":
     # Import the FastAPI app instance from app.py
-    from app import app
+    from tools.app import app
     
     # Run the FastAPI application using Uvicorn
     # host="0.0.0.0" makes the server accessible from any IP address
     # port=8000 is the default port for FastAPI applications
+    print("🚀 Iniciando Hephaestus com Meta-Inteligência...")
+    print("🧠 Sistema de evolução autônoma será ativado!")
     uvicorn.run(app, host="0.0.0.0", port=8000)

@@ -59,7 +59,7 @@ def test_brain_call_llm_api_request_exception(mock_post, mock_logger, model_conf
     mock_post.side_effect = requests.exceptions.RequestException("Erro de rede (brain)")
     content, error = call_llm_api(model_config, "pb", 0.5, mock_logger)
     assert content is None
-    assert "Erro de rede (brain)" in error
+    assert error is not None and "Erro de rede (brain)" in error
 
 
 # --- Testes para generate_next_objective (que usa call_llm_api) ---
@@ -167,20 +167,20 @@ def test_generate_capacitation_objective_with_memory(mock_call_llm_api, mock_log
 def test_generate_commit_message_feat(mock_logger, model_config):
     objective = "Adicionar nova funcionalidade X"
     analysis = "Implementado X com sucesso."
-    commit_msg = generate_commit_message(model_config, analysis, objective, mock_logger)
+    commit_msg = generate_commit_message(analysis, objective, mock_logger)
     assert commit_msg.startswith("feat: ")
     assert "Adicionar nova funcionalidade X" in commit_msg
 
 def test_generate_commit_message_fix(mock_logger, model_config):
     objective = "Corrigir bug na validação Y"
     analysis = "Validação Y agora funciona corretamente."
-    commit_msg = generate_commit_message(model_config, analysis, objective, mock_logger)
+    commit_msg = generate_commit_message(analysis, objective, mock_logger)
     assert commit_msg.startswith("fix: ")
     assert "Corrigir bug na validação Y" in commit_msg
 
 def test_generate_commit_message_long_objective_truncates(mock_logger, model_config):
     objective = "Este é um objetivo muito longo que definitivamente excede o limite de setenta caracteres imposto pela heurística da função de mensagem de commit."
     analysis = "Implementado."
-    commit_msg = generate_commit_message(model_config, analysis, objective, mock_logger)
+    commit_msg = generate_commit_message(analysis, objective, mock_logger)
     assert len(commit_msg.split(":")[1].strip()) <= 70 + 3 # "..."
     assert commit_msg.endswith("...")

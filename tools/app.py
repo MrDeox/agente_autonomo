@@ -39,6 +39,11 @@ async def startup_event():
         queue_manager=queue_manager # Pass the shared queue manager
     )
 
+    # 🧠 ACTIVATE META-INTELLIGENCE - This is where the magic happens!
+    logger.info("🧠 ACTIVATING META-INTELLIGENCE SYSTEMS...")
+    hephaestus_agent_instance.start_meta_intelligence()
+    logger.info("🚀 Meta-Intelligence activated! Agent can now evolve itself!")
+
     # Start the Hephaestus worker thread
     hephaestus_worker_thread = threading.Thread(
         target=hephaestus_agent_instance.run, 
@@ -55,10 +60,16 @@ async def submit_objective(obj: Objective):
 
 @app.get("/status")
 async def get_status():
+    meta_intelligence_status = {}
+    if hephaestus_agent_instance:
+        meta_intelligence_status = hephaestus_agent_instance.get_meta_intelligence_status()
+    
     return {
         "status": "running",
         "queue_size": queue_manager._queue.qsize(),
-        "worker_active": hephaestus_worker_thread.is_alive() if hephaestus_worker_thread else False
+        "worker_active": hephaestus_worker_thread.is_alive() if hephaestus_worker_thread else False,
+        "meta_intelligence": meta_intelligence_status,
+        "evolution_active": hephaestus_agent_instance.meta_intelligence_active if hephaestus_agent_instance else False
     }
 
 if __name__ == "__main__":

@@ -144,5 +144,5 @@ def test_apply_patches(tmp_path):
     success = apply_patches(instructions, logger, base_path=str(tmp_path))
 
     assert success
-    assert file1_path.read_text() == "line 2\nline 3\n"
-    assert file2_path.read_text() == "line A\nline B\n" 
+    assert file1_path.read_text() == "line 2\nline 3"
+    assert file2_path.read_text() == "line A\nline B" 

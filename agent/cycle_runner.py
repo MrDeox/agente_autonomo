@@ -55,6 +55,13 @@ class CycleRunner:
             )
 
         while True:
+            # Verificação de limite ANTES de iniciar qualquer processamento
+            if self.agent.objective_stack_depth_for_testing is not None and self.cycle_count >= self.agent.objective_stack_depth_for_testing:
+                self.agent.logger.info(
+                    f"Limite de ciclos de execução ({self.agent.objective_stack_depth_for_testing}) atingido. Encerrando."
+                )
+                break
+
             timestamp_inicio_ciclo = datetime.now()
             ciclo_status_final = "falha"
             razao_final = "ciclo_interrompido_prematuramente"
@@ -91,12 +98,6 @@ class CycleRunner:
                 else:
                     self.agent.logger.info("Pilha de objetivos vazia e modo contínuo desativado. Encerrando agente.")
                     break
-
-            if self.agent.objective_stack_depth_for_testing is not None and self.cycle_count >= self.agent.objective_stack_depth_for_testing:
-                self.agent.logger.info(
-                    f"Limite de ciclos de execução ({self.agent.objective_stack_depth_for_testing}) atingido. Encerrando."
-                )
-                break
 
             # Verificação final antes do pop
             if not self.agent.objective_stack:
@@ -390,13 +391,13 @@ class CycleRunner:
                         failure_context=f"The objective failed multiple times with the reason: {reason}. Details: {context}"
                     )
                     
-                    if optimized_objective:
+                    if optimized_objective and self.agent.objective_stack_depth_for_testing is None:
                         self.agent.logger.info(f"Novo objetivo otimizado gerado: {optimized_objective}")
                         # We discard the current objective and add the new, optimized one to the top of the stack.
                         self.agent.objective_stack.append(optimized_objective)
                         continue # End the current cycle and start a new one with the optimized objective
                     else:
-                        self.agent.logger.error("Falha ao otimizar o prompt. O objetivo será descartado.")
+                        self.agent.logger.error("Falha ao otimizar o prompt ou em modo de teste. O objetivo será descartado.")
 
                 if not success:
                     self.agent.logger.warning(
