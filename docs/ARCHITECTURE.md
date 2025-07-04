@@ -62,6 +62,7 @@ agente_autonomo/
             patch_applicator.py
             syntax_validator.py
             pytest_new_file_validator.py
+            models/
         agents/
             capability_gap_detector.py
             __init__.py

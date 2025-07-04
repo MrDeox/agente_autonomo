@@ -351,6 +351,7 @@ class CycleRunner:
                 self.agent.memory.add_failed_objective(current_objective, "DEGENERATIVE_LOOP_DETECTED", "Objective failed too many times consecutively.")
                 continue
 
+            start_time = datetime.now()
             try:
                 self._run_single_cycle(current_objective)
             except Exception as e:
@@ -358,8 +359,41 @@ class CycleRunner:
                 if current_objective:
                     self.agent.memory.add_failed_objective(current_objective, "UNHANDLED_CYCLE_EXCEPTION", str(e))
             finally:
+                end_time = datetime.now()
+                self._log_cycle_completion(current_objective, start_time, end_time)
                 self.agent.memory.save()
                 self.agent.logger.info(f"Memory saved ({len(self.agent.memory.completed_objectives)} completed, {len(self.agent.memory.failed_objectives)} failed)")
                 time.sleep(self.agent.config.get("cycle_delay_seconds", 1))
 
         self.agent.logger.info(f"{'='*20} END OF HEPHAESTUS EXECUTION {'='*20}")
+
+    def _log_cycle_completion(self, objective: str, start_time: datetime, end_time: datetime):
+        """Logs the final status of the completed cycle to the evolution log."""
+        duration = (end_time - start_time).total_seconds()
+        
+        # Determine final status from agent state
+        success, reason, context = self.agent.state.validation_result
+        status_str = "success" if success else "failure"
+        strategy = self.agent.state.strategy_key or "N/A"
+
+        log_entry = [
+            self.cycle_count,
+            objective,
+            status_str,
+            round(duration, 2),
+            "",  # quality_score placeholder
+            strategy,
+            start_time.isoformat(),
+            end_time.isoformat(),
+            reason,
+            context,
+        ]
+
+        try:
+            log_file = self.agent.evolution_log_file
+            with open(log_file, 'a', newline='', encoding='utf-8') as f:
+                csv.writer(f).writerow(log_entry)
+        except IOError as e:
+            self.agent.logger.error(f"Failed to write to evolution log {log_file}: {e}")
+        except Exception as e:
+            self.agent.logger.error(f"Unexpected error writing to evolution log: {e}", exc_info=True)
