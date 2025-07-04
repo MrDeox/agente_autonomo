@@ -56,6 +56,7 @@ agente_autonomo/
             architect_agent.py
             performance_analyzer.py
             error_correction.py
+            code_review_agent.py
             maestro_agent.py
             prompt_optimizer.py
             error_analyzer.py
@@ -97,8 +98,8 @@ agente_autonomo/
   - *Generates the next evolutionary objective using a lightweight model and code analysis.*
 - **Função:** `generate_capacitation_objective(model_config: Dict[str, str], engineer_analysis: str, memory_summary: Optional[str]=None, logger: Optional[logging.Logger]=None)`
   - *Generates an objective to create necessary new capabilities.*
-- **Função:** `generate_commit_message(model_config: Dict[str, str], analysis_summary: str, objective: str, logger: logging.Logger)`
-  - *Generates a concise and informative commit message using an LLM.*
+- **Função:** `generate_commit_message(analysis_summary: str, objective: str, logger: logging.Logger)`
+  - *Generates a concise and informative commit message using a rule-based system.*
 
 ### Arquivo: `agent/__init__.py`
 
@@ -271,6 +272,9 @@ agente_autonomo/
 ### Arquivo: `agent/agents/error_correction.py`
 - **Classe:** `ErrorCorrectionAgent`
   - *Agent for analyzing errors and generating corrective actions.*
+
+### Arquivo: `agent/agents/code_review_agent.py`
+- **Classe:** `CodeReviewAgent`
 
 ### Arquivo: `agent/agents/maestro_agent.py`
 - **Classe:** `MaestroAgent`
