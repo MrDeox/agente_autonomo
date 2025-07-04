@@ -4,33 +4,33 @@ architect_default:
   _target_: "builtins.dict" # Using dict as a placeholder if no specific class is needed
   temperature: ${default_model_settings.temperature}
   max_tokens: ${default_model_settings.max_tokens}
-  primary: "gemini/gemini-2.5-pro"
-  fallback: "deepseek/deepseek-r1-0528:free"
+  primary: "qwen/qwen3-14b:free"
+  fallback: "qwen/qwen3-8b:free"
 
 maestro_default:
   _target_: "builtins.dict"
   temperature: ${default_model_settings.temperature}
   max_tokens: ${default_model_settings.max_tokens}
-  primary: "gemini/gemini-2.5-pro"
-  fallback: "deepseek/deepseek-r1-0528:free"
+  primary: "qwen/qwen3-14b:free"
+  fallback: "qwen/qwen3-8b:free"
 
 objective_generator:
   _target_: "builtins.dict"
   temperature: ${default_model_settings.temperature}
   max_tokens: ${default_model_settings.max_tokens}
-  primary: "gemini/gemini-2.5-pro"
-  fallback: "deepseek/deepseek-r1-0528:free"
+  primary: "qwen/qwen3-14b:free"
+  fallback: "qwen/qwen3-8b:free"
 
 capacitation_generator:
   _target_: "builtins.dict"
   temperature: ${default_model_settings.temperature}
   max_tokens: ${default_model_settings.max_tokens}
-  primary: "gemini/gemini-2.5-pro"
-  fallback: "deepseek/deepseek-r1-0528:free"
+  primary: "qwen/qwen3-14b:free"
+  fallback: "qwen/qwen3-8b:free"
 
 error_analyzer:
   _target_: "builtins.dict"
   temperature: ${default_model_settings.temperature}
   max_tokens: ${default_model_settings.max_tokens}
-  primary: "gemini/gemini-2.5-pro"
-  fallback: "deepseek/deepseek-chat-v3-0324:free"
+  primary: "qwen/qwen3-14b:free"
+  fallback: "qwen/qwen3-8b:free"

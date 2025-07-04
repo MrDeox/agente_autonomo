@@ -36,6 +36,7 @@ validation_steps = {
     "run_benchmark_validation": BenchmarkValidator, # Added mapping
     "check_file_existence": CheckFileExistenceValidator, # Added mapping
     "validate_json_syntax": ValidateJsonSyntax, # Added mapping
+    "ValidateJsonSyntax": ValidateJsonSyntax, # Added exact mapping for class name
     "apply_patches_to_disk": PatchApplicatorStep # Added explicit mapping
 }
 

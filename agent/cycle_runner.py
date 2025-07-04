@@ -94,6 +94,27 @@ def run_cycles(agent: "HephaestusAgent", queue_manager: QueueManager) -> None:
                 pass # A lógica de modo contínuo já está sendo tratada acima
 
         cycle_count += 1
+        
+        # Verificação segura antes do pop
+        if not agent.objective_stack:
+            agent.logger.info("Fila de objetivos vazia no momento do pop. Verificando modo contínuo.")
+            if not agent.continuous_mode:
+                break
+            else:
+                # Gerar novo objetivo para modo contínuo
+                agent.logger.info("Gerando novo objetivo para modo contínuo...")
+                model_config = agent.config.get("models", {}).get("objective_generator")
+                new_objective = generate_next_objective(
+                    model_config=model_config,
+                    current_manifest=agent.state.manifesto_content if agent.state.manifesto_content else "",
+                    logger=agent.logger,
+                    project_root_dir=".",
+                    config=agent.config,
+                    memory_summary=agent.memory.get_full_history_for_prompt(),
+                )
+                agent.objective_stack.append(new_objective)
+                agent.logger.info(f"Novo objetivo gerado: {new_objective}")
+        
         current_objective = agent.objective_stack.pop()
         agent.logger.info(f"\n\n{'='*20} INÍCIO DO CICLO DE EVOLUÇÃO (Ciclo #{cycle_count}) {'='*20}")
         agent.logger.info(f"OBJETIVO ATUAL: {current_objective}\n")
@@ -273,10 +294,9 @@ def run_cycles(agent: "HephaestusAgent", queue_manager: QueueManager) -> None:
                                 agent.logger.info("--- AUTO-COMMIT REALIZADO COM SUCESSO ---")
                         if success and agent.objective_stack_depth_for_testing is None:
                             agent.logger.info("Gerando próximo objetivo evolutivo...")
-                            obj_gen_model = agent.config.get("models", {}).get("objective_generator", agent.light_model)
+                            model_config = agent.config.get("models", {}).get("objective_generator")
                             next_obj = generate_next_objective(
-                                api_key=agent.api_key,
-                                model=obj_gen_model,
+                                model_config=model_config,
                                 current_manifest=agent.state.manifesto_content or "",
                                 logger=agent.logger,
                                 project_root_dir=".",

@@ -195,7 +195,7 @@ class HephaestusAgent:
         current_base_path_str = "."
 
         try:
-            needs_disk_modification = "apply_patches_to_disk" in steps
+            needs_disk_modification = "apply_patches_to_disk" in steps or "PatchApplicatorStep" in steps
             has_validation_steps_on_files = any(s in ["validate_syntax", "validate_json_syntax", "run_pytest_validation"] for s in steps)
 
             use_sandbox = (needs_disk_modification or has_validation_steps_on_files) and bool(patches_to_apply) and strategy_key != "DISCARD"
