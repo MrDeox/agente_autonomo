@@ -1,4 +1,4 @@
-from fastapi import FastAPI, HTTPException, Depends, Request, status
+from fastapi import FastAPI, HTTPException, Depends, Request, status, Body
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from fastapi.responses import HTMLResponse, JSONResponse
@@ -17,6 +17,7 @@ from agent.queue_manager import QueueManager
 from agent.hephaestus_agent import HephaestusAgent
 from agent.config_loader import load_config
 from agent.arthur_interface_generator import ArthurInterfaceGenerator
+from agent.agents.error_detector_agent import ErrorDetectorAgent
 
 # Configure logging
 logging.basicConfig(
@@ -81,6 +82,10 @@ app = FastAPI(
             "name": "Hot Reload",
             "description": "Real-time code evolution and self-modification",
         },
+        {
+            "name": "Error Detection",
+            "description": "Error detection and monitoring",
+        },
     ]
 )
 
@@ -104,6 +109,7 @@ queue_manager = QueueManager()
 hephaestus_agent_instance = None
 hephaestus_worker_thread = None
 interface_generator = None
+error_detector_agent = None
 
 # === PYDANTIC MODELS === #
 
@@ -199,7 +205,7 @@ def get_auth_user(credentials: HTTPAuthorizationCredentials = Depends(security))
 @app.on_event("startup")
 async def startup_event():
     """Initialize the system on startup"""
-    global hephaestus_agent_instance, hephaestus_worker_thread, interface_generator
+    global hephaestus_agent_instance, hephaestus_worker_thread, interface_generator, error_detector_agent
     
     logger.info("🚀 Starting Hephaestus Meta-Intelligence API Server...")
     
@@ -217,6 +223,11 @@ async def startup_event():
         
         # Initialize interface generator
         interface_generator = ArthurInterfaceGenerator(config, logger)
+        
+        # Initialize Error Detector Agent
+        model_config = config.get("models", {}).get("architect_default", {})
+        error_detector_agent = ErrorDetectorAgent(model_config, logger)
+        error_detector_agent.start_monitoring()
         
         # Start meta-intelligence
         hephaestus_agent_instance.start_meta_intelligence()
@@ -964,6 +975,198 @@ async def get_evolution_history(limit: int = 20, auth_user: dict = Depends(get_a
     except Exception as e:
         logger.error(f"Error getting evolution history: {e}")
         raise HTTPException(status_code=500, detail=str(e))
+
+# === ERROR DETECTION ENDPOINTS === #
+
+@app.get("/error-detector/status", tags=["Error Detection"])
+async def get_error_detector_status(auth_user: dict = Depends(get_auth_user)):
+    """Get current status of the error detector agent"""
+    try:
+        if not error_detector_agent:
+            raise HTTPException(status_code=503, detail="Error detector not initialized")
+        
+        status = error_detector_agent.get_monitoring_status()
+        return {
+            "status": "success",
+            "error_detector": status,
+            "message": "🛡️ Error detector status retrieved"
+        }
+    except Exception as e:
+        logger.error(f"Error getting detector status: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.get("/error-detector/report", tags=["Error Detection"])
+async def get_error_report(auth_user: dict = Depends(get_auth_user)):
+    """Get detailed error analysis report"""
+    try:
+        if not error_detector_agent:
+            raise HTTPException(status_code=503, detail="Error detector not initialized")
+        
+        report = error_detector_agent.get_error_report()
+        return {
+            "status": "success",
+            "error_report": report,
+            "message": "📊 Error analysis report generated"
+        }
+    except Exception as e:
+        logger.error(f"Error generating report: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.post("/error-detector/inject-test-error", tags=["Error Detection"])
+async def inject_test_error(
+    error_message: str = Body(..., description="Error message to inject for testing"),
+    auth_user: dict = Depends(get_auth_user)
+):
+    """Inject a test error for testing the error detection system"""
+    try:
+        if not error_detector_agent:
+            raise HTTPException(status_code=503, detail="Error detector not initialized")
+        
+        result = error_detector_agent.inject_error_for_testing(error_message)
+        return {
+            "status": "success",
+            "test_result": result,
+            "message": f"🧪 Test error injected and processed"
+        }
+    except Exception as e:
+        logger.error(f"Error injecting test error: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.post("/error-detector/start", tags=["Error Detection"])
+async def start_error_monitoring(auth_user: dict = Depends(get_auth_user)):
+    """Start error monitoring"""
+    try:
+        if not error_detector_agent:
+            raise HTTPException(status_code=503, detail="Error detector not initialized")
+        
+        if error_detector_agent.start_monitoring():
+            return {
+                "status": "success",
+                "message": "🛡️ Error monitoring started"
+            }
+        else:
+            return {
+                "status": "info",
+                "message": "🛡️ Error monitoring was already active"
+            }
+    except Exception as e:
+        logger.error(f"Error starting monitoring: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.post("/error-detector/stop", tags=["Error Detection"])
+async def stop_error_monitoring(auth_user: dict = Depends(get_auth_user)):
+    """Stop error monitoring"""
+    try:
+        if not error_detector_agent:
+            raise HTTPException(status_code=503, detail="Error detector not initialized")
+        
+        if error_detector_agent.stop_monitoring():
+            return {
+                "status": "success",
+                "message": "🛡️ Error monitoring stopped"
+            }
+        else:
+            return {
+                "status": "info", 
+                "message": "🛡️ Error monitoring was not active"
+            }
+    except Exception as e:
+        logger.error(f"Error stopping monitoring: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.get("/error-detector/real-time-analysis", tags=["Error Detection"])
+async def get_real_time_analysis(auth_user: dict = Depends(get_auth_user)):
+    """Get real-time analysis of system errors and health"""
+    try:
+        if not error_detector_agent:
+            raise HTTPException(status_code=503, detail="Error detector not initialized")
+        
+        analysis = error_detector_agent.get_real_time_analysis()
+        return {
+            "status": "success",
+            "real_time_analysis": analysis,
+            "message": "⚡ Real-time error analysis completed"
+        }
+    except Exception as e:
+        logger.error(f"Error in real-time analysis: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.post("/error-detector/capture-agent-error", tags=["Error Detection"])
+async def capture_agent_error(
+    agent_name: str = Body(..., description="Name of the agent that generated the error"),
+    error_message: str = Body(..., description="Error message from the agent"),
+    context: Optional[Dict[str, Any]] = Body(None, description="Additional error context"),
+    auth_user: dict = Depends(get_auth_user)
+):
+    """Capture and analyze an error from a specific agent"""
+    try:
+        if not error_detector_agent:
+            raise HTTPException(status_code=503, detail="Error detector not initialized")
+        
+        result = error_detector_agent.capture_agent_error(agent_name, error_message, context)
+        return {
+            "status": "success",
+            "error_analysis": result,
+            "message": f"🛡️ Agent error captured and analyzed for {agent_name}"
+        }
+    except Exception as e:
+        logger.error(f"Error capturing agent error: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+# Add custom exception handler to capture all API errors
+@app.exception_handler(Exception)
+async def global_exception_handler(request: Request, exc: Exception):
+    """Global exception handler that reports errors to the detector"""
+    error_message = str(exc)
+    error_context = {
+        "source": "api_request",
+        "path": str(request.url.path),
+        "method": request.method,
+        "timestamp": datetime.now().isoformat()
+    }
+    
+    # Report to error detector
+    if error_detector_agent:
+        try:
+            error_detector_agent.process_error(error_message, error_context)
+        except Exception as detector_error:
+            logger.error(f"Error detector failed: {detector_error}")
+    
+    # Log the error
+    logger.error(f"API Error on {request.method} {request.url.path}: {error_message}")
+    
+    # Return appropriate error response
+    return JSONResponse(
+        status_code=500,
+        content={
+            "status": "error",
+            "message": "Internal server error",
+            "detail": error_message,
+            "timestamp": datetime.now().isoformat()
+        }
+    )
+
+# Modify the worker function to capture errors automatically
+def worker():
+    try:
+        if hephaestus_agent_instance:
+            hephaestus_agent_instance.run_continuous()
+    except Exception as e:
+        logger.error(f"Worker thread error: {e}")
+        # Report error to detector with enhanced context
+        if error_detector_agent:
+            try:
+                error_detector_agent.capture_agent_error(
+                    "HephaestusAgent", 
+                    str(e), 
+                    {
+                        "source": "worker_thread",
+                        "thread_name": "HephaestusWorker",
+                        "error_type": "runtime_exception"
+                    }
+                )
+            except Exception as detector_error:
+                logger.error(f"Error detector failed: {detector_error}")
 
 if __name__ == "__main__":
     uvicorn.run(

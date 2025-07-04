@@ -283,4 +283,106 @@ Return a concise correction suggestion (1-2 sentences):
     def inject_error_for_testing(self, error_message: str) -> Dict[str, Any]:
         """Injeta um erro para teste do sistema de correção"""
         self.logger.info(f"🧪 Testing error injection: {error_message}")
-        return self.process_error(error_message, {"source": "test_injection"}) 
+        return self.process_error(error_message, {"source": "test_injection"})
+    
+    def capture_agent_error(self, agent_name: str, error_message: str, context: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
+        """
+        Captura erro específico de um agente durante execução
+        """
+        enhanced_context = {
+            "source": "agent_execution",
+            "agent_name": agent_name,
+            "timestamp": datetime.now().isoformat(),
+            **(context or {})
+        }
+        
+        self.logger.warning(f"🚨 Agent Error Captured [{agent_name}]: {error_message}")
+        
+        # Processa o erro
+        error_info = self.process_error(error_message, enhanced_context)
+        
+        # Se é um erro crítico, tenta gerar ação corretiva imediata
+        if error_info.get("severity") in ["critical", "high"]:
+            self._generate_immediate_action(agent_name, error_info)
+        
+        return error_info
+    
+    def _generate_immediate_action(self, agent_name: str, error_info: Dict[str, Any]):
+        """Gera ação corretiva imediata para erros críticos"""
+        try:
+            # Gera objetivo de correção para a fila
+            correction_objective = self._create_correction_objective(agent_name, error_info)
+            
+            if correction_objective:
+                self.logger.info(f"🔧 Generated correction objective: {correction_objective[:100]}...")
+                
+                # Aqui poderia integrar com o queue_manager para adicionar o objetivo
+                # Por enquanto, apenas registra a ação sugerida
+                error_info["immediate_action"] = correction_objective
+                
+        except Exception as e:
+            self.logger.error(f"Failed to generate immediate action: {e}")
+    
+    def _create_correction_objective(self, agent_name: str, error_info: Dict[str, Any]) -> Optional[str]:
+        """Cria objetivo de correção baseado no erro"""
+        error_type = error_info.get("type", "unknown")
+        error_message = error_info.get("error_message", "")
+        
+        # Templates de correção baseados no tipo de erro
+        if error_type == "attribute_error" and "object has no attribute" in error_message:
+            # Extrai método faltante
+            match = re.search(r"'(\w+)' object has no attribute '(\w+)'", error_message)
+            if match:
+                object_type, missing_method = match.groups()
+                return f"[AUTO-CORRECTION] Fix AttributeError in {agent_name}: Replace '{missing_method}' with correct method name in {object_type} class"
+        
+        elif error_type == "dict_access_error":
+            return f"[AUTO-CORRECTION] Fix dict access error in {agent_name}: Add type checking before calling string methods on dict objects"
+        
+        elif error_type == "missing_key_error":
+            match = re.search(r"KeyError: '(\w+)'", error_message)
+            if match:
+                missing_key = match.groups()[0]
+                return f"[AUTO-CORRECTION] Fix KeyError in {agent_name}: Add default value or validation for key '{missing_key}'"
+        
+        elif error_type == "type_error":
+            return f"[AUTO-CORRECTION] Fix TypeError in {agent_name}: Add proper type validation and conversion for incompatible types"
+        
+        # Correção genérica
+        return f"[AUTO-CORRECTION] Investigate and fix {error_type} in {agent_name}: {error_message[:100]}"
+    
+    def get_real_time_analysis(self) -> Dict[str, Any]:
+        """Análise em tempo real dos erros mais recentes"""
+        current_time = datetime.now()
+        
+        # Últimos 5 minutos
+        cutoff = current_time - timedelta(minutes=5)
+        recent_errors = [e for e in self.recent_errors 
+                        if e.get("timestamp", datetime.min) > cutoff]
+        
+        # Análise de tendências
+        error_trend = "stable"
+        if len(recent_errors) > 15:
+            error_trend = "high"
+        elif len(recent_errors) > 5:
+            error_trend = "rising"
+        
+        # Agentes com mais problemas
+        agent_errors = defaultdict(int)
+        for error in recent_errors:
+            agent_name = error.get("context", {}).get("agent_name", "unknown")
+            if agent_name != "unknown":
+                agent_errors[agent_name] += 1
+        
+        return {
+            "analysis_time": current_time.isoformat(),
+            "recent_errors_5min": len(recent_errors),
+            "error_trend": error_trend,
+            "problematic_agents": sorted(agent_errors.items(), key=lambda x: x[1], reverse=True)[:3],
+            "critical_errors": len([e for e in recent_errors if e.get("severity") == "critical"]),
+            "auto_correctable_ratio": (
+                len([e for e in recent_errors if e.get("auto_correctable", False)]) / 
+                max(1, len(recent_errors))
+            ),
+            "system_health": "healthy" if error_trend == "stable" and len(recent_errors) < 5 else "degraded"
+        } 
