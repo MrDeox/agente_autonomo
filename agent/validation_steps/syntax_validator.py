@@ -12,6 +12,20 @@ class SyntaxValidator(ValidationStep):
         super().__init__(logger, base_path, patches_to_apply, use_sandbox)
 
     def execute(self) -> Tuple[bool, str, str]:
+import json
+from jsonschema import validate
+from jsonschema.exceptions import ValidationError
+from agent.config_loader import load_config
+
+def validate_config_structure(config: dict) -> bool:
+    """Valida a estrutura do hephaestus_config.json contra um esquema definido."""
+    try:
+        schema = load_config('validation_strategies/main.yaml')['json_structure_schema']
+        validate(instance=config, schema=schema)
+        return True
+    except ValidationError as e:
+        logger.error(f"Validação de estrutura JSON falhou: {e}")
+        return False
         if not self.patches_to_apply:
             self.logger.info("No patches applied to validate syntax. Skipping.")
             return True, "SYNTAX_VALIDATION_SKIPPED", "No patches to validate."

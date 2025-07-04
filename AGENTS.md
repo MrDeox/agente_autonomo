@@ -131,13 +131,17 @@ agente_autonomo/
   - *Valida se um arquivo contém JSON válido.*
 
 ### Arquivo: `agent/patch_applicator.py`
-- **Função:** `_handle_insert(full_path: Path, lines: list[str], instruction: dict, logger: logging.Logger)`
-  - *Apply an INSERT patch and return ``(success, updated_lines)``.*
-- **Função:** `_handle_replace(full_path: Path, lines: list[str], instruction: dict, logger: logging.Logger)`
-  - *Apply a REPLACE patch.*
-- **Função:** `_handle_delete_block(full_path: Path, lines: list[str], instruction: dict, logger: logging.Logger)`
-  - *Apply a DELETE_BLOCK patch.*
-- **Função:** `apply_patches(instructions: list[dict], logger: logging.Logger, base_path: str='.')`
+- **Classe:** `PatchOperationHandler(ABC)`
+  - *Abstract base class for a patch operation handler.*
+- **Classe:** `InsertHandler(PatchOperationHandler)`
+  - *Handler for INSERT operations.*
+- **Classe:** `ReplaceHandler(PatchOperationHandler)`
+  - *Handler for REPLACE operations.*
+- **Classe:** `DeleteBlockHandler(PatchOperationHandler)`
+  - *Handler for DELETE_BLOCK operations.*
+- **Função:** `get_handler(operation: str)`
+  - *Factory function to get the correct handler for an operation.*
+- **Função:** `apply_patches(instructions: List[Dict[str, Any]], logger: logging.Logger, base_path: str='.')`
   - *Aplica uma lista de instruções de patch aos arquivos.*
 
 ### Arquivo: `agent/cycle_runner.py`
@@ -237,8 +241,7 @@ agente_autonomo/
   - *Applies patches to the specified base path.*
 
 ### Arquivo: `agent/validation_steps/syntax_validator.py`
-- **Classe:** `SyntaxValidator(ValidationStep)`
-  - *Validates the syntax of Python and JSON files.*
+  - [ERRO] Erro na análise AST: expected an indented block after function definition on line 14 (<unknown>, line 15)
 
 ### Arquivo: `agent/validation_steps/pytest_new_file_validator.py`
 - **Classe:** `PytestNewFileValidator(ValidationStep)`

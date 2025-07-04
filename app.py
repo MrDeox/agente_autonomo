@@ -6,7 +6,6 @@ import logging
 
 from agent.queue_manager import QueueManager
 from agent.hephaestus_agent import HephaestusAgent # Import HephaestusAgent
-from agent.cycle_runner import run_cycles # Import run_cycles
 from agent.config_loader import load_config
 
 # Configure logging for the FastAPI app
@@ -36,13 +35,13 @@ async def startup_event():
         logger_instance=logger, # Use the app's logger
         continuous_mode=True, # Agent will run continuously in the background
         objective_stack_depth_for_testing=None, # No limit for server mode
-        config=load_config() # Pass the loaded config
+        config=load_config(), # Pass the loaded config
+        queue_manager=queue_manager # Pass the shared queue manager
     )
 
     # Start the Hephaestus worker thread
     hephaestus_worker_thread = threading.Thread(
-        target=run_cycles, 
-        args=(hephaestus_agent_instance, queue_manager,),
+        target=hephaestus_agent_instance.run, 
         daemon=True # Daemon threads exit when the main program exits
     )
     hephaestus_worker_thread.start()

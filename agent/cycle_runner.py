@@ -16,12 +16,11 @@ from agent.tool_executor import run_pytest, check_file_existence, run_git_comman
 from agent.agents import ErrorAnalysisAgent # Import ErrorAnalysisAgent from new location
 
 if TYPE_CHECKING:  # pragma: no cover - for type checking only
-    from main import HephaestusAgent
+    from agent.hephaestus_agent import HephaestusAgent
 
 
 from agent.queue_manager import QueueManager # Import QueueManager
 
-from agent.queue_manager import QueueManager # Import QueueManager
 
 class CycleRunner:
     """Manages the main execution loop of the Hephaestus agent."""
@@ -511,9 +510,8 @@ class CycleRunner:
                 self.agent.logger.info(f"{'='*20} FIM DO CICLO DE EVOLUÇÃO {'='*20}")
                 time.sleep(self.agent.config.get("cycle_delay_seconds", 1))
 
+
 def run_cycles(agent: "HephaestusAgent", queue_manager: QueueManager) -> None:
     """Execute the main evolution loop for the given agent."""
     cycle_runner = CycleRunner(agent, queue_manager)
     cycle_runner.run()
-
-from agent.queue_manager import QueueManager # Import QueueManager

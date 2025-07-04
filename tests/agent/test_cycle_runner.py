@@ -1,34 +1,82 @@
 import pytest
-from agent.cycle_runner import run_cycles, _initialize_cycle_state, _execute_evolution_step, _validate_cycle_results, _log_cycle_details
-from agent.state import AgentState
-from agent.memory import Memory
-from agent.config_loader import load_validation_strategies
+from unittest.mock import MagicMock, patch
+from agent.cycle_runner import CycleRunner
+from agent.hephaestus_agent import HephaestusAgent
+from agent.queue_manager import QueueManager
 
+@pytest.fixture
+def mock_agent():
+    """Fixture to create a mocked HephaestusAgent."""
+    agent = MagicMock(spec=HephaestusAgent)
+    agent.logger = MagicMock()
+    agent.config = {}
+    agent.objective_stack = []
+    agent.memory = MagicMock()
+    agent.state = MagicMock()
+    return agent
 
-def test_run_cycles_initialization(mocker):
-    """Testa a inicialização do estado do ciclo."""
-    agent = HephaestusAgent()
+def test_cycle_runner_initialization(mock_agent):
+    """Test that the CycleRunner can be initialized."""
+    queue_manager = QueueManager()
+    cycle_runner = CycleRunner(mock_agent, queue_manager)
+    assert cycle_runner.agent == mock_agent
+    assert cycle_runner.queue_manager == queue_manager
+    assert cycle_runner.cycle_count == 0
+
+@patch('agent.cycle_runner.generate_next_objective')
+def test_run_single_cycle_no_continuous_mode(mock_generate_objective, mock_agent):
+    """Test a single cycle run when not in continuous mode."""
+    # Arrange
+    mock_agent.continuous_mode = False
+    mock_agent.objective_stack_depth_for_testing = 1
+    
+    queue_manager = QueueManager()
+    cycle_runner = CycleRunner(mock_agent, queue_manager)
+    
+    mock_generate_objective.return_value = "Test Objective"
+    
+    mock_agent._generate_manifest.return_value = True
+    mock_agent._run_architect_phase.return_value = True
+    mock_agent._run_maestro_phase.return_value = True
+    mock_agent.state.validation_result = (True, "APPLIED_AND_VALIDATED", "Success")
+
+    # Act
+    cycle_runner.run()
+
+    # Assert
+    mock_generate_objective.assert_called_once()
+    mock_agent.objective_stack.append("Test Objective") # The objective is added before the check
+    mock_agent._generate_manifest.assert_called_once()
+    mock_agent._run_architect_phase.assert_called_once()
+    mock_agent._run_maestro_phase.assert_called_once()
+    mock_agent._execute_validation_strategy.assert_called_once()
+    assert cycle_runner.cycle_count == 1
+
+@patch('agent.cycle_runner.generate_next_objective')
+@patch('agent.cycle_runner.time.sleep') # Mock time.sleep to avoid delays
+def test_run_continuous_mode(mock_sleep, mock_generate_objective, mock_agent):
+    """Test that the agent generates a new objective in continuous mode."""
+    # Arrange
+    mock_agent.continuous_mode = True
+    # Let it run for 2 cycles
+    mock_agent.objective_stack_depth_for_testing = 2
+    
+    # Start with an empty queue and stack
     queue_manager = QueueManager()
     
-    mock_load_strategies = mocker.patch('agent.cycle_runner.load_validation_strategies')
-    mock_load_strategies.return_value = ['CYCLOMATIC_COMPLEXITY_CHECK']
+    cycle_runner = CycleRunner(mock_agent, queue_manager)
     
-    _initialize_cycle_state(agent, queue_manager)
-    assert agent.state.current_cycle == 1
-    assert agent.state.validation_strategies == ['CYCLOMATIC_COMPLEXITY_CHECK']
+    mock_generate_objective.side_effect = ["Objective 1", "Objective 2"]
+    
+    mock_agent._generate_manifest.return_value = True
+    mock_agent._run_architect_phase.return_value = True
+    mock_agent._run_maestro_phase.return_value = True
+    mock_agent.state.validation_result = (True, "APPLIED_AND_VALIDATED", "Success")
 
+    # Act
+    cycle_runner.run()
 
-def test_run_cycles_validates_results(mocker):
-    """Testa a validação de resultados com estratégia de complexidade."""
-    agent = HephaestusAgent()
-    queue_manager = QueueManager()
-    mock_strategy = mocker.MagicMock()
-    mock_strategy.validate.return_value = False
-    mock_strategy.blocking = True
-    
-    agent.state.validation_strategies = [mock_strategy]
-    task = {'output': 'test_output', 'metrics': {'cyclomatic_complexity': 35}}
-    
-    with pytest.raises(CycleValidationException):
-        _validate_cycle_results(agent, task)
-    mock_strategy.validate.assert_called_once_with(task['metrics'])
+    # Assert
+    assert mock_generate_objective.call_count == 2
+    assert cycle_runner.cycle_count == 2
+    mock_sleep.assert_called_once() 

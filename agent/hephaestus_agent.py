@@ -18,7 +18,7 @@ from agent.brain import (
 from agent.agents import ArchitectAgent, MaestroAgent
 from agent.tool_executor import run_pytest, check_file_existence, run_git_command
 from agent.git_utils import initialize_git_repository
-from agent.cycle_runner import run_cycles
+from agent.cycle_runner import CycleRunner
 from agent.memory import Memory
 from agent.state import AgentState
 from agent.validation_steps import get_validation_step
@@ -35,7 +35,8 @@ class HephaestusAgent:
                  logger_instance,
                  config: dict, # Now receives config as a parameter
                  continuous_mode: bool = False,
-                 objective_stack_depth_for_testing: Optional[int] = None):
+                 objective_stack_depth_for_testing: Optional[int] = None,
+                 queue_manager: Optional[QueueManager] = None):
         """
         Inicializa o agente com configuração.
 
@@ -44,13 +45,14 @@ class HephaestusAgent:
             config: Dicionário de configuração para o agente.
             continuous_mode: Se True, o agente opera em modo contínuo.
             objective_stack_depth_for_testing: Limite opcional para o número de ciclos de execução.
+            queue_manager: Gerenciador de fila opcional. Se não for fornecido, um novo será criado.
         """
         self.logger = logger_instance
         self.config = config # Use the passed config
         self.continuous_mode = continuous_mode
         self.objective_stack_depth_for_testing = objective_stack_depth_for_testing
         self.state: AgentState = AgentState()
-        self.queue_manager = QueueManager()
+        self.queue_manager = queue_manager or QueueManager()
         self.objective_stack: list = []
 
         # Inicialização da Memória Persistente
@@ -123,6 +125,10 @@ class HephaestusAgent:
 
     def _run_architect_phase(self) -> bool:
         self.logger.info("\nSolicitando plano de ação do ArchitectAgent...")
+        if not self.state.current_objective:
+            self.logger.error("--- FALHA: _run_architect_phase chamado sem um objetivo atual definido no estado. ---")
+            return False
+
         action_plan_data, error_msg = self.architect.plan_action(
             objective=self.state.current_objective,
             manifest=self.state.manifesto_content
@@ -302,68 +308,5 @@ class HephaestusAgent:
             self.logger.error("Falha ao inicializar o repositório Git. O agente não pode continuar sem versionamento.")
             return
 
-        self.logger.info("Gerando objetivo inicial...")
-        model_config = self.config.get("models", {}).get("objective_generator")
-        initial_objective = generate_next_objective(
-            model_config=model_config,
-            current_manifest="",
-            logger=self.logger,
-            project_root_dir=".",
-            config=self.config,
-            memory_summary=self.memory.get_full_history_for_prompt(),
-        )
-        self.queue_manager.put_objective(initial_objective)
-        self.logger.info(f"Objetivo inicial adicionado à fila: {initial_objective}")
-
-        run_cycles(self, self.queue_manager)
-
-
-if __name__ == "__main__":
-    log_formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
-    console_handler = logging.StreamHandler()
-    console_handler.setFormatter(log_formatter)
-    console_handler.setLevel(logging.INFO)
-
-    file_handler = logging.FileHandler("hephaestus.log", mode='w')
-    file_handler.setFormatter(log_formatter)
-    file_handler.setLevel(logging.DEBUG)
-
-    root_logger = logging.getLogger()
-    root_logger.setLevel(logging.DEBUG)
-    root_logger.addHandler(console_handler)
-    root_logger.addHandler(file_handler)
-
-    agent_logger = logging.getLogger("HephaestusAgent")
-
-    load_dotenv()
-
-    parser = argparse.ArgumentParser(description="Hephaestus Agent: Autonomous AI for code evolution.")
-    parser.add_argument(
-        "-c", "--continuous-mode",
-        action="store_true",
-        help="Enable continuous mode, where the agent generates new objectives indefinitely."
-    )
-    parser.add_argument(
-        "--max-cycles",
-        type=int,
-        default=None,
-        help="Maximum number of evolution cycles to run (for testing or controlled runs). Default: None (runs indefinitely or until stack empty if not continuous)."
-    )
-    args = parser.parse_args()
-
-    try:
-        with open("hephaestus_config.json", "r", encoding="utf-8") as f:
-            main_config = json.load(f)
-    except FileNotFoundError:
-        agent_logger.error("CRITICAL: hephaestus_config.json not found. Exiting.")
-        sys.exit(1)
-    except json.JSONDecodeError as e:
-        agent_logger.error(f"CRITICAL: Error decoding hephaestus_config.json: {e}. Exiting.")
-        sys.exit(1)
-
-    agent = HephaestusAgent(
-        logger_instance=agent_logger,
-        continuous_mode=args.continuous_mode,
-        objective_stack_depth_for_testing=args.max_cycles,
-    )
-    agent.run()
+        cycle_runner = CycleRunner(self, self.queue_manager)
+        cycle_runner.run()
