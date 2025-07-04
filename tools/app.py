@@ -6,7 +6,7 @@ import logging
 
 from agent.queue_manager import QueueManager
 from agent.hephaestus_agent import HephaestusAgent # Import HephaestusAgent
-from agent.config_loader import load_config
+from agent.unified_config_manager import load_unified_config
 
 # Configure logging for the FastAPI app
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
@@ -35,7 +35,7 @@ async def startup_event():
         logger_instance=logger, # Use the app's logger
         continuous_mode=True, # Agent will run continuously in the background
         objective_stack_depth_for_testing=None, # No limit for server mode
-        config=load_config(), # Pass the loaded config
+        config=load_unified_config(logger), # Pass the unified config
         queue_manager=queue_manager # Pass the shared queue manager
     )
 

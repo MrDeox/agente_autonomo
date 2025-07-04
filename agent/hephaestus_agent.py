@@ -23,7 +23,7 @@ from agent.memory import Memory
 from agent.state import AgentState
 from agent.validation_steps import get_validation_step
 from agent.queue_manager import QueueManager
-from agent.config_loader import load_config # Import the new load_config
+from agent.unified_config_manager import load_unified_config # Import unified config system
 from agent.cognitive_evolution_manager import get_evolution_manager, start_cognitive_evolution
 
 # Configuração do Logging
@@ -99,7 +99,15 @@ class HephaestusAgent:
         from agent.self_awareness_core import get_self_awareness_core
         self.self_awareness_core = get_self_awareness_core(self.config.get("models", {}).get("architect_default"), self.logger)
         
-        self.logger.info("🧠 Hephaestus initialized with Meta-Intelligence and Self-Awareness capabilities")
+        # Initialize Infrastructure Manager
+        from agent.utils.infrastructure_manager import get_infrastructure_manager
+        self.infrastructure_manager = get_infrastructure_manager(self.logger)
+        
+        # Ensure infrastructure is ready
+        if not self.infrastructure_manager.ensure_infrastructure():
+            self.logger.warning("⚠️ Infrastructure issues detected - system may not function optimally")
+        
+        self.logger.info("🧠 Hephaestus initialized with Meta-Intelligence, Self-Awareness, and Infrastructure Management capabilities")
 
     def _initialize_evolution_log(self):
         """Verifica e inicializa o arquivo de log de evolução com cabeçalho, se necessário."""
