@@ -1,13 +1,9 @@
 import pytest
-import requests
 from unittest.mock import patch, MagicMock
+import requests.exceptions
 from agent.tool_executor import web_search
 
-@pytest.fixture
-def mock_requests_get():
-    with patch('agent.tool_executor.requests.get') as mock_get:
-        yield mock_get
-
+@patch('agent.tool_executor.requests.get')
 def test_web_search_success(mock_requests_get):
     # Mock successful API response
     mock_response = MagicMock()
@@ -19,27 +15,29 @@ def test_web_search_success(mock_requests_get):
         ]
     }
     mock_requests_get.return_value = mock_response
-
+    
     success, results = web_search("test query")
     
     assert success is True
-    assert "1. Test result 1" in results
-    assert "URL: https://example.com/1" in results
-    assert "2. Test result 2" in results
-    assert "URL: https://example.com/2" in results
+    assert "🔍 RESULTADOS DA PESQUISA WEB:" in results
+    assert "1. **Test result 1**" in results
+    assert "https://example.com/1" in results
+    assert "⭐ Relevância:" in results
 
+@patch('agent.tool_executor.requests.get')
 def test_web_search_no_results(mock_requests_get):
     # Mock empty results
     mock_response = MagicMock()
     mock_response.status_code = 200
     mock_response.json.return_value = {"Results": []}
     mock_requests_get.return_value = mock_response
-
+    
     success, results = web_search("test query")
     
     assert success is True
-    assert "Nenhum resultado encontrado para a pesquisa." in results
+    assert "Nenhum resultado relevante encontrado para: 'test query'" in results
 
+@patch('agent.tool_executor.requests.get')
 def test_web_search_api_error(mock_requests_get):
     # Mock API error
     mock_requests_get.side_effect = Exception("API error")
@@ -49,6 +47,7 @@ def test_web_search_api_error(mock_requests_get):
     assert success is False
     assert "Erro na pesquisa web" in results
 
+@patch('agent.tool_executor.requests.get')
 def test_web_search_connection_error(mock_requests_get):
     # Mock connection error
     mock_requests_get.side_effect = requests.exceptions.ConnectionError("Connection failed")

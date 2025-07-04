@@ -197,6 +197,7 @@ def web_search(query: str, max_results: int = 5, context: str = "") -> Tuple[boo
         return True, formatted_results
         
     except Exception as e:
+        print(f"Erro na busca DuckDuckGo: {e}")
         return False, f"Erro na pesquisa web: {str(e)}"
 
 
@@ -287,7 +288,8 @@ def _search_duckduckgo(query: str, max_results: int) -> list:
         
     except Exception as e:
         print(f"Erro na busca DuckDuckGo: {e}")
-        return []
+        # Levanta exceção para que seja capturada pela função principal
+        raise e
 
 
 def _process_and_rank_results(results: list, original_query: str, context: str) -> list:
@@ -445,7 +447,7 @@ def _process_results_by_type(raw_results: str, search_type: str, context: dict) 
             current_result['snippet'] = line.replace('📝', '').strip()
         elif line.strip().startswith('⭐'):
             relevance = line.replace('⭐ Relevância:', '').strip()
-            current_result['relevance'] = 0.0  # Simplified to avoid type issues
+            current_result['relevance'] = relevance
     
     if current_result:
         results.append(current_result)
