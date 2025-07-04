@@ -1,4 +1,13 @@
 {
+  "validation_strategies": {
+    "CYCLOMATIC_COMPLEXITY_CHECK": {
+      "name": "CYCLOMATIC_COMPLEXITY_CHECK",
+      "description": "Bloqueia patches com complexidade ciclomática acima de 30",
+      "threshold": 30
+    }
+  }
+}
+{
   "models": {
     "architect_default": {
       "primary": "qwen/qwen3-30b-a3b:free",

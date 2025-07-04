@@ -12,6 +12,7 @@ agente_autonomo/
     HEPHAESTUS_MEMORY.json
     main.py
     ROADMAP.md
+    ANALISE_PROFUNDA_SISTEMA.md
     hephaestus_config.json
     requirements.txt
     run_agent.py
@@ -140,6 +141,8 @@ agente_autonomo/
   - *Aplica uma lista de instruções de patch aos arquivos.*
 
 ### Arquivo: `agent/cycle_runner.py`
+- **Classe:** `CycleRunner`
+  - *Manages the main execution loop of the Hephaestus agent.*
 - **Função:** `run_cycles(agent: 'HephaestusAgent', queue_manager: QueueManager)`
   - *Execute the main evolution loop for the given agent.*
 
