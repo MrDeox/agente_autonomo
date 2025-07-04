@@ -1,7 +1,11 @@
 import typer
+from dotenv import load_dotenv
 from agent.hephaestus_agent import HephaestusAgent
 import logging
 from agent.config_loader import load_config
+
+# Load environment variables from .env file
+load_dotenv()
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)

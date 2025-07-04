@@ -7,6 +7,12 @@ defaults:
   - validation_strategies: main # Load validation strategies from config/validation_strategies/main.yaml
   - _self_                  # Allows values in this file to override defaults from included files
 
+# Code analysis thresholds used by agent.brain
+code_analysis_thresholds:
+  file_loc: 300
+  function_loc: 50
+  function_cc: 10
+
 # You can override specific values here if needed, for example:
 # memory_file_path: "MY_CUSTOM_MEMORY.json"
 

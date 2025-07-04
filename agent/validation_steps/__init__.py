@@ -18,8 +18,30 @@ class BenchmarkValidator(ValidationStep):
 # Placeholder for CheckFileExistenceValidator (if not yet implemented)
 class CheckFileExistenceValidator(ValidationStep):
     def execute(self) -> Tuple[bool, str, str]:
-        self.logger.info("File existence check skipped (placeholder).")
-        return True, "FILE_EXISTENCE_CHECK_SKIPPED", "File existence check is a placeholder."
+        self.logger.info("Checking file existence for applied patches...")
+        if not self.patches_to_apply:
+            return True, "FILE_EXISTENCE_CHECK_SKIPPED", "No patches were applied."
+
+        missing_files = []
+        # Use a set to avoid checking the same file multiple times
+        files_to_check = {p.get("file_path") for p in self.patches_to_apply if p.get("file_path")}
+
+        for file_path_str in files_to_check:
+            if not file_path_str:
+                continue
+            # The base_path is the root of the check (e.g., the sandbox or project root)
+            full_path = Path(self.base_path) / file_path_str
+            if not full_path.exists():
+                self.logger.warning(f"File existence check failed: '{full_path}' does not exist.")
+                missing_files.append(str(full_path))
+
+        if missing_files:
+            reason = "FILE_EXISTENCE_CHECK_FAILED_IN_SANDBOX" if self.use_sandbox else "FILE_EXISTENCE_CHECK_FAILED"
+            details = f"The following files were expected to exist but were not found: {', '.join(missing_files)}"
+            return False, reason, details
+
+        self.logger.info("File existence check passed. All files found.")
+        return True, "FILE_EXISTENCE_CHECK_SUCCESS", "All patched files exist."
 
 class ValidateJsonSyntax(ValidationStep):
     """Validates the syntax of JSON files mentioned in patches."""

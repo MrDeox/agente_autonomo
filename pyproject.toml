@@ -1,55 +1,61 @@
 [project]
 name = "agente-autonomo"
 version = "0.1.0"
-description = ""
+description = "Um agente de IA focado em Aprimoramento Auto Recursivo (RSI)."
 authors = [
     {name = "MrDeox",email = "arthurptc33@gmail.com"}
 ]
 readme = "README.md"
-requires-python = "^3.9"
-dependencies = [
-    "requests (>=2.31.0)",
-    "google-generativeai (>=0.8.5,<0.9.0)",
-    "python-dotenv (>=1.0.0)",
-    "psutil (>=5.9.8)",
-    "pytest (>=7.0.0)",
-    "pytest-mock (>=3.0.0)",
-    "radon (>=5.1.0)",
-    "pandas (>=1.0.0)",
-    "fastapi (>=0.100.0)",
-    "uvicorn[standard] (>=0.20.0)",
-    "hydra-core (>=1.3.2,<2.0.0)",
-    "typer (>=0.16.0,<0.17.0)",
-    "jsonschema (>=4.24.0,<5.0.0)",
-    "mcp (>=1.0.0)",
-    "httpx (>=0.24.0)",
-    "websockets (>=11.0.0)"
-]
+requires-python = ">=3.10"
 
 [tool.poetry]
+name = "agente-autonomo"
+version = "0.1.0"
+description = "Um agente de IA focado em Aprimoramento Auto Recursivo (RSI)."
+authors = ["MrDeox <arthurptc33@gmail.com>"]
+readme = "README.md"
 package-mode = false
 
 [build-system]
-requires = ["poetry-core>=2.0.0,<3.0.0"]
+requires = ["poetry-core>=2.0.0"]
 build-backend = "poetry.core.masonry.api"
 
 [tool.poetry.dependencies]
 python = "^3.10"
+
+# Core Dependencies
 python-dotenv = "^1.0.0"
-openai = "^1.13.3"
 requests = "^2.31.0"
 termcolor = "^2.4.0"
 PyYAML = "^6.0.1"
-pydantic = "^2.6.4"
 loguru = "^0.7.2"
 gitpython = "^3.1.42"
 "ruamel.yaml" = "^0.18.6"
-pytest = "^8.1.1"
-jsonschema = "^4.22.0"
+psutil = ">=5.9.8"
+pandas = ">=1.0.0"
+radon = ">=5.1.0"
+typer = ">=0.16.0,<0.17.0"
+pydantic = "^2.6.4"
+hydra-core = ">=1.3.2,<2.0.0"
+
+# LLM & AI Dependencies
+google-generativeai = ">=0.8.5,<0.9.0"
+openai = "^1.13.3"
+
+# Framework & Server Dependencies
+fastapi = ">=0.100.0"
+uvicorn = {extras = ["standard"], version = ">=0.20.0"}
+
 # MCP Dependencies
 mcp = "^1.0.0"
 httpx = "^0.24.0"
 websockets = "^11.0.0"
+fastapi-mcp = ">=0.1.0" # From requirements_mcp
 
-[tool.poetry.dev-dependencies]
+# Validation & Testing
+jsonschema = "^4.22.0"
+
+[tool.poetry.group.dev.dependencies]
 pytest = "^8.1.1"
+pytest-mock = ">=3.0.0"
+pytest-asyncio = ">=0.21.0"

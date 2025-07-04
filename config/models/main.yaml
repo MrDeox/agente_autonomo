@@ -4,33 +4,40 @@ architect_default:
   _target_: "builtins.dict" # Using dict as a placeholder if no specific class is needed
   temperature: ${default_model_settings.temperature}
   max_tokens: ${default_model_settings.max_tokens}
-  primary: "qwen/qwen3-14b:free"
-  fallback: "qwen/qwen3-8b:free"
+  primary: "qwen/qwen3-30b-a3b:free"
+  fallback: "gemini/gemini-2.5-pro"
 
 maestro_default:
   _target_: "builtins.dict"
   temperature: ${default_model_settings.temperature}
   max_tokens: ${default_model_settings.max_tokens}
-  primary: "qwen/qwen3-14b:free"
-  fallback: "qwen/qwen3-8b:free"
+  primary: "qwen/qwen3-30b-a3b:free"
+  fallback: "gemini/gemini-2.5-pro"
 
 objective_generator:
   _target_: "builtins.dict"
   temperature: ${default_model_settings.temperature}
   max_tokens: ${default_model_settings.max_tokens}
-  primary: "qwen/qwen3-14b:free"
-  fallback: "qwen/qwen3-8b:free"
+  primary: "qwen/qwen3-30b-a3b:free"
+  fallback: "gemini/gemini-2.5-pro"
 
 capacitation_generator:
   _target_: "builtins.dict"
   temperature: ${default_model_settings.temperature}
   max_tokens: ${default_model_settings.max_tokens}
-  primary: "qwen/qwen3-14b:free"
-  fallback: "qwen/qwen3-8b:free"
+  primary: "qwen/qwen3-30b-a3b:free"
+  fallback: "gemini/gemini-2.5-pro"
 
 error_analyzer:
   _target_: "builtins.dict"
   temperature: ${default_model_settings.temperature}
   max_tokens: ${default_model_settings.max_tokens}
-  primary: "qwen/qwen3-14b:free"
-  fallback: "qwen/qwen3-8b:free"
+  primary: "qwen/qwen3-30b-a3b:free"
+  fallback: "gemini/gemini-2.5-pro"
+
+code_reviewer:
+  _target_: "builtins.dict"
+  temperature: ${default_model_settings.temperature}
+  max_tokens: ${default_model_settings.max_tokens}
+  primary: "qwen/qwen3-30b-a3b:free"
+  fallback: "gemini/gemini-2.5-pro"

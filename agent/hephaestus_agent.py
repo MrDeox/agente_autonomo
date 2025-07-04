@@ -23,7 +23,6 @@ from agent.memory import Memory
 from agent.state import AgentState
 from agent.validation_steps import get_validation_step
 from agent.queue_manager import QueueManager
-from agent.unified_config_manager import load_unified_config # Import unified config system
 from agent.cognitive_evolution_manager import get_evolution_manager, start_cognitive_evolution
 
 # Configuração do Logging

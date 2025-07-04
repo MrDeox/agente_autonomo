@@ -17,12 +17,9 @@ agente_autonomo/
     README_MCP_HEPHAESTUS.md
     poetry.lock
     main.py
-    hephaestus_config.json
     GUIA_MCP_CURSOR.md
     CHECKLIST_MCP_HEPHAESTUS.md
-    requirements.txt
     evolution_monitoring.txt
-    requirements_mcp.txt
     demo_meta_intelligence.py
     GUIA_CONFIGURACAO_CURSOR.md
     start_mcp_server.sh
@@ -55,7 +52,6 @@ agente_autonomo/
         project_scanner.py
         queue_manager.py
         state.py
-        unified_config_manager.py
         config_loader.py
         advanced_knowledge_system.py
         validation_steps/
@@ -381,8 +377,6 @@ agente_autonomo/
 ### Arquivo: `agent/cycle_runner.py`
 - **Classe:** `CycleRunner`
   - *Manages the main execution loop of the Hephaestus agent.*
-- **Função:** `run_cycles(agent: 'HephaestusAgent', queue_manager: QueueManager)`
-  - *Execute the main evolution loop for the given agent.*
 
 ### Arquivo: `agent/memory.py`
 - **Classe:** `SemanticPattern`
@@ -461,14 +455,6 @@ agente_autonomo/
 ### Arquivo: `agent/state.py`
 - **Classe:** `AgentState`
   - *Representa o estado interno do agente Hephaestus durante um ciclo de processamento.*
-
-### Arquivo: `agent/unified_config_manager.py`
-- **Classe:** `UnifiedConfigManager`
-  - *Gerenciador unificado de configuração que resolve conflitos Hydra/JSON*
-- **Função:** `get_unified_config_manager(logger: Optional[logging.Logger]=None)`
-  - *Retorna instância singleton do gerenciador*
-- **Função:** `load_unified_config(logger: Optional[logging.Logger]=None, force_reload: bool=False)`
-  - *Função principal para carregar configuração unificada*
 
 ### Arquivo: `agent/config_loader.py`
 - **Função:** `load_config()`

@@ -115,3 +115,8 @@ AUTO_CORRECTION_STRATEGY:
     - PatchApplicatorStep
     - run_pytest
   sanity_check_step: "run_pytest"
+
+CYCLOMATIC_COMPLEXITY_CHECK:
+  name: "CYCLOMATIC_COMPLEXITY_CHECK"
+  description: "Bloqueia patches com complexidade ciclomática acima de 30"
+  threshold: 30

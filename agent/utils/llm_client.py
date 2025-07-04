@@ -12,7 +12,7 @@ if GEMINI_API_KEY:
     genai.configure(api_key=GEMINI_API_KEY)
 
 # Constants
-OPENROUTER_API_KEY = os.getenv("OPENROUTER_API_KEY")
+# OPENROUTER_API_KEY = os.getenv("OPENROUTER_API_KEY") # Load JIT inside the function
 OPENROUTER_BASE_URL = "https://openrouter.ai/api/v1"
 
 def call_gemini_api(model: str, prompt: str, temperature: float, max_tokens: Optional[int], logger: logging.Logger) -> Tuple[Optional[str], Optional[str]]:
@@ -53,13 +53,14 @@ def call_openrouter_api(model: str, prompt: str, temperature: float, max_tokens:
     """
     Calls a generic OpenAI-compatible API (like OpenRouter).
     """
-    if not OPENROUTER_API_KEY:
+    api_key = os.getenv("OPENROUTER_API_KEY")
+    if not api_key:
         return None, "OPENROUTER_API_KEY environment variable not set."
 
     logger.info(f"Attempting to call OpenRouter API with model: {model}")
     url = f"{OPENROUTER_BASE_URL}/chat/completions"
     headers = {
-        "Authorization": f"Bearer {OPENROUTER_API_KEY}",
+        "Authorization": f"Bearer {api_key}",
         "Content-Type": "application/json"
     }
     payload = {
