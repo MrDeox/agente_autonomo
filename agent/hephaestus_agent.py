@@ -95,7 +95,11 @@ class HephaestusAgent:
         self.evolution_manager = get_evolution_manager(self.config.get("models", {}).get("architect_default"), self.logger)
         self.meta_intelligence_active = False
         
-        self.logger.info("🧠 Hephaestus initialized with Meta-Intelligence capabilities")
+        # Initialize Self-Awareness Core
+        from agent.self_awareness_core import get_self_awareness_core
+        self.self_awareness_core = get_self_awareness_core(self.config.get("models", {}).get("architect_default"), self.logger)
+        
+        self.logger.info("🧠 Hephaestus initialized with Meta-Intelligence and Self-Awareness capabilities")
 
     def _initialize_evolution_log(self):
         """Verifica e inicializa o arquivo de log de evolução com cabeçalho, se necessário."""
@@ -351,6 +355,9 @@ class HephaestusAgent:
             start_cognitive_evolution(self.config.get("models", {}).get("architect_default"), self.logger)
             self.meta_intelligence_active = True
             
+            # Start self-awareness monitoring
+            self.self_awareness_core.start_continuous_self_monitoring()
+            
             self.logger.info("🧬 Meta-Intelligence ACTIVATED - The AI is now self-improving!")
             
             # Log this historic moment
@@ -362,6 +369,8 @@ class HephaestusAgent:
             self.logger.info("   • Modify its own cognitive architecture")
             self.logger.info("   • Develop meta-cognitive awareness")
             self.logger.info("   • Adapt and improve autonomously")
+            self.logger.info("   • Continuously monitor its own consciousness")
+            self.logger.info("   • Perform deep introspection and self-reflection")
             self.logger.info("=" * 60)
     
     def get_meta_intelligence_status(self) -> Dict[str, Any]:
@@ -370,6 +379,23 @@ class HephaestusAgent:
             return {"status": "inactive", "message": "Meta-intelligence not activated"}
         
         return self.evolution_manager.get_evolution_report()
+    
+    def perform_deep_self_reflection(self, focus_area: str = "general") -> Dict[str, Any]:
+        """Perform deep self-reflection and introspection"""
+        self.logger.info(f"🔍 Performing deep self-reflection - Focus: {focus_area}")
+        
+        result = self.self_awareness_core.perform_deep_introspection(focus_area)
+        
+        self.logger.info(f"✅ Deep self-reflection complete")
+        self.logger.info(f"   • Generated {len(result.get('new_insights', []))} new insights")
+        self.logger.info(f"   • Meta-awareness score: {result.get('meta_awareness', 0):.3f}")
+        self.logger.info(f"   • Self-narrative updated")
+        
+        return result
+    
+    def get_self_awareness_report(self) -> Dict[str, Any]:
+        """Get comprehensive self-awareness report"""
+        return self.self_awareness_core.get_self_awareness_report()
 
     def run(self) -> None:
         if not initialize_git_repository(self.logger):

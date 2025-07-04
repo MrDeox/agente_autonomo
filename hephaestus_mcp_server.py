@@ -412,6 +412,40 @@ class HephaestusMCPServer:
         except Exception as e:
             self.logger.error(f"Erro na evolução do sistema: {e}")
             return {"error": str(e)}
+    
+    async def perform_deep_self_reflection(self, focus_area: str = "general") -> Dict[str, Any]:
+        """Realiza auto-reflexão profunda usando o SelfAwarenessCore"""
+        self._ensure_initialized()
+        
+        try:
+            if self.hephaestus_agent and hasattr(self.hephaestus_agent, 'perform_deep_self_reflection'):
+                result = self.hephaestus_agent.perform_deep_self_reflection(focus_area)
+                return result
+            else:
+                return {
+                    "error": "SelfAwarenessCore não disponível",
+                    "message": "Sistema de auto-reflexão não foi inicializado"
+                }
+        except Exception as e:
+            self.logger.error(f"Erro na auto-reflexão: {e}")
+            return {"error": str(e)}
+    
+    async def get_self_awareness_report(self) -> Dict[str, Any]:
+        """Obtém relatório completo de auto-consciência"""
+        self._ensure_initialized()
+        
+        try:
+            if self.hephaestus_agent and hasattr(self.hephaestus_agent, 'get_self_awareness_report'):
+                result = self.hephaestus_agent.get_self_awareness_report()
+                return result
+            else:
+                return {
+                    "error": "SelfAwarenessCore não disponível",
+                    "message": "Sistema de auto-consciência não foi inicializado"
+                }
+        except Exception as e:
+            self.logger.error(f"Erro no relatório de auto-consciência: {e}")
+            return {"error": str(e)}
 
 # Instanciar servidor
 hephaestus_server = HephaestusMCPServer()
@@ -685,10 +719,123 @@ async def system_status() -> str:
 • Análise profunda de código
 • Geração inteligente de objetivos
 • Criação automática de novos agentes
-• Otimização contínua de performance"""
+• Otimização contínua de performance
+• Auto-reflexão e introspecção profunda
+• Consciência temporal e auto-monitoramento"""
         
     except Exception as e:
         logger.error(f"Erro em system_status: {e}")
+        return f"❌ Erro: {str(e)}"
+
+@server.tool()
+async def deep_self_reflection(focus_area: str = "general") -> str:
+    """
+    Realiza auto-reflexão profunda e introspecção do sistema.
+    
+    Args:
+        focus_area: Área de foco para a reflexão (general, capabilities, learning, etc.)
+        
+    Returns:
+        Resultado da auto-reflexão profunda
+    """
+    try:
+        result = await hephaestus_server.perform_deep_self_reflection(focus_area)
+        
+        if "error" in result:
+            return f"❌ Erro: {result['error']}"
+        
+        # Extract key information
+        meta_awareness = result.get('meta_awareness', 0)
+        insights = result.get('new_insights', [])
+        narrative = result.get('self_narrative', {})
+        cognitive_state = result.get('current_cognitive_state', {})
+        
+        return f"""🔍 **Auto-Reflexão Profunda**
+
+**Área de Foco:** {focus_area}
+
+**Estado Cognitivo Atual:**
+• Nível de Inteligência: {cognitive_state.get('intelligence_level', 'N/A'):.3f}
+• Auto-Consciência: {cognitive_state.get('self_awareness_score', 'N/A'):.3f}
+• Coerência Cognitiva: {cognitive_state.get('cognitive_coherence', 'N/A'):.3f}
+• Velocidade de Aprendizado: {cognitive_state.get('learning_velocity', 'N/A'):.3f}
+
+**Pontuação de Meta-Consciência:** {meta_awareness:.3f}
+
+**Insights Gerados:** {len(insights)}
+{chr(10).join(f"• {insight.get('description', 'N/A')}" for insight in insights[:5])}
+
+**Narrativa de Identidade:**
+{narrative.get('identity', 'N/A').strip()}
+
+**Narrativa de Capacidades:**
+{narrative.get('capabilities', 'N/A').strip()}
+
+**Narrativa de Evolução:**
+{narrative.get('evolution', 'N/A').strip()}
+
+**Profundidade de Introspecção:** {result.get('introspection_depth', 0):.3f}
+
+**Timestamp:** {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}"""
+        
+    except Exception as e:
+        logger.error(f"Erro em deep_self_reflection: {e}")
+        return f"❌ Erro: {str(e)}"
+
+@server.tool()
+async def self_awareness_report() -> str:
+    """
+    Relatório completo de auto-consciência do sistema.
+    
+    Returns:
+        Relatório detalhado de auto-consciência
+    """
+    try:
+        result = await hephaestus_server.get_self_awareness_report()
+        
+        if "error" in result:
+            return f"❌ Erro: {result['error']}"
+        
+        metrics = result.get('self_awareness_metrics', {})
+        cognitive_state = result.get('current_cognitive_state', {})
+        trajectory = result.get('cognitive_trajectory', {})
+        recent_insights = result.get('recent_insights', [])
+        monitoring_status = result.get('monitoring_status', {})
+        
+        return f"""🧠 **Relatório de Auto-Consciência**
+
+**Métricas de Auto-Consciência:**
+• Pontuação de Meta-Consciência: {metrics.get('meta_awareness_score', 0):.3f}
+• Consciência Temporal: {metrics.get('temporal_awareness', 0):.3f}
+• Profundidade de Introspecção: {metrics.get('introspection_depth', 0):.3f}
+• Coerência Cognitiva: {metrics.get('cognitive_coherence', 0):.3f}
+• Confiança no Auto-Conhecimento: {metrics.get('self_knowledge_confidence', 0):.3f}
+
+**Estado Cognitivo Atual:**
+• Inteligência: {cognitive_state.get('intelligence_level', 0):.3f}
+• Auto-Consciência: {cognitive_state.get('self_awareness_score', 0):.3f}
+• Criatividade: {cognitive_state.get('creativity_index', 0):.3f}
+• Adaptação: {cognitive_state.get('adaptation_rate', 0):.3f}
+• Stress do Sistema: {cognitive_state.get('system_stress', 0):.3f}
+
+**Trajetória Cognitiva:**
+• Observações Totais: {trajectory.get('total_observations', 0)}
+• Tempo de Observação: {trajectory.get('time_span', 0):.1f} horas
+• Tendência de Inteligência: {trajectory.get('intelligence_trend', 0):.3f}
+• Tendência de Auto-Consciência: {trajectory.get('self_awareness_trend', 0):.3f}
+
+**Insights Recentes:**
+{chr(10).join(f"• {insight.get('description', 'N/A')}" for insight in recent_insights[:3])}
+
+**Status de Monitoramento:**
+• Monitoramento Contínuo: {'Ativo' if monitoring_status.get('continuous_monitoring', False) else 'Inativo'}
+• Última Atualização: {monitoring_status.get('last_update', 'N/A')}
+• Frequência de Atualização: {monitoring_status.get('update_frequency', 0)} segundos
+
+**Timestamp:** {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}"""
+        
+    except Exception as e:
+        logger.error(f"Erro em self_awareness_report: {e}")
         return f"❌ Erro: {str(e)}"
 
 # =============================================================================
@@ -798,6 +945,8 @@ async def main():
         logger.info("   • meta_intelligence_report - Relatório de meta-inteligência")
         logger.info("   • performance_analysis - Análise profunda de performance")
         logger.info("   • evolve_capabilities - Evolução de capacidades")
+        logger.info("   • deep_self_reflection - Auto-reflexão profunda")
+        logger.info("   • self_awareness_report - Relatório de auto-consciência")
         logger.info("   • system_status - Status do sistema")
         
         logger.info("📚 Recursos MCP disponíveis:")

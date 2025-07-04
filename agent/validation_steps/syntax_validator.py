@@ -1,9 +1,5 @@
-from jsonschema import validate, ValidationError
-from hephaestus_config import strict
-from jsonschema import validate, ValidationError
-import logging
-import logging
 import json
+import logging
 from jsonschema import validate, ValidationError
 from typing import Tuple, List, Dict, Any
 from pathlib import Path

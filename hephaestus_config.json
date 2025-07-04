@@ -1,13 +1,4 @@
 {
-  "validation_strategies": {
-    "CYCLOMATIC_COMPLEXITY_CHECK": {
-      "name": "CYCLOMATIC_COMPLEXITY_CHECK",
-      "description": "Bloqueia patches com complexidade ciclomática acima de 30",
-      "threshold": 30
-    }
-  }
-}
-{
   "models": {
     "architect_default": {
       "primary": "qwen/qwen3-30b-a3b:free",
@@ -36,6 +27,11 @@
     "function_cc": 10
   },
   "validation_strategies": {
+    "CYCLOMATIC_COMPLEXITY_CHECK": {
+      "name": "CYCLOMATIC_COMPLEXITY_CHECK",
+      "description": "Bloqueia patches com complexidade ciclomática acima de 30",
+      "threshold": 30
+    },
     "SYNTAX_ONLY": {
       "steps": ["validate_syntax", "PatchApplicatorStep"],
       "sanity_check_step": "skip_sanity_check"
@@ -69,10 +65,28 @@
       "sanity_check_step": "run_pytest"
     },
     "CREATE_NEW_TEST_FILE_STRATEGY": {
-      "steps": ["validate_syntax", "run_pytest_new_file", "PatchApplicatorStep", "apply_patches_to_disk"],      "sanity_check_step": "run_pytest_new_file"
+      "steps": ["validate_syntax", "run_pytest_new_file", "PatchApplicatorStep", "apply_patches_to_disk"],
+      "sanity_check_step": "run_pytest_new_file"
     },
     "AUTO_CORRECTION_STRATEGY": {
-      "steps": ["validate_syntax", "PatchApplicatorStep", "run_pytest"],      "sanity_check_step": "run_pytest"
+      "steps": ["validate_syntax", "PatchApplicatorStep", "run_pytest"],
+      "sanity_check_step": "run_pytest"
+    },
+    "EVOLUTION_PERMISSIVE": {
+      "steps": ["validate_syntax", "PatchApplicatorStep"],
+      "sanity_check_step": "skip_sanity_check"
+    },
+    "NEW_FEATURE_STRATEGY": {
+      "steps": ["validate_syntax", "PatchApplicatorStep"],
+      "sanity_check_step": "check_file_existence"
+    },
+    "CAPABILITY_EXPANSION": {
+      "steps": ["validate_syntax", "PatchApplicatorStep"],
+      "sanity_check_step": "skip_sanity_check"
+    },
+    "INNOVATION_STRATEGY": {
+      "steps": ["validate_syntax", "PatchApplicatorStep"],
+      "sanity_check_step": "skip_sanity_check"
     }
   }
 }
