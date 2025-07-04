@@ -1,21 +1,37 @@
 import json
 import logging
+import re
 import traceback
 from typing import Optional, Dict, Any, Tuple
+
+def _fix_common_json_errors(json_string: str, logger: logging.Logger) -> str:
+    """Tenta corrigir erros comuns de JSON gerado por LLM."""
+    # Corrige barras invertidas que não são de escape (causa comum de erro)
+    # Ex: "path": "C:\Users\..." se torna "path": "C:\\Users\\..."
+    # Usando uma função para a substituição para logar as correções
+    def escape_backslashes(match):
+        val = match.group(0)
+        # Não escapar sequências de escape JSON válidas
+        if val in ('\\"', '\\\\', '\\/', '\\b', '\\f', '\\n', '\\r', '\\t'):
+            return val
+        logger.warning(f"JSON parser: Found potentially unescaped backslash. Correcting '{val}' to '\\{val}'.")
+        return f'\\\\{val[1:]}'
+
+    # Regex para encontrar uma barra invertida seguida por um caractere que não é uma sequência de escape válida
+    corrected_string = re.sub(r'\\(?![/"\\bfnrt])', escape_backslashes, json_string)
+    
+    # Tenta corrigir strings não terminadas (caso simples)
+    if 'Unterminated string' in corrected_string:
+        # Lógica simples: encontrar a última aspa de abertura e adicionar uma no final se necessário
+        # Isso é arriscado e pode ser melhorado
+        pass
+        
+    return corrected_string
 
 def parse_json_response(raw_str: str, logger: logging.Logger) -> Tuple[Optional[Dict[str, Any]], Optional[str]]:
     """
     Analisa uma string bruta que se espera conter JSON, limpando-a e decodificando-a.
-    Remove blocos de markdown, extrai conteúdo entre a primeira '{' e a última '}',
-    remove caracteres não imprimíveis e carrega o JSON.
-
-    Args:
-        raw_str: A string bruta da resposta da LLM.
-        logger: Instância do logger para registrar o processo.
-
-    Returns:
-        Uma tupla contendo o dicionário JSON parseado (ou None em caso de erro)
-        e uma mensagem de erro (ou None em caso de sucesso).
+    Remove blocos de markdown, extrai conteúdo, tenta corrigir erros comuns e carrega o JSON.
     """
     if not raw_str or not raw_str.strip():
         if logger:
@@ -25,56 +41,41 @@ def parse_json_response(raw_str: str, logger: logging.Logger) -> Tuple[Optional[
     clean_content = raw_str.strip()
     if logger: logger.debug(f"parse_json_response: Raw response before cleaning: {raw_str[:300]}...")
 
+    # Extração primária: do primeiro '{' ao último '}'
     first_brace = clean_content.find('{')
     last_brace = clean_content.rfind('}')
-
-    if first_brace != -1 and last_brace != -1 and last_brace > first_brace:
+    if first_brace != -1 and last_brace > first_brace:
         clean_content = clean_content[first_brace:last_brace+1]
-        if logger: logger.debug(f"parse_json_response: Extracted JSON content based on braces: {clean_content[:300]}...")
-    else:
-        # Attempt to remove markdown code blocks if they exist
+    else: # Fallback para remover markdown
         if clean_content.startswith('```json'):
-            clean_content = clean_content[7:] # Remove ```json
-            if clean_content.endswith('```'):
-                clean_content = clean_content[:-3] # Remove ```
-        elif clean_content.startswith('```'): # Generic code block
-            clean_content = clean_content[3:]
-            if clean_content.endswith('```'):
-                clean_content = clean_content[:-3]
-        clean_content = clean_content.strip() # Strip again after potential markdown removal
-        if logger: logger.debug(f"parse_json_response: Content after attempting markdown removal (if any): {clean_content[:300]}...")
-
-    # Remove non-printable characters except for common whitespace like \n, \r, \t
-    clean_content = ''.join(char for char in clean_content if ord(char) >= 32 or char in ['\n', '\r', '\t'])
-    if logger: logger.debug(f"parse_json_response: Final cleaned content before parsing: {clean_content[:300]}...")
+            clean_content = clean_content.lstrip('```json').rstrip('```')
+        elif clean_content.startswith('```'):
+            clean_content = clean_content.lstrip('```').rstrip('```')
+    clean_content = clean_content.strip()
 
     if not clean_content:
         if logger:
             logger.error("parse_json_response: Content became empty after cleaning.")
         return None, "Conteúdo ficou vazio após limpeza."
 
+    # Tentativa 1: Parse direto
     try:
-        parsed_json = json.loads(clean_content)
-        return parsed_json, None
+        return json.loads(clean_content), None
     except json.JSONDecodeError as e:
-        # The duplicated error message lines in the original code are preserved here.
-        # This could be a point of cleanup later.
-        error_message = f"Erro ao decodificar JSON: {str(e)}. Cleaned content (partial): {clean_content[:500]}"
-        if logger: logger.error(f"parse_json_response: {error_message}. Original response (partial): {raw_str[:200]}")
-        return None, f"Erro ao decodificar JSON: {str(e)}. Original response (partial): {raw_str[:200]}"
-        # This second block is effectively dead code due to the return above, but kept for fidelity to original.
-        # error_message = f"Erro ao decodificar JSON: {str(e)}. Conteúdo limpo (parcial): {clean_content[:500]}"
-        # if logger:
-        #     logger.error(
-        #         f"parse_json_response: {error_message}. Resposta original (parcial): {raw_str[:200]}"
-        #     )
-        # return None, f"Erro ao decodificar JSON: {str(e)}. Resposta original (parcial): {raw_str[:200]}"
-
+        logger.warning(f"Initial JSON parsing failed: {e}. Attempting to fix common errors.")
+        
+        # Tentativa 2: Corrigir erros comuns e tentar novamente
+        corrected_json_str = _fix_common_json_errors(clean_content, logger)
+        try:
+            logger.info("Attempting to parse with fixed JSON string...")
+            return json.loads(corrected_json_str), None
+        except json.JSONDecodeError as e2:
+            error_message = f"Erro ao decodificar JSON mesmo após tentativa de correção: {e2}."
+            if logger: 
+                logger.error(f"parse_json_response: {error_message}. Resposta original (parcial): {raw_str[:200]}")
+            return None, error_message
     except Exception as e:
         error_message = f"Erro inesperado ao processar JSON: {str(e)}"
-        detailed_error = (
-            f"{error_message}\n{traceback.format_exc()}" if 'traceback' in globals() else error_message
-        )
         if logger:
-            logger.error(f"parse_json_response: {detailed_error}", exc_info=True)
-        return None, f"Erro inesperado ao processar JSON: {str(e)}"
+            logger.error(f"parse_json_response: {error_message}", exc_info=True)
+        return None, error_message

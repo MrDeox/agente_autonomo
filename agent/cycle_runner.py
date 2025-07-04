@@ -5,6 +5,7 @@ import json
 import time
 from datetime import datetime
 from typing import TYPE_CHECKING, Optional
+from pathlib import Path
 
 from agent.project_scanner import update_project_manifest
 from agent.brain import (
@@ -14,6 +15,7 @@ from agent.brain import (
 )
 from agent.tool_executor import run_pytest, check_file_existence, run_git_command
 from agent.agents import ErrorAnalysisAgent, PromptOptimizer
+from agent.validation_steps import get_validation_step
 
 if TYPE_CHECKING:
     from agent.hephaestus_agent import HephaestusAgent
@@ -202,19 +204,22 @@ class CycleRunner:
         tool_name = strategy_config.get("sanity_check_step", "run_pytest")
         self.agent.logger.info(f"--- INITIATING POST-APPLICATION SANITY CHECK: {tool_name} ---")
 
-        if tool_name == "run_pytest":
-            success, details = run_pytest(test_dir='tests/', cwd=".")
+        try:
+            # Use the factory to get the validation step class
+            validation_step_class = get_validation_step(tool_name)
+            step_instance = validation_step_class(
+                logger=self.agent.logger,
+                base_path=Path("."), # Sanity check runs on the real project root
+                patches_to_apply=self.agent.state.get_patches_to_apply(),
+                use_sandbox=False, # Sanity check is post-sandbox
+            )
+            success, reason, details = step_instance.execute()
             return success, tool_name, details
-        if tool_name == "check_file_existence":
-            files_to_check = list(self.agent.state.applied_files_report.keys()) if self.agent.state.applied_files_report else []
-            if not files_to_check:
-                return True, tool_name, "No files to check."
-            success, details = check_file_existence(files_to_check)
-            return success, tool_name, details
-        if tool_name == "skip_sanity_check":
-            return True, tool_name, "Sanity check skipped as per configuration."
-        
-        return False, tool_name, f"Unknown sanity check tool: {tool_name}"
+        except (KeyError, ValueError):
+             return False, tool_name, f"Unknown sanity check tool: {tool_name}"
+        except Exception as e:
+            self.agent.logger.error(f"An unexpected error occurred during sanity check '{tool_name}': {e}", exc_info=True)
+            return False, tool_name, f"Unexpected error during sanity check: {e}"
 
     def _rollback_changes(self):
         """Safely rolls back changes in the working directory."""

@@ -29,6 +29,7 @@ agente_autonomo/
     tools/
         app.py
     agent/
+        analysis_processor.py
         brain.py
         __init__.py
         code_metrics.py
@@ -232,6 +233,9 @@ agente_autonomo/
 - **Função:** `startup_event()`
 - **Função:** `submit_objective(obj: Objective)`
 - **Função:** `get_status()`
+
+### Arquivo: `agent/analysis_processor.py`
+- **Classe:** `AnalysisProcessor`
 
 ### Arquivo: `agent/brain.py`
 - **Função:** `generate_next_objective(model_config: Dict[str, str], current_manifest: str, logger: logging.Logger, project_root_dir: str, config: Optional[Dict[str, Any]]=None, memory_summary: Optional[str]=None, current_objective: Optional[str]=None)`
@@ -446,6 +450,7 @@ agente_autonomo/
 ### Arquivo: `agent/project_scanner.py`
 - **Função:** `_extract_elements(code_string: str)`
 - **Função:** `_extract_skeleton(code_string: str)`
+  - *Generate a code skeleton showing imports, classes and functions without implementation.*
 - **Função:** `update_project_manifest(root_dir: str, target_files: List[str], output_path: str='docs/ARCHITECTURE.md', excluded_dir_patterns: Optional[List[str]]=None)`
 - **Função:** `analyze_code_metrics(root_dir: str, excluded_dir_patterns: Optional[List[str]]=None, file_loc_threshold: int=300, func_loc_threshold: int=50, func_cc_threshold: int=10)`
   - *Analisa arquivos Python em um diretório para métricas de código como LOC e Complexidade Ciclomática.*
@@ -539,6 +544,8 @@ agente_autonomo/
 ### Arquivo: `agent/utils/__init__.py`
 
 ### Arquivo: `agent/utils/json_parser.py`
+- **Função:** `_fix_common_json_errors(json_string: str, logger: logging.Logger)`
+  - *Tenta corrigir erros comuns de JSON gerado por LLM.*
 - **Função:** `parse_json_response(raw_str: str, logger: logging.Logger)`
   - *Analisa uma string bruta que se espera conter JSON, limpando-a e decodificando-a.*
 

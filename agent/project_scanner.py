@@ -29,6 +29,14 @@ def _extract_elements(code_string: str) -> List[Tuple[str, str, Optional[str], O
         return [('error', None, None, f"Erro na análise AST: {str(e)}")]
 
 def _extract_skeleton(code_string: str) -> str:
+    """Generate a code skeleton showing imports, classes and functions without implementation.
+    
+    Args:
+        code_string: Python source code to analyze
+        
+    Returns:
+        String containing a simplified skeleton of the code structure
+    """
     elements = _extract_elements(code_string)
     
     if elements and elements[0][0] == 'error':
