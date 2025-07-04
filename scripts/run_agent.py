@@ -13,7 +13,7 @@ console_handler = logging.StreamHandler()
 console_handler.setFormatter(log_formatter)
 console_handler.setLevel(logging.INFO)
 
-file_handler = logging.FileHandler("hephaestus.log", mode='w')
+file_handler = logging.FileHandler("logs/hephaestus.log", mode='w')
 file_handler.setFormatter(log_formatter)
 file_handler.setLevel(logging.DEBUG)
 

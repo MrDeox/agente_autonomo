@@ -99,7 +99,8 @@ def agent_instance(mock_logger, temp_config_file, mock_env_vars, tmp_path):
 
                     # Criar arquivos e diretórios básicos que o agente pode esperar
                     (tmp_path / "tests").mkdir(exist_ok=True)
-                    (tmp_path / "AGENTS.md").touch() # Para _generate_manifest
+                    (tmp_path / "docs").mkdir()
+                    (tmp_path / "docs" / "ARCHITECTURE.md").touch() # Para _generate_manifest
 
                     agent = MockableHephaestusAgent( # Use the aliased class
                         logger_instance=mock_logger,

@@ -25,7 +25,7 @@ class PromptOptimizer:
         
     def analyze_prompt_performance(self, 
                                  memory_data: Dict[str, Any],
-                                 evolution_log_path: str = "evolution_log.csv") -> Dict[str, Any]:
+                                 evolution_log_path: str = "logs/evolution_log.csv") -> Dict[str, Any]:
         """
         Analyze the performance of prompts used by different agents.
         

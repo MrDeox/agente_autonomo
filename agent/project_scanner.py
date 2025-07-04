@@ -65,7 +65,7 @@ def _extract_skeleton(code_string: str) -> str:
 def update_project_manifest(
     root_dir: str,
     target_files: List[str],
-    output_path: str = "AGENTS.md",
+    output_path: str = "docs/ARCHITECTURE.md",
     excluded_dir_patterns: Optional[List[str]] = None
 ) -> None:
     root_path = pathlib.Path(root_dir).resolve()

@@ -26,7 +26,7 @@ class CapabilityGapDetector:
                               memory_data: Dict[str, Any],
                               capabilities_content: str,
                               roadmap_content: str,
-                              evolution_log_path: str = "evolution_log.csv") -> Dict[str, Any]:
+                              evolution_log_path: str = "logs/evolution_log.csv") -> Dict[str, Any]:
         """
         Analyze historical data to identify capability gaps.
         

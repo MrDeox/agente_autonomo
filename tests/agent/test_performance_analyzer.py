@@ -5,7 +5,7 @@ from agent.agents import PerformanceAnalysisAgent # Updated import
 @pytest.fixture
 def mock_log_file(tmp_path):
     def _mock_log_file(data):
-        log_file = tmp_path / "evolution_log.csv"
+        log_file = tmp_path / "logs" / "evolution_log.csv"
         if data:
             df = pd.DataFrame(data)
             df.to_csv(log_file, index=False)

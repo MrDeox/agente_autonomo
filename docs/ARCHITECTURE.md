@@ -7,6 +7,7 @@ agente_autonomo/
     hephaestus.log
     META_INTELLIGENCE_SYSTEM.md
     cli.py
+    monitor_evolution.py
     AGENTS.md
     EXEMPLO_INTEGRACAO_FLOW_MODIFIER.md
     poetry.lock
@@ -102,6 +103,12 @@ agente_autonomo/
   - *Submit a new objective to the agent*
 - **Função:** `status()`
   - *Check agent status*
+
+### Arquivo: `monitor_evolution.py`
+- **Classe:** `EvolutionMonitor`
+  - *Monitor inteligente para acompanhar a evolução do sistema*
+- **Função:** `main()`
+  - *Função principal*
 
 ### Arquivo: `app.py`
 - **Classe:** `Objective(BaseModel)`

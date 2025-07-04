@@ -2,7 +2,7 @@
 # This file is included by default.yaml
 
 # Default memory file path
-memory_file_path: "HEPHAESTUS_MEMORY.json"
+memory_file_path: "reports/memory/HEPHAESTUS_MEMORY.json"
 
 # Default model temperature and max tokens
 # These can be overridden in specific model configurations

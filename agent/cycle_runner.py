@@ -310,7 +310,7 @@ class CycleRunner:
                             if sanity_check_tool_name != "skip_sanity_check":
                                 self.agent.logger.info("Ressincronizando manifesto e iniciando auto-commit...")
                                 update_project_manifest(root_dir=".", target_files=[])
-                                with open("AGENTS.md", "r", encoding="utf-8") as f:
+                                with open("docs/ARCHITECTURE.md", "r", encoding="utf-8") as f:
                                     self.agent.state.manifesto_content = f.read()
 
                                 analysis_summary_for_commit = self.agent.state.get_architect_analysis() or "N/A"

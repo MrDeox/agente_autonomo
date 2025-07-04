@@ -6,7 +6,7 @@ class PerformanceAnalysisAgent:
     An agent dedicated to analyzing the performance of Hephaestus.
     """
 
-    def __init__(self, evolution_log_path="evolution_log.csv"):
+    def __init__(self, evolution_log_path="logs/evolution_log.csv"):
         """
         Initializes the PerformanceAnalysisAgent.
 

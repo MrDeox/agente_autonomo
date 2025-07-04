@@ -10,8 +10,8 @@ O objetivo principal deste projeto é explorar e construir um agente de IA capaz
 
 Em vez de simplesmente completar tarefas de desenvolvimento de software, o Hephaestus opera sob a seguinte hierarquia de prioridades:
 
-1.  **Aprimorar Capacidades Fundamentais:** O agente busca ativamente expandir o que ele pode fazer. Isso é guiado pelo `CAPABILITIES.md`.
-2.  **Melhorar a Eficiência e a Taxa de Sucesso:** Analisando seu histórico de performance (`evolution_log.csv`), o agente identifica por que falha e como pode ter mais sucesso no futuro.
+1.  **Aprimorar Capacidades Fundamentais:** O agente busca ativamente expandir o que ele pode fazer. Isso é guiado pelo `docs/CAPABILITIES.md`.
+2.  **Melhorar a Eficiência e a Taxa de Sucesso:** Analisando seu histórico de performance (`logs/evolution_log.csv`), o agente identifica por que falha e como pode ter mais sucesso no futuro.
 3.  **Refatorar com Propósito:** A refatoração do código não é feita apenas para melhorar métricas, mas para habilitar futuras capacidades ou corrigir falhas de performance.
 4.  **Executar Tarefas de Desenvolvimento:** A modificação de código para tarefas externas é um resultado secundário e uma forma de testar as capacidades recém-adquiridas.
 
@@ -78,7 +78,7 @@ Em vez de simplesmente completar tarefas de desenvolvimento de software, o Hepha
 O Hephaestus opera em um ciclo contínuo, agora como um serviço em segundo plano, com foco em RSI:
 
 1.  **Serviço em Segundo Plano:** O Hephaestus agora é executado como um servidor FastAPI, permitindo a submissão assíncrona de objetivos via API. Um thread worker dedicado processa os objetivos de uma fila.
-2.  **Geração de Objetivo Estratégico:** O agente primeiro analisa o `CAPABILITIES.md` e seu `ROADMAP.md` para decidir qual capacidade aprimorar. Ele também revisa seu log de performance (`evolution_log.csv`) para encontrar padrões de falha a serem corrigidos. As métricas de código são usadas como um fator de desempate ou suporte. **Agora, o LLM é instruído a considerar a otimização de seus próprios prompts e estratégias com base na análise de performance.**
+2.  **Geração de Objetivo Estratégico:** O agente primeiro analisa o `docs/CAPABILITIES.md` e seu `docs/ROADMAP.md` para decidir qual capacidade aprimorar. Ele também revisa seu log de performance (`logs/evolution_log.csv`) para encontrar padrões de falha a serem corrigidos. As métricas de código são usadas como um fator de desempate ou suporte. **Agora, o LLM é instruído a considerar a otimização de seus próprios prompts e estratégias com base na análise de performance.**
 3.  **Planejamento Arquitetônico:** O `ArchitectAgent` cria um plano de modificação de código (patches) para alcançar o objetivo estratégico.
 4.  **Decisão Estratégica:** O `MaestroAgent` analisa o plano e escolhe a melhor forma de validar as alterações. Se o plano for muito arriscado ou exigir uma capacidade que o agente não possui, ele pode solicitar um novo objetivo de "capacitação".
 5.  **Execução e Validação:** As alterações são aplicadas em um ambiente seguro (sandbox) e validadas usando testes e verificação de sintaxe.
@@ -87,35 +87,88 @@ O Hephaestus opera em um ciclo contínuo, agora como um serviço em segundo plan
 
 ## Estrutura do Projeto
 
--   **`app.py`**: Aplicação FastAPI que expõe a API para submissão de objetivos e status, e inicia the agent em um thread worker.
+```
+agente_autonomo/
+├── README.md                    # Este arquivo - visão geral do projeto
+├── main.py                      # Ponto de entrada para o servidor FastAPI
+├── cli.py                       # Interface de linha de comando
+├── pyproject.toml              # Configuração do Poetry
+├── 
+├── agent/                       # 🧠 Lógica central do agente
+│   ├── brain.py                # Geração de objetivos e análise estratégica
+│   ├── hephaestus_agent.py     # Classe principal do agente
+│   ├── cycle_runner.py         # Orquestração do ciclo de auto-aprimoramento
+│   ├── agents/                 # Agentes especializados
+│   ├── validation_steps/       # Passos de validação
+│   └── utils/                  # Utilitários e helpers
+├── 
+├── config/                      # ⚙️ Configurações (gerenciadas pelo Hydra)
+│   ├── default.yaml            # Configuração principal
+│   ├── base_config.yaml        # Configurações base
+│   ├── models/                 # Configurações dos modelos LLM
+│   └── validation_strategies/  # Estratégias de validação
+├── 
+├── tests/                       # 🧪 Testes unitários
+├── 
+├── docs/                        # 📚 Documentação completa
+│   ├── README.md               # Índice da documentação
+│   ├── ROADMAP.md              # Roadmap de desenvolvimento
+│   ├── CAPABILITIES.md         # Capacidades atuais e desejadas
+│   ├── ARCHITECTURE.md         # Arquitetura do sistema
+│   ├── CONTRIBUTING.md         # Guia de contribuição
+│   └── analysis/               # Análises técnicas e de performance
+├── 
+├── logs/                        # 📊 Logs do sistema
+│   ├── hephaestus.log          # Log detalhado de execução
+│   ├── evolution_log.csv       # Log de performance dos ciclos
+│   └── night_agent.log         # Log do agente noturno
+├── 
+├── reports/                     # 📈 Relatórios e dados
+│   ├── evolution/              # Relatórios de evolução
+│   ├── night_work/             # Trabalho do agente noturno
+│   └── memory/                 # Memória persistente
+├── 
+├── scripts/                     # 🔧 Scripts utilitários
+│   ├── night_agent.py          # Agente de melhorias noturnas
+│   ├── monitor_evolution.py    # Monitor de evolução
+│   └── run_agent.py            # Runner alternativo
+└── 
+└── tools/                       # 🛠️ Ferramentas auxiliares
+    ├── app.py                  # Aplicação FastAPI
+    └── test_meta_intelligence.py
+```
+
+### Principais Componentes:
+
 -   **`agent/`**: Contém a lógica central do agente.
-    -   `hephaestus_agent.py`: **Contém a classe principal `HephaestusAgent` (movida de `main.py`).**
-    -   `brain.py`: Lógica de geração de objetivos e mensagens de commit. **Agora com lógica aprimorada para meta-análise e otimização de prompts.**
-    -   `agents.py`: Define os agentes especializados (`Architect`, `Maestro`).
-    -   `cycle_runner.py`: Orquestra o ciclo de auto-aprimoramento. **Agora interage com o `QueueManager`.**
-    -   `error_analyzer.py`: Analisa falhas e realiza meta-análise. **Agora pode sugerir objetivos de meta-análise.**
-    -   `queue_manager.py`: **Novo módulo para gerenciar a fila de objetivos.**
-    -   `config_loader.py`: **Novo módulo para carregar a configuração do agente.**
-    -   `utils/llm_client.py`: Gerencia a comunicação com as APIs de LLM (Gemini, OpenRouter).
-    -   `validation_steps/`: Contém os passos de validação. **Agora inclui placeholders para `BenchmarkValidator`, `CheckFileExistenceValidator`, `ValidateJsonSyntax`.**
--   **`tests/`**: Testes unitários para o agente.
--   **Documentos de Estratégia:**
-    -   `README.md`: (Este arquivo) Visão geral do projeto.
-    -   `CAPABILITIES.md`: O manifesto de capacidades atuais e desejadas que guia o RSI.
-    -   `ROADMAP.md`: O roadmap de desenvolvimento de alto nível.
-    -   `MANIFESTO.md`: Os princípios de design do projeto.
-    -   `AGENTS.md`: Documentação da arquitetura interna.
--   **Configuração e Logs:**
-    -   `main.py`: **Ponto de entrada para iniciar o servidor FastAPI.**
-    -   `config/`: Diretório contendo a configuração do agente, gerenciada pelo Hydra.
-        -   `default.yaml`: Ponto de entrada principal da configuração Hydra.
-        -   `base_config.yaml`: Configurações base (caminhos, thresholds, logging).
-        -   `models/main.yaml`: Configurações dos modelos de LLM.
-        -   `validation_strategies/main.yaml`: Estratégias de validação.
-        -   `example_config.yaml`: Documentação e exemplo de como customizar a configuração Hydra.
-    -   `hephaestus_config.json`: (Removido) A configuração agora é gerenciada via Hydra no diretório `config/`.
-    -   `hephaestus.log`: Log detalhado de execução.
-    -   `evolution_log.csv`: Log de alto nível sobre a performance de cada ciclo.
+    -   `hephaestus_agent.py`: Classe principal `HephaestusAgent`
+    -   `brain.py`: Lógica de geração de objetivos e análise estratégica
+    -   `cycle_runner.py`: Orquestra o ciclo de auto-aprimoramento
+    -   `agents/`: Agentes especializados (`Architect`, `Maestro`, etc.)
+    -   `validation_steps/`: Passos de validação (sintaxe, testes, etc.)
+    -   `utils/`: Utilitários (LLM client, logging, etc.)
+
+-   **`config/`**: Configurações gerenciadas pelo Hydra
+    -   `default.yaml`: Ponto de entrada principal
+    -   `base_config.yaml`: Configurações base
+    -   `models/main.yaml`: Configurações dos modelos LLM
+    -   `validation_strategies/main.yaml`: Estratégias de validação
+
+-   **`docs/`**: Documentação completa do projeto
+    -   `ROADMAP.md`: Roadmap de desenvolvimento
+    -   `CAPABILITIES.md`: Capacidades atuais e desejadas
+    -   `ARCHITECTURE.md`: Arquitetura detalhada do sistema
+    -   `analysis/`: Análises técnicas e de performance
+
+## Documentação
+
+Para informações detalhadas, consulte:
+
+- **[docs/README.md](docs/README.md)** - Índice completo da documentação
+- **[docs/ROADMAP.md](docs/ROADMAP.md)** - Roadmap de desenvolvimento
+- **[docs/CAPABILITIES.md](docs/CAPABILITIES.md)** - Capacidades do sistema
+- **[docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)** - Arquitetura detalhada
+- **[docs/CONTRIBUTING.md](docs/CONTRIBUTING.md)** - Guia de contribuição
 
 ## Testes
 
@@ -125,4 +178,8 @@ poetry run pytest
 
 ## Contribuições
 
-Contribuições são bem-vindas. Por favor, siga o guia em `CONTRIBUTING.md`.
+Contribuições são bem-vindas! Por favor, consulte o [Guia de Contribuição](docs/CONTRIBUTING.md) para detalhes sobre como contribuir para o projeto.
+
+---
+
+**Hephaestus**: Forjando o futuro da inteligência artificial auto-recursiva. 🔥⚒️

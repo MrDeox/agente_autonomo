@@ -86,7 +86,7 @@ class HephaestusAgent:
         )
         self.logger.info(f"CodeReviewAgent inicializado com a configuração: {code_review_model_config}")
 
-        self.evolution_log_file = "evolution_log.csv"
+        self.evolution_log_file = "logs/evolution_log.csv"
         self._initialize_evolution_log()
 
         self._reset_cycle_state()
@@ -118,7 +118,7 @@ class HephaestusAgent:
         self.state.reset_for_new_cycle(current_objective)
 
     def _generate_manifest(self) -> bool:
-        self.logger.info("Gerando manifesto do projeto (AGENTS.md)...")
+        self.logger.info("Gerando manifesto do projeto (ARCHITECTURE.md)...")
         try:
             target_files_for_manifest: List[str] = []
             if self.state.current_objective:
@@ -128,8 +128,8 @@ class HephaestusAgent:
                 elif "project_scanner.py" in self.state.current_objective:
                      target_files_for_manifest.append("agent/project_scanner.py")
 
-            update_project_manifest(root_dir=".", target_files=target_files_for_manifest)
-            with open("AGENTS.md", "r", encoding="utf-8") as f:
+            update_project_manifest(root_dir=".", target_files=target_files_for_manifest, output_path="docs/ARCHITECTURE.md")
+            with open("docs/ARCHITECTURE.md", "r", encoding="utf-8") as f:
                 self.state.manifesto_content = f.read()
             self.logger.info(f"--- MANIFESTO GERADO (Tamanho: {len(self.state.manifesto_content)} caracteres) ---")
             return True
