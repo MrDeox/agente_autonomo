@@ -29,6 +29,7 @@ agente_autonomo/
         __init__.py
         code_metrics.py
         hephaestus_agent.py
+        hephaestus_config.json
         git_utils.py
         code_validator.py
         patch_applicator.py

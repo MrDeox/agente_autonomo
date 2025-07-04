@@ -1,0 +1,5 @@
+"CYCLOMATIC_COMPLEXITY_CHECK": {
+    "module": "code_metrics",
+    "threshold": 30,
+    "description": "Bloqueia alterações com complexidade ciclomática acima de 30 antes da aplicação"
+  },
