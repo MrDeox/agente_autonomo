@@ -39,9 +39,18 @@ class CycleRunner:
             return self.agent.objective_stack.pop()
 
         if not self.queue_manager.is_empty():
-            objective = self.queue_manager.get_objective()
-            self.agent.logger.info(f"Objective transferred from queue to stack: {objective}")
-            return objective
+            objective_data = self.queue_manager.get_objective()
+            
+            # Handle enhanced objective format from API
+            if isinstance(objective_data, dict):
+                objective_str = objective_data.get("objective", str(objective_data))
+                self.agent.logger.info(f"Objective transferred from queue to stack: {objective_str}")
+                self.agent.logger.debug(f"Objective metadata: {objective_data}")
+                return objective_str
+            else:
+                # Handle simple string objective
+                self.agent.logger.info(f"Objective transferred from queue to stack: {objective_data}")
+                return objective_data
 
         if self.agent.continuous_mode:
             self.agent.logger.info(f"\\n{'='*20} CONTINUOUS MODE {'='*20}\\nObjective stack empty. Generating new objective...")

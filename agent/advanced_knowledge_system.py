@@ -157,7 +157,7 @@ Optimize this search query for better results.
 [ORIGINAL QUERY]: {query}
 
 [CONTEXT]:
-{json.dumps(context, indent=2)}
+{json.dumps(_safe_json_serialize(context), indent=2)}
 
 [OPTIMIZATION GOALS]
 1. Add technical terms that increase precision
@@ -448,8 +448,8 @@ Optimize this search query for better results.
                     source_type="code",
                     extracted_code=[f"# Example from {repo}\ndef {query.replace(' ', '_')}_example():\n    pass"]
                 ))
-        
-        return results
+            
+            return results
     
     def _api_documentation_search(self, query: str, max_results: int) -> List[SearchResult]:
         """
@@ -590,7 +590,7 @@ Optimize this search query for better results.
 Analyze this search result for key information relevant to the query.
 
 [QUERY]: {query}
-[CONTEXT]: {json.dumps(context, indent=2) if context else 'None'}
+[CONTEXT]: {json.dumps(_safe_json_serialize(context), indent=2) if context else 'None'}
 
 [SEARCH RESULT]
 Title: {result.title}
@@ -833,3 +833,40 @@ def get_knowledge_system(model_config: Dict[str, str], logger: logging.Logger) -
     if _knowledge_system is None:
         _knowledge_system = AdvancedKnowledgeSystem(model_config, logger)
     return _knowledge_system
+
+def _safe_json_serialize(obj: Any) -> Any:
+    """
+    Safely serialize objects to JSON-compatible format.
+    Converts complex objects like EvolutionEvent to dictionaries.
+    """
+    if hasattr(obj, '__dict__'):
+        # Convert dataclass or object to dict
+        result = {}
+        for key, value in obj.__dict__.items():
+            if isinstance(value, datetime):
+                result[key] = value.isoformat()
+            elif isinstance(value, (list, tuple)):
+                result[key] = [_safe_json_serialize(item) for item in value]
+            elif isinstance(value, dict):
+                result[key] = {k: _safe_json_serialize(v) for k, v in value.items()}
+            elif hasattr(value, '__dict__'):
+                result[key] = _safe_json_serialize(value)
+            else:
+                try:
+                    json.dumps(value)
+                    result[key] = value
+                except (TypeError, ValueError):
+                    result[key] = str(value)
+        return result
+    elif isinstance(obj, datetime):
+        return obj.isoformat()
+    elif isinstance(obj, (list, tuple)):
+        return [_safe_json_serialize(item) for item in obj]
+    elif isinstance(obj, dict):
+        return {k: _safe_json_serialize(v) for k, v in obj.items()}
+    else:
+        try:
+            json.dumps(obj)
+            return obj
+        except (TypeError, ValueError):
+            return str(obj)

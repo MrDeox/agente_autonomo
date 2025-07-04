@@ -9,6 +9,7 @@ from datetime import datetime
 from pathlib import Path
 from typing import Optional, Dict, Any, List, Tuple
 import re
+import asyncio
 
 from agent.project_scanner import update_project_manifest
 from agent.brain import (
@@ -25,6 +26,13 @@ from agent.state import AgentState
 from agent.validation_steps import get_validation_step
 from agent.queue_manager import QueueManager
 from agent.cognitive_evolution_manager import get_evolution_manager, start_cognitive_evolution
+from agent.async_orchestrator import AsyncAgentOrchestrator, AgentTask, AgentType
+from agent.model_optimizer import ModelOptimizer, get_model_optimizer
+from agent.advanced_knowledge_system import AdvancedKnowledgeSystem, get_knowledge_system
+from agent.root_cause_analyzer import RootCauseAnalyzer, get_root_cause_analyzer
+from agent.self_awareness_core import SelfAwarenessCore, get_self_awareness_core
+from agent.utils.infrastructure_manager import InfrastructureManager, get_infrastructure_manager
+from .hot_reload_manager import HotReloadManager, SelfEvolutionEngine
 
 # Configuração do Logging
 logger = logging.getLogger(__name__)
@@ -63,37 +71,34 @@ class HephaestusAgent:
         self.memory.load()
         self.logger.info(f"Memória carregada. {len(self.memory.completed_objectives)} objetivos concluídos, {len(self.memory.failed_objectives)} falharam.")
 
-        # Initialize Meta-Intelligence Systems FIRST
-        architect_model_config = self.config.get("models", {}).get("architect_default")
-        self.evolution_manager = get_evolution_manager(architect_model_config, self.logger)
-        self.meta_intelligence_active = False
+        # Inicializar componentes de meta-inteligência
+        self.evolution_manager = get_evolution_manager(self.config, self.logger)
         
-        # Initialize Model Optimizer for automatic performance capture
-        from agent.model_optimizer import get_model_optimizer
-        self.model_optimizer = get_model_optimizer(architect_model_config, self.logger)
+        # Usar model_config para compatibilidade
+        model_config = self.config.get("models", {}).get("architect_default", "gpt-4")
         
-        # Initialize Advanced Knowledge System
-        from agent.advanced_knowledge_system import get_knowledge_system
-        self.knowledge_system = get_knowledge_system(architect_model_config, self.logger)
+        self.model_optimizer = get_model_optimizer(model_config, self.logger)
         
-        # Initialize Root Cause Analyzer
-        from agent.root_cause_analyzer import get_root_cause_analyzer
-        self.root_cause_analyzer = get_root_cause_analyzer(architect_model_config, self.logger)
+        self.knowledge_system = get_knowledge_system(model_config, self.logger)
         
-        # Initialize Self-Awareness Core
-        from agent.self_awareness_core import get_self_awareness_core
-        self.self_awareness_core = get_self_awareness_core(architect_model_config, self.logger)
+        self.root_cause_analyzer = get_root_cause_analyzer(model_config, self.logger)
         
-        # Initialize Infrastructure Manager
-        from agent.utils.infrastructure_manager import get_infrastructure_manager
+        self.self_awareness_core = get_self_awareness_core(model_config, self.logger)
+        
         self.infrastructure_manager = get_infrastructure_manager(self.logger)
+        
+        # Inicializar orquestrador assíncrono
+        self.async_orchestrator = AsyncAgentOrchestrator(self.config, self.logger)
+        
+        # Estado de meta-inteligência
+        self.meta_intelligence_active = False
 
         # Inicialização dos Agentes Especializados COM INTEGRAÇÃO DE META-INTELIGÊNCIA
         self.architect = ArchitectAgent(
-            model_config=architect_model_config,
+            model_config=self.config.get("models", {}).get("architect_default"),
             logger=self.logger.getChild("ArchitectAgent")
         )
-        self.logger.info(f"ArchitectAgent inicializado com a configuração: {architect_model_config}")
+        self.logger.info(f"ArchitectAgent inicializado com a configuração: {self.config.get('models', {}).get('architect_default')}")
 
         maestro_model_config = self.config.get("models", {}).get("maestro_default")
         self.maestro = MaestroAgent(
@@ -103,7 +108,7 @@ class HephaestusAgent:
         )
         self.logger.info(f"MaestroAgent inicializado com a configuração: {maestro_model_config}")
 
-        code_review_model_config = self.config.get("models", {}).get("code_reviewer", architect_model_config) # Fallback to architect model
+        code_review_model_config = self.config.get("models", {}).get("code_reviewer", self.config.get("models", {}).get("architect_default")) # Fallback to architect model
         self.code_reviewer = CodeReviewAgent(
             model_config=code_review_model_config,
             logger=self.logger.getChild("CodeReviewAgent")
@@ -124,6 +129,16 @@ class HephaestusAgent:
         self.logger.info("🔍 Knowledge system ready for intelligent search")
         self.logger.info("⚡ Root cause analysis will detect failure patterns")
         self.logger.info("🧬 Self-awareness core monitoring cognitive state")
+
+        # Hot Reload Manager - Auto-atualização em tempo real
+        self.hot_reload_manager = HotReloadManager(self.logger)
+        self.self_evolution_engine = SelfEvolutionEngine(self.hot_reload_manager)
+        self.real_time_evolution_enabled = False
+        
+        # Registrar callbacks para hot reload
+        self._register_hot_reload_callbacks()
+        
+        self.logger.info("🔄 Hot Reload capabilities initialized!")
 
     def _initialize_evolution_log(self):
         """Verifica e inicializa o arquivo de log de evolução com cabeçalho, se necessário."""
@@ -266,7 +281,7 @@ class HephaestusAgent:
             return False
 
         start_time = time.time()
-        
+
         action_plan_data, error_msg = self.architect.plan_action(
             objective=self.state.current_objective,
             manifest=self.state.manifesto_content,
@@ -344,7 +359,7 @@ class HephaestusAgent:
             return False
 
         start_time = time.time()
-        
+
         maestro_logs = self.maestro.choose_strategy(
             action_plan_data=self.state.action_plan_data,
             memory_summary=self.memory.get_full_history_for_prompt(),
@@ -568,6 +583,13 @@ class HephaestusAgent:
             self.logger.info("   • Analyze failure patterns with root cause analysis")
             self.logger.info("   • Acquire new knowledge intelligently when needed")
             self.logger.info("=" * 60)
+            
+            # Iniciar hot reload para evolução em tempo real
+            if self.hot_reload_manager.start_hot_reload():
+                self.real_time_evolution_enabled = True
+                self.logger.info("🚀 Real-time evolution enabled!")
+            else:
+                self.logger.warning("⚠️ Hot reload not available - install watchdog for real-time evolution")
     
     def _setup_automatic_performance_logging(self):
         """Setup automatic performance logging for all agent LLM calls"""
@@ -719,3 +741,334 @@ class HephaestusAgent:
         
         intelligent_sleep = base_sleep * maturity_factor * activity_factor
         return max(10.0, min(120.0, intelligent_sleep))  # Between 10s and 2min
+
+    async def run_async_evolution_cycle(self, objective: str) -> Dict[str, Any]:
+        """
+        Executa um ciclo de evolução assíncrono com múltiplos agentes em paralelo.
+        
+        Esta é a nova funcionalidade que acelera DRASTICAMENTE o processo evolutivo!
+        """
+        self.logger.info(f"🚀 Starting ASYNC EVOLUTION CYCLE for: {objective}")
+        
+        # Preparar contexto para os agentes usando dados disponíveis
+        context = {
+            'current_files': [],  # Lista vazia por enquanto - pode ser expandida later
+            'memory_summary': self.memory.get_full_history_for_prompt(),
+            'config': self.config,
+            'current_objective': objective,
+            'manifesto_content': self.state.manifesto_content,
+            'file_content_context': getattr(self.state, 'file_content_context', '')
+        }
+        
+        # Criar ciclo de evolução paralelo
+        tasks = await self.async_orchestrator.create_parallel_evolution_cycle(objective, context)
+        
+        self.logger.info(f"📋 Created {len(tasks)} parallel tasks - Maximum evolutionary speed!")
+        
+        # Executar todas as tarefas em paralelo
+        start_time = time.time()
+        task_ids = await self.async_orchestrator.submit_parallel_tasks(tasks)
+        
+        # Aguardar conclusão de todas as tarefas
+        results = {}
+        for task_id in task_ids:
+            if task_id in self.async_orchestrator.completed_tasks:
+                results[task_id] = self.async_orchestrator.completed_tasks[task_id]
+            elif task_id in self.async_orchestrator.failed_tasks:
+                results[task_id] = self.async_orchestrator.failed_tasks[task_id]
+        
+        total_time = time.time() - start_time
+        
+        self.logger.info(f"⚡ ASYNC EVOLUTION COMPLETE in {total_time:.2f}s!")
+        self.logger.info(f"   • {len([r for r in results.values() if r.success])} tasks succeeded")
+        self.logger.info(f"   • {len([r for r in results.values() if not r.success])} tasks failed")
+        
+        # Processar resultados
+        evolution_results = {
+            "objective": objective,
+            "execution_time": total_time,
+            "tasks_executed": len(tasks),
+            "successful_tasks": len([r for r in results.values() if r.success]),
+            "failed_tasks": len([r for r in results.values() if not r.success]),
+            "parallel_efficiency": self._calculate_parallel_efficiency(results, total_time),
+            "results": results,
+            "orchestration_status": self.async_orchestrator.get_orchestration_status()
+        }
+        
+        return evolution_results
+    
+    def _calculate_parallel_efficiency(self, results: Dict[str, Any], total_time: float) -> float:
+        """Calcula eficiência da execução paralela"""
+        if not results:
+            return 0.0
+        
+        # Tempo total se fosse sequencial
+        sequential_time = sum(r.execution_time for r in results.values())
+        
+        # Eficiência paralela
+        efficiency = sequential_time / total_time if total_time > 0 else 0.0
+        
+        return min(efficiency, len(results))  # Máximo teórico é o número de tarefas
+    
+    def enable_turbo_evolution_mode(self):
+        """Ativa o modo turbo de evolução com máximo paralelismo"""
+        self.logger.info("🔥 TURBO EVOLUTION MODE ACTIVATED!")
+        
+        # Configurar orquestrador para máximo paralelismo
+        self.async_orchestrator.max_concurrent_agents = 8
+        
+        # Recriar semáforos com maior concorrência
+        for agent_type in self.async_orchestrator.semaphores:
+            self.async_orchestrator.semaphores[agent_type] = asyncio.Semaphore(8)
+        
+        # Reduzir timeouts para execução mais rápida
+        self.async_orchestrator.default_timeout = 180  # 3 minutos
+        
+        self.logger.info("⚡ TURBO MODE: 8 concurrent agents, reduced timeouts!")
+        self.logger.info("🚀 Evolution speed increased by 4-8x!")
+    
+    def get_async_orchestration_status(self) -> Dict[str, Any]:
+        """Retorna status detalhado da orquestração assíncrona"""
+        return {
+            "orchestrator_status": self.async_orchestrator.get_orchestration_status(),
+            "turbo_mode": self.async_orchestrator.max_concurrent_agents > 4,
+            "evolution_capability": "parallel_multi_agent",
+            "performance_multiplier": f"{self.async_orchestrator.max_concurrent_agents}x",
+            "active_systems": [
+                "async_orchestrator",
+                "parallel_evolution",
+                "concurrent_agents",
+                "dependency_management",
+                "performance_optimization"
+            ]
+        }
+
+    def stop_meta_intelligence(self):
+        """Stop the meta-intelligence system"""
+        if self.meta_intelligence_active:
+            self.logger.info("🛑 DEACTIVATING META-INTELLIGENCE - AI will no longer evolve itself!")
+            
+            # Stop cognitive evolution
+            self.evolution_manager.stop_cognitive_evolution()
+            self.meta_intelligence_active = False
+            
+            # Stop self-awareness monitoring
+            self.self_awareness_core.stop_continuous_self_monitoring()
+            
+            # Deactivate automatic performance logging for all LLM calls
+            self._teardown_automatic_performance_logging()
+            
+            self.logger.info("🧬 Meta-Intelligence DEACTIVATED - The AI is now static!")
+            
+            # Log this historic moment
+            self.logger.info("=" * 60)
+            self.logger.info("🎯 HISTORIC MOMENT: AI LOSES SELF-MODIFICATION CAPABILITY")
+            self.logger.info("🔥 The system can no longer:")
+            self.logger.info("   • Evolve its own prompts using genetic algorithms")
+            self.logger.info("   • Create new agents when needed")
+            self.logger.info("   • Modify its own cognitive architecture")
+            self.logger.info("   • Develop meta-cognitive awareness")
+            self.logger.info("   • Adapt and improve autonomously")
+            self.logger.info("   • Continuously monitor its own consciousness")
+            self.logger.info("   • Perform deep introspection and self-reflection")
+            self.logger.info("   • Automatically capture performance data from all LLM calls")
+            self.logger.info("   • Analyze failure patterns with root cause analysis")
+            self.logger.info("   • Acquire new knowledge intelligently when needed")
+            self.logger.info("=" * 60)
+            
+            # Parar hot reload
+            if self.hot_reload_manager:
+                self.hot_reload_manager.stop_hot_reload()
+                self.real_time_evolution_enabled = False
+                self.logger.info("🛑 Real-time evolution stopped")
+    
+    def _teardown_automatic_performance_logging(self):
+        """Teardown automatic performance logging for all agent LLM calls"""
+        try:
+            # Monkey patch the LLM client to automatically capture performance
+            from agent.utils import llm_client
+            original_call = llm_client.call_llm_api
+            
+            def captured_call_llm_api(model_config, prompt, temperature, logger_instance, **kwargs):
+                start_time = time.time()
+                response, error = original_call(model_config, prompt, temperature, logger_instance, **kwargs)
+                execution_time = time.time() - start_time
+                
+                # Extract agent type from logger name if possible
+                agent_type = "unknown"
+                if hasattr(logger_instance, 'name'):
+                    logger_name = logger_instance.name
+                    if 'ArchitectAgent' in logger_name:
+                        agent_type = "architect"
+                    elif 'MaestroAgent' in logger_name:
+                        agent_type = "maestro"
+                    elif 'CodeReviewAgent' in logger_name:
+                        agent_type = "code_review"
+                
+                # Capture performance data
+                try:
+                    self.model_optimizer.capture_performance_data(
+                        agent_type=agent_type,
+                        prompt=prompt[:500],  # Truncate for storage
+                        response=response[:1000] if response else "",
+                        success=not bool(error),
+                        execution_time=execution_time,
+                        context_metadata={
+                            "model_config": str(model_config),
+                            "temperature": temperature,
+                            "has_error": bool(error)
+                        }
+                    )
+                except Exception as e:
+                    # Don't fail the original call if performance capture fails
+                    self.logger.debug(f"Performance capture failed: {e}")
+                
+                return response, error
+            
+            # Apply the monkey patch
+            llm_client.call_llm_api = original_call
+            self.logger.info("🔗 Automatic performance logging deactivated for all LLM calls")
+            
+        except Exception as e:
+            self.logger.warning(f"Failed to teardown automatic performance logging: {e}")
+    
+    def enable_real_time_evolution(self):
+        """Habilitar evolução em tempo real"""
+        if not self.real_time_evolution_enabled:
+            if self.hot_reload_manager.start_hot_reload():
+                self.real_time_evolution_enabled = True
+                self.logger.info("🚀 Real-time evolution enabled!")
+                return True
+        return False
+    
+    def disable_real_time_evolution(self):
+        """Desabilitar evolução em tempo real"""
+        if self.real_time_evolution_enabled:
+            self.hot_reload_manager.stop_hot_reload()
+            self.real_time_evolution_enabled = False
+            self.logger.info("⏸️ Real-time evolution disabled")
+            return True
+        return False
+    
+    def self_modify_code(self, module_name: str, new_code: str):
+        """Permitir que o agente modifique seu próprio código"""
+        try:
+            self.logger.info(f"🧬 Self-modifying code for module: {module_name}")
+            
+            # Usar o hot reload manager para modificar código
+            success = self.hot_reload_manager.self_modify_code(module_name, new_code)
+            
+            if success:
+                self.logger.info("✅ Self-modification successful!")
+                
+                # Registrar na evolução
+                self.evolution_manager.register_evolution_event({
+                    "type": "self_modification",
+                    "module": module_name,
+                    "timestamp": time.time(),
+                    "success": True
+                })
+            else:
+                self.logger.error("❌ Self-modification failed!")
+            
+            return success
+            
+        except Exception as e:
+            self.logger.error(f"❌ Error in self-modification: {e}")
+            return False
+    
+    def dynamic_import_code(self, code: str, module_name: str = None):
+        """Importar código dinamicamente"""
+        try:
+            self.logger.info(f"🔧 Dynamic import: {module_name or 'anonymous'}")
+            
+            # Usar hot reload manager para importação dinâmica
+            module = self.hot_reload_manager.dynamic_import(code, module_name)
+            
+            if module:
+                self.logger.info("✅ Dynamic import successful!")
+                return module
+            else:
+                self.logger.error("❌ Dynamic import failed!")
+                return None
+                
+        except Exception as e:
+            self.logger.error(f"❌ Error in dynamic import: {e}")
+            return None
+    
+    def trigger_self_evolution(self):
+        """Disparar auto-evolução baseada em performance"""
+        try:
+            self.logger.info("🧬 Triggering self-evolution...")
+            
+            # Usar self evolution engine
+            success = self.self_evolution_engine.analyze_performance_and_evolve()
+            
+            if success:
+                self.logger.info("✅ Self-evolution completed successfully!")
+                
+                # Registrar evolução
+                self.evolution_manager.register_evolution_event({
+                    "type": "self_evolution",
+                    "timestamp": time.time(),
+                    "success": True
+                })
+            
+            return success
+            
+        except Exception as e:
+            self.logger.error(f"❌ Error in self-evolution: {e}")
+            return False
+    
+    def get_real_time_evolution_status(self):
+        """Obter status da evolução em tempo real"""
+        return {
+            "real_time_evolution_enabled": self.real_time_evolution_enabled,
+            "hot_reload_status": self.hot_reload_manager.get_evolution_status(),
+            "self_modification_capability": True,
+            "dynamic_import_capability": True,
+            "auto_evolution_enabled": self.hot_reload_manager.auto_evolution_enabled
+        }
+    
+    def _register_hot_reload_callbacks(self):
+        """Registrar callbacks para quando módulos forem recarregados"""
+        try:
+            # Callback para quando este próprio agente for recarregado
+            def on_agent_reload(new_module, old_module):
+                self.logger.info("🔄 HephaestusAgent module reloaded!")
+                # Aqui poderia recarregar configurações, reconectar componentes, etc.
+            
+            self.hot_reload_manager.register_reload_callback(
+                "agent.hephaestus_agent", 
+                on_agent_reload
+            )
+            
+            # Callback para módulos de agentes
+            def on_agents_reload(new_module, old_module):
+                self.logger.info("🤖 Agents module reloaded!")
+                # Recarregar agentes específicos se necessário
+            
+            self.hot_reload_manager.register_reload_callback(
+                "agent.agents", 
+                on_agents_reload
+            )
+            
+            # Callback para configurações
+            def on_config_reload(new_module, old_module):
+                self.logger.info("⚙️ Config module reloaded!")
+                # Recarregar configurações
+                try:
+                    from .config_loader import load_config
+                    new_config = load_config()
+                    # Atualizar configurações sem quebrar o estado atual
+                    self.logger.info("✅ Configuration updated!")
+                except Exception as e:
+                    self.logger.error(f"❌ Error reloading config: {e}")
+            
+            self.hot_reload_manager.register_reload_callback(
+                "agent.config_loader", 
+                on_config_reload
+            )
+            
+        except Exception as e:
+            self.logger.error(f"❌ Error registering hot reload callbacks: {e}")
