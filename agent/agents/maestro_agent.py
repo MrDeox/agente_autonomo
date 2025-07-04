@@ -221,12 +221,19 @@ Example: {{"strategy_key": "CAPACITATION_REQUIRED"}}
             "success": False,
         }
 
-        content, error_api = call_llm_api(
-            model_config=self.model_config,
+        # Use optimized LLM call for better performance
+        from agent.llm_performance_booster import optimized_llm_call
+        content, metadata = optimized_llm_call(
+            agent_type="MaestroAgent",
             prompt=prompt,
+            model_config=self.model_config,
             temperature=0.2,
+            context={"action_plan_data": action_plan_data, "memory_summary": memory_summary},
             logger=self.logger
         )
+        
+        # Check if it was an error response
+        error_api = metadata.get('error')
 
         if error_api:
             attempt_log["raw_response"] = f"Erro da API: {error_api}"

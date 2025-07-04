@@ -138,7 +138,20 @@ Example of PASSED review:
 "OK"
 """
         self.logger.info(f"CodeReviewAgent: Reviewing {len(patches_to_apply)} patches...")
-        raw_response, error = call_llm_api(self.model_config, prompt, 0.2, self.logger)
+        
+        # Use optimized LLM call for better performance
+        from agent.llm_performance_booster import optimized_llm_call
+        raw_response, metadata = optimized_llm_call(
+            agent_type="CodeReviewAgent",
+            prompt=prompt,
+            model_config=self.model_config,
+            temperature=0.2,
+            context={"patches": patches_to_apply},
+            logger=self.logger
+        )
+        
+        # Check if it was an error response
+        error = metadata.get('error')
 
         if error:
             self.logger.error(f"CodeReviewAgent: API call failed: {error}")
