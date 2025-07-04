@@ -1,3 +1,24 @@
+parameters:
+  comprehensive_pre_validation:
+    schema:
+      type: object
+      required: ["agent"]
+      additionalProperties: false
+      properties:
+        agent:
+          type: object
+          required: ["validation"]
+          additionalProperties: false
+          properties:
+            validation:
+              type: object
+              additionalProperties: false
+              properties:
+                # Esquema de validação dinâmica
+              required: []
+    additionalProperties: false
+    required: ["agent"]
+    type: object
 # Hydra Group Configuration for Validation Strategies (Located in config/validation_strategies/main.yaml)
 
 SYNTAX_ONLY:
