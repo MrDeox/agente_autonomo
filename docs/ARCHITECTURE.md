@@ -251,7 +251,9 @@ agente_autonomo/
 - **Função:** `shutdown_event()`
   - *Cleanup on shutdown*
 - **Função:** `worker_thread()`
-  - *Enhanced worker thread that processes objectives from the queue*
+  - *Starts the agent's main execution loop.*
+- **Função:** `process_objective(objective_data: Any)`
+  - *DEPRECATED: This logic is now handled by the CycleRunner.run() loop.*
 - **Função:** `root()`
   - *API Root - Welcome page with navigation*
 - **Função:** `health_check()`
@@ -568,11 +570,27 @@ agente_autonomo/
 
 ### Arquivo: `agent/project_scanner.py`
 - **Função:** `_extract_elements(code_string: str)`
+  - *Extract code elements (imports, classes, functions) from Python source.*
 - **Função:** `_extract_skeleton(code_string: str)`
   - *Generate a code skeleton showing imports, classes and functions without implementation.*
+- **Função:** `_get_default_skip_dirs()`
+  - *Get default directories to skip during project scanning.*
+- **Função:** `_should_skip_directory(dir_name: str, excluded_dirs: Set[str])`
+  - *Determine if a directory should be skipped during scanning.*
+- **Função:** `_process_file_for_manifest(file_path_obj: pathlib.Path, root_path: pathlib.Path, target_files_set: Set[str], target_content_cache: Dict[str, Tuple[Optional[str], Optional[Exception]]], api_summary_cache: Dict[str, List[Tuple]])`
+  - *Process a file for manifest generation.*
+- **Função:** `_write_manifest_section(manifest_file, section_title: str, content: str, indent_level: int=0)`
+  - *Write a section to the manifest file.*
 - **Função:** `update_project_manifest(root_dir: str, target_files: List[str], output_path: str='docs/ARCHITECTURE.md', excluded_dir_patterns: Optional[List[str]]=None)`
+  - *Generate a project manifest documenting the code structure and APIs.*
+- **Função:** `_collect_project_files(root_path: pathlib.Path, excluded_dirs: Set[str])`
+  - *Collect all Python files in the project, separating test files.*
+- **Função:** `_analyze_single_file(file_path_obj: pathlib.Path, root_path: pathlib.Path, file_loc_threshold: int, func_loc_threshold: int, func_cc_threshold: int, test_files: Set[str])`
+  - *Analyze metrics for a single Python file.*
+- **Função:** `_check_missing_tests(relative_path_str: str, file_functions_metrics: List[Dict[str, Any]], file_loc: int, test_files: Set[str])`
+  - *Check if a module is missing corresponding test files.*
 - **Função:** `analyze_code_metrics(root_dir: str, excluded_dir_patterns: Optional[List[str]]=None, file_loc_threshold: int=300, func_loc_threshold: int=50, func_cc_threshold: int=10)`
-  - *Analisa arquivos Python em um diretório para métricas de código como LOC e Complexidade Ciclomática.*
+  - *Analyze Python files in a directory for code metrics like LOC and Cyclomatic Complexity.*
 
 ### Arquivo: `agent/queue_manager.py`
 - **Classe:** `QueueManager`

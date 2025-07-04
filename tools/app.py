@@ -21,6 +21,7 @@ from agent.hephaestus_agent import HephaestusAgent
 from agent.config_loader import load_config
 from agent.arthur_interface_generator import ArthurInterfaceGenerator
 from agent.agents.error_detector_agent import ErrorDetectorAgent
+from agent.cycle_runner import CycleRunner
 
 # Configure logging
 logging.basicConfig(
@@ -265,42 +266,29 @@ async def shutdown_event():
         logger.error(f"❌ Error during shutdown: {e}")
 
 def worker_thread():
-    """Enhanced worker thread that processes objectives from the queue"""
-    global hephaestus_agent_instance, queue_manager
+    """Starts the agent's main execution loop."""
+    global hephaestus_agent_instance
+    logger.info("🔄 Worker Thread started, preparing to launch agent loop...")
     
-    logger.info("🔄 Enhanced Worker Thread started")
-    
-    while True:
-        try:
-            # Get objective from queue (blocking)
-            objective_data = queue_manager.get_objective()
-            logger.info(f"📋 Processing objective: {objective_data}")
+    # It's crucial to wait for the app to be fully started,
+    # otherwise the agent instance might not be ready.
+    time.sleep(2) 
 
-            # Extract objective string, handling both dict and str formats
-            if isinstance(objective_data, dict):
-                objective_str = objective_data.get("objective")
-                if not objective_str:
-                    logger.error(f"Objective dictionary is missing 'objective' key: {objective_data}")
-                    continue
-            else:
-                objective_str = str(objective_data)
-            
-            # Ensure agent is initialized
-            if not hephaestus_agent_instance:
-                logger.error("❌ Agent not initialized, cannot process objective")
-                continue
-            
-            # Add objective to agent's stack and run a single cycle
-            hephaestus_agent_instance.objective_stack.append(objective_str)
-            
-            # Create cycle runner and run single cycle
-            from agent.cycle_runner import CycleRunner
-            cycle_runner = CycleRunner(hephaestus_agent_instance, queue_manager)
-            cycle_runner._run_single_cycle(objective_str)
-            
+    if hephaestus_agent_instance:
+        try:
+            # The CycleRunner contains the main loop that handles both
+            # queued and continuously generated objectives. We just need to start it.
+            cycle_runner = CycleRunner(hephaestus_agent_instance, hephaestus_agent_instance.queue_manager)
+            cycle_runner.run()
         except Exception as e:
-            logger.error(f"❌ Error in worker thread: {e}", exc_info=True)
-            time.sleep(5)  # Wait before retrying
+            logger.error(f"❌ Critical error in agent's main run loop: {e}", exc_info=True)
+    else:
+        logger.error("❌ Agent not initialized. Worker thread cannot start.")
+
+def process_objective(objective_data: Any):
+    """DEPRECATED: This logic is now handled by the CycleRunner.run() loop."""
+    logger.warning("process_objective is deprecated and should not be called.")
+    pass
 
 # === CORE OPERATIONS ENDPOINTS === #
 
