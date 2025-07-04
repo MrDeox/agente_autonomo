@@ -1,4 +1,6 @@
 from jsonschema import validate, ValidationError
+from hephaestus_config import strict
+from jsonschema import validate, ValidationError
 import logging
 import logging
 import json
