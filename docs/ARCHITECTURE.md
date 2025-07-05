@@ -83,6 +83,7 @@ agente_autonomo/
             code_review_agent.py
             maestro_agent.py
             prompt_optimizer.py
+            debt_hunter_agent.py
             error_analyzer.py
         utils/
             __init__.py
@@ -688,14 +689,14 @@ agente_autonomo/
 - **Classe:** `StrategyCache`
   - *Cache LRU com TTL para decisões de estratégia*
 - **Classe:** `MaestroAgent`
-- **Classe:** `StrategyCache`
-  - *LRU cache with TTL for strategy decisions.*
-- **Classe:** `MaestroAgent`
-  - *Orchestrates strategy selection and execution for the Hephaestus agent system.*
 
 ### Arquivo: `agent/agents/prompt_optimizer.py`
 - **Classe:** `PromptOptimizer`
   - *Analyzes prompt performance and automatically optimizes prompts*
+
+### Arquivo: `agent/agents/debt_hunter_agent.py`
+- **Classe:** `DebtHunterAgent`
+  - *An autonomous agent that proactively hunts for technical debt and proposes*
 
 ### Arquivo: `agent/agents/error_analyzer.py`
 - **Classe:** `ErrorAnalysisAgent`

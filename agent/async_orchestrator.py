@@ -79,15 +79,18 @@ class AsyncAgentOrchestrator:
         self.logger.info(f"🚀 AsyncAgentOrchestrator initialized with {self.max_concurrent_agents} concurrent agents")
     
     def _initialize_agent_pools(self):
-        """Inicializa pools de agentes"""
+        """Inicializa pools de agentes com as assinaturas de construtor corretas."""
         try:
+            # ArchitectAgent and CodeReviewAgent accept model_config
             self.agent_pools[AgentType.ARCHITECT] = ArchitectAgent(
                 model_config=self.config.get("models", {}).get("architect_default", "gpt-4"),
                 logger=self.logger.getChild("ArchitectAgent")
             )
             
+            # CORRECTED: MaestroAgent expects model_config, config, and logger
+            maestro_model_config = self.config.get("models", {}).get("maestro_default", "gpt-4")
             self.agent_pools[AgentType.MAESTRO] = MaestroAgent(
-                model_config=self.config.get("models", {}).get("maestro_default", "gpt-4"),
+                model_config=maestro_model_config,
                 config=self.config,
                 logger=self.logger.getChild("MaestroAgent")
             )
@@ -97,15 +100,17 @@ class AsyncAgentOrchestrator:
                 logger=self.logger.getChild("CodeReviewAgent")
             )
             
+            # LogAnalysisAgent also accepts model_config
+            log_analyzer_model_config = self.config.get("models", {}).get("log_analyzer_default", self.config.get("models", {}).get("architect_default"))
             self.agent_pools[AgentType.LOG_ANALYSIS] = LogAnalysisAgent(
-                model_config=self.config.get("models", {}).get("log_analyzer_default", self.config.get("models", {}).get("architect_default")),
+                model_config=log_analyzer_model_config,
                 logger=self.logger.getChild("LogAnalysisAgent")
             )
             
             self.logger.info("✅ Agent pools initialized successfully")
             
         except Exception as e:
-            self.logger.error(f"❌ Error initializing agent pools: {str(e)}")
+            self.logger.error(f"❌ Error initializing agent pools: {str(e)}", exc_info=True)
             raise
     
     async def submit_parallel_tasks(self, tasks: List[AgentTask]) -> List[str]:
