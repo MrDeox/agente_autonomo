@@ -2040,6 +2040,141 @@ async def activate_all_agents_in_main_cycle(auth_user: dict = Depends(get_auth_u
         logger.error(f"Error activating all agents in main cycle: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
+@app.get("/health")
+async def get_system_health():
+    """Endpoint para verificar a saúde do sistema"""
+    try:
+        # Obter relatório de saúde do agente
+        health_report = hephaestus_agent_instance.get_system_health_report()
+        
+        return {
+            "status": "success",
+            "health": health_report,
+            "timestamp": datetime.now().isoformat()
+        }
+    except Exception as e:
+        return {
+            "status": "error",
+            "error": str(e),
+            "timestamp": datetime.now().isoformat()
+        }
+
+@app.get("/health/detailed")
+async def get_detailed_health():
+    """Endpoint para relatório detalhado de saúde"""
+    try:
+        # Relatório de prevenção de erros
+        error_report = hephaestus_agent_instance.error_prevention.generate_error_report()
+        
+        # Relatório de monitoramento
+        monitoring_report = hephaestus_agent_instance.continuous_monitor.generate_monitoring_report()
+        
+        return {
+            "status": "success",
+            "error_prevention_report": error_report,
+            "monitoring_report": monitoring_report,
+            "timestamp": datetime.now().isoformat()
+        }
+    except Exception as e:
+        return {
+            "status": "error",
+            "error": str(e),
+            "timestamp": datetime.now().isoformat()
+        }
+
+# === AUTONOMOUS MONITOR ENDPOINTS === #
+
+@app.get("/autonomous-monitor/status", tags=["Autonomous Monitor"])
+async def get_autonomous_monitor_status(auth_user: dict = Depends(get_auth_user)):
+    """Get autonomous monitor status and current issues"""
+    try:
+        if hephaestus_agent_instance and hasattr(hephaestus_agent_instance, 'autonomous_monitor'):
+            status = hephaestus_agent_instance.get_autonomous_monitor_status()
+            return {
+                "status": "success",
+                "data": status,
+                "timestamp": datetime.now().isoformat()
+            }
+        else:
+            raise HTTPException(status_code=503, detail="Autonomous monitor not initialized")
+    except Exception as e:
+        logger.error(f"Error getting autonomous monitor status: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.get("/autonomous-monitor/issues", tags=["Autonomous Monitor"])
+async def get_autonomous_monitor_issues(auth_user: dict = Depends(get_auth_user)):
+    """Get current issues detected by autonomous monitor"""
+    try:
+        if hephaestus_agent_instance and hasattr(hephaestus_agent_instance, 'autonomous_monitor'):
+            issues = hephaestus_agent_instance.autonomous_monitor.get_current_issues()
+            return {
+                "status": "success",
+                "data": issues,
+                "timestamp": datetime.now().isoformat()
+            }
+        else:
+            raise HTTPException(status_code=503, detail="Autonomous monitor not initialized")
+    except Exception as e:
+        logger.error(f"Error getting autonomous monitor issues: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.post("/autonomous-monitor/start", tags=["Autonomous Monitor"])
+async def start_autonomous_monitoring(auth_user: dict = Depends(get_auth_user)):
+    """Start autonomous monitoring system"""
+    try:
+        if hephaestus_agent_instance:
+            await hephaestus_agent_instance.start_autonomous_monitoring()
+            return {
+                "status": "success",
+                "message": "🚀 Autonomous monitoring started successfully",
+                "timestamp": datetime.now().isoformat()
+            }
+        else:
+            raise HTTPException(status_code=503, detail="Hephaestus agent not initialized")
+    except Exception as e:
+        logger.error(f"Error starting autonomous monitoring: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.post("/autonomous-monitor/stop", tags=["Autonomous Monitor"])
+async def stop_autonomous_monitoring(auth_user: dict = Depends(get_auth_user)):
+    """Stop autonomous monitoring system"""
+    try:
+        if hephaestus_agent_instance:
+            await hephaestus_agent_instance.stop_autonomous_monitoring()
+            return {
+                "status": "success",
+                "message": "🛑 Autonomous monitoring stopped successfully",
+                "timestamp": datetime.now().isoformat()
+            }
+        else:
+            raise HTTPException(status_code=503, detail="Hephaestus agent not initialized")
+    except Exception as e:
+        logger.error(f"Error stopping autonomous monitoring: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.get("/autonomous-monitor/prevention-report", tags=["Autonomous Monitor"])
+async def get_prevention_report(auth_user: dict = Depends(get_auth_user)):
+    """Get error prevention and monitoring report"""
+    try:
+        if hephaestus_agent_instance:
+            # Relatório de prevenção de erros
+            error_report = hephaestus_agent_instance.error_prevention.generate_error_report()
+            
+            # Relatório de monitoramento
+            monitoring_report = hephaestus_agent_instance.continuous_monitor.generate_monitoring_report()
+            
+            return {
+                "status": "success",
+                "error_prevention_report": error_report,
+                "monitoring_report": monitoring_report,
+                "timestamp": datetime.now().isoformat()
+            }
+        else:
+            raise HTTPException(status_code=503, detail="Hephaestus agent not initialized")
+    except Exception as e:
+        logger.error(f"Error getting prevention report: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
 if __name__ == "__main__":
     uvicorn.run(
         app, 

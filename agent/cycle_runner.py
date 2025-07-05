@@ -151,6 +151,13 @@ class CycleRunner:
                     "patches": self.agent.state.get_patches_to_apply() if hasattr(self.agent.state, 'get_patches_to_apply') else []
                 }
                 
+                # If no patches in state, try to get from action plan
+                if not context["patches"] and hasattr(self.agent.state, 'action_plan_data') and self.agent.state.action_plan_data:
+                    action_plan = self.agent.state.action_plan_data
+                    if isinstance(action_plan, dict) and "patches" in action_plan:
+                        context["patches"] = action_plan["patches"]
+                        self.agent.logger.info(f"📦 Found {len(context['patches'])} patches in action plan")
+                
                 # Execute optimized pipeline
                 import asyncio
                 loop = asyncio.new_event_loop()

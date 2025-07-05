@@ -3,6 +3,7 @@
 ## 1. ESTRUTURA DE ARQUIVOS (OTIMIZADA)
 
 agente_autonomo/
+    SISTEMA_PREVENCAO_ERROS.md
     MCP_SETUP_GUIDE.md
     RESUMO_REVISAO_FINAL.md
     README.md
@@ -109,6 +110,7 @@ agente_autonomo/
             organizer_agent.py
             cycle_monitor_agent.py
             error_detector_agent.py
+            autonomous_monitor_agent.py
             code_review_agent.py
             maestro_agent.py
             dependency_fixer_agent.py
@@ -121,9 +123,12 @@ agente_autonomo/
         utils/
             __init__.py
             json_parser.py
+            error_prevention_system.py
+            continuous_monitor.py
             smart_validator.py
             llm_client.py
             llm_optimizer.py
+            startup_validator.py
             advanced_logging.py
             error_handling.py
             infrastructure_manager.py
@@ -171,7 +176,11 @@ agente_autonomo/
             evolution_report_20250704_085755.json
             night_report_20250704_004455.json
     logs/
+        error_prevention_test.log
+        error_prevention.log
+        monitor_test_results_20250705_112439.json
         uvicorn.log
+        autonomous_monitor.log
         uvicorn_optimized.log
         monitor_hephaestus.log
         night_evolution_20250705.log
@@ -179,6 +188,7 @@ agente_autonomo/
         hephaestus_alerts.json
         hephaestus_evolution_20250705_014830.log
         hephaestus_evolution_20250705_014743.log
+        monitor_tester.log
     generated_interfaces/
         arthur_interface_1751661619.html
 
@@ -274,6 +284,8 @@ agente_autonomo/
   - *Check agent status*
 
 ### Arquivo: `main.py`
+- **Função:** `main()`
+  - *Função principal com validação de startup integrada*
 
 ### Arquivo: `demo_organizer_agent.py`
 - **Classe:** `OrganizerAgentDemo`
@@ -462,6 +474,20 @@ agente_autonomo/
   - *Ativa agentes subutilizados com objetivos específicos*
 - **Função:** `activate_all_agents_in_main_cycle(auth_user: dict=Depends(get_auth_user))`
   - *Ativa todos os agentes no ciclo principal automaticamente*
+- **Função:** `get_system_health()`
+  - *Endpoint para verificar a saúde do sistema*
+- **Função:** `get_detailed_health()`
+  - *Endpoint para relatório detalhado de saúde*
+- **Função:** `get_autonomous_monitor_status(auth_user: dict=Depends(get_auth_user))`
+  - *Get autonomous monitor status and current issues*
+- **Função:** `get_autonomous_monitor_issues(auth_user: dict=Depends(get_auth_user))`
+  - *Get current issues detected by autonomous monitor*
+- **Função:** `start_autonomous_monitoring(auth_user: dict=Depends(get_auth_user))`
+  - *Start autonomous monitoring system*
+- **Função:** `stop_autonomous_monitoring(auth_user: dict=Depends(get_auth_user))`
+  - *Stop autonomous monitoring system*
+- **Função:** `get_prevention_report(auth_user: dict=Depends(get_auth_user))`
+  - *Get error prevention and monitoring report*
 
 ### Arquivo: `agent/async_orchestrator.py`
 - **Classe:** `AgentType(Enum)`
@@ -913,6 +939,16 @@ agente_autonomo/
 - **Classe:** `ErrorDetectorAgent`
   - *Agente que monitora erros da API REST e implementa correções automáticas*
 
+### Arquivo: `agent/agents/autonomous_monitor_agent.py`
+- **Classe:** `SystemHealth`
+  - *Dados de saúde do sistema*
+- **Classe:** `Issue`
+  - *Problema detectado*
+- **Classe:** `AutonomousMonitorAgent`
+  - *Agente autônomo que monitora o sistema Hephaestus continuamente*
+- **Função:** `start_autonomous_monitor(config: Optional[Dict[str, Any]]=None)`
+  - *Inicia o monitor autônomo*
+
 ### Arquivo: `agent/agents/code_review_agent.py`
 - **Classe:** `CodeReviewAgent`
 
@@ -967,6 +1003,29 @@ agente_autonomo/
 - **Função:** `parse_json_response(raw_str: str, logger: logging.Logger)`
   - *Analyzes a raw string to find and parse a JSON object, cleaning and fixing it as needed.*
 
+### Arquivo: `agent/utils/error_prevention_system.py`
+- **Classe:** `ErrorSeverity(Enum)`
+- **Classe:** `ErrorType(Enum)`
+- **Classe:** `ErrorEvent`
+- **Classe:** `ConstructorValidator`
+  - *Valida construtores de agentes e componentes*
+- **Classe:** `HealthMonitor`
+  - *Monitora a saúde do sistema continuamente*
+- **Classe:** `AutoRecovery`
+  - *Sistema de recuperação automática*
+- **Classe:** `ErrorPreventionSystem`
+  - *Sistema principal de prevenção de erros*
+- **Função:** `validate_constructor(error_prevention_system: ErrorPreventionSystem)`
+  - *Decorator para validar construtores automaticamente*
+
+### Arquivo: `agent/utils/continuous_monitor.py`
+- **Classe:** `SystemMetrics`
+- **Classe:** `Alert`
+- **Classe:** `ContinuousMonitor`
+  - *Monitora o sistema continuamente e detecta problemas*
+- **Função:** `get_continuous_monitor(logger: logging.Logger)`
+  - *Retorna instância singleton do monitor*
+
 ### Arquivo: `agent/utils/smart_validator.py`
 - **Classe:** `SmartValidator`
   - *Validador inteligente para diferentes tipos de dados*
@@ -982,6 +1041,13 @@ agente_autonomo/
 ### Arquivo: `agent/utils/llm_optimizer.py`
 - **Classe:** `LLMCallOptimizer`
   - *Otimizador inteligente para chamadas LLM*
+
+### Arquivo: `agent/utils/startup_validator.py`
+- **Classe:** `ValidationResult`
+- **Classe:** `StartupValidator`
+  - *Valida todos os componentes críticos antes do startup*
+- **Função:** `validate_startup(config: Dict[str, Any])`
+  - *Decorator para validar startup antes de executar uma função*
 
 ### Arquivo: `agent/utils/advanced_logging.py`
 - **Função:** `setup_advanced_logging(name: str, level: int=logging.INFO)`
@@ -1066,6 +1132,14 @@ agente_autonomo/
   - *Service handling deep self-reflection and introspection*
 
 ### Arquivo: `agente_autonomo/server/api_core.py`
+- **Função:** `startup_event()`
+  - *Inicializa o servidor na startup*
+- **Função:** `get_autonomous_monitor_status()`
+  - *Retorna status do monitor autônomo*
+- **Função:** `restart_autonomous_monitor()`
+  - *Reinicia o monitor autônomo*
+- **Função:** `get_autonomous_monitor_issues()`
+  - *Retorna problemas detectados pelo monitor autônomo*
 
 ## 3. CONTEÚDO COMPLETO DOS ARQUIVOS ALVO
 

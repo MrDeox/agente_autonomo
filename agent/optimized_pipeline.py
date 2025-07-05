@@ -95,8 +95,8 @@ class OptimizedPipeline:
         
         self.maestro = MaestroAgent(
             model_config=config.get("models", {}).get("maestro_default"),
-            config=config,
-            logger=logger.getChild("MaestroAgent")
+            logger=logger.getChild("MaestroAgent"),
+            config=config
         )
         
         self.code_reviewer = CodeReviewAgent(
@@ -353,9 +353,44 @@ class OptimizedPipeline:
         try:
             # Prepare validation steps
             steps = ["syntax", "json_syntax", "pytest", "benchmark"]
-            patches = decision_result.get("patches", [])
+            
+            # Get patches from context or decision_result
+            patches = context.get("patches", [])
+            if not patches and "action_plan" in decision_result:
+                # Extract patches from action plan if available
+                action_plan = decision_result.get("action_plan", {})
+                if isinstance(action_plan, dict):
+                    patches = action_plan.get("patches", [])
+            
+            # If still no patches, try to get from analysis result
+            if not patches and "analysis" in context:
+                analysis_result = context.get("analysis", {})
+                if isinstance(analysis_result, dict) and "architect" in analysis_result:
+                    architect_result = analysis_result["architect"]
+                    if isinstance(architect_result, dict) and "action_plan" in architect_result:
+                        action_plan = architect_result["action_plan"]
+                        if isinstance(action_plan, dict):
+                            patches = action_plan.get("patches", [])
+            
+            self.logger.info(f"🔍 Validation using {len(patches)} patches")
+            
             context = dict(context)
             context["patches"] = patches
+            
+            # If no patches, skip validation but don't fail
+            if not patches:
+                self.logger.warning("⚠️ No patches found for validation, skipping validation steps")
+                return {
+                    "success": True,
+                    "cached": False,
+                    "result": {
+                        "all_passed": True,
+                        "step_results": {"no_patches": {"success": True, "reason": "No patches to validate"}},
+                        "execution_time": time.time() - start_time
+                    },
+                    "execution_time": time.time() - start_time
+                }
+            
             patches_hash = hashlib.md5(json.dumps(patches, sort_keys=True).encode()).hexdigest()
             cached_validation = self.cache.get_validation_cache(patches_hash)
             if cached_validation:
@@ -366,6 +401,7 @@ class OptimizedPipeline:
                     "result": cached_validation,
                     "execution_time": 0.1
                 }
+            
             # Run validation steps in parallel
             loop = asyncio.get_event_loop()
             validation_tasks = []
@@ -377,6 +413,7 @@ class OptimizedPipeline:
                     context
                 )
                 validation_tasks.append((step_name, task))
+            
             # Wait for all validations to complete
             validation_results = {}
             for step_name, task in validation_tasks:
@@ -387,6 +424,7 @@ class OptimizedPipeline:
                     tb = traceback.format_exc()
                     self.logger.error(f"Validation step '{step_name}' failed with exception: {e}\n{tb}")
                     validation_results[step_name] = {"success": False, "error": str(e), "traceback": tb}
+            
             # Check if all validations passed
             all_passed = all(result.get("success", False) for result in validation_results.values())
             validation_result = {
@@ -394,12 +432,15 @@ class OptimizedPipeline:
                 "step_results": validation_results,
                 "execution_time": time.time() - start_time
             }
+            
             # Cache the result
             self.cache.set_validation_cache(patches_hash, validation_result)
+            
             # Log all validation results
             for step, res in validation_results.items():
                 if not res.get("success", True):
                     self.logger.error(f"Validation step '{step}' failed: {res}")
+            
             return {
                 "success": all_passed,
                 "cached": False,
@@ -443,13 +484,37 @@ class OptimizedPipeline:
             if not validation_result["result"]["all_passed"]:
                 return {"success": False, "error": "Validation failed", "execution_time": time.time() - start_time}
             
+            # Get patches from context
+            patches = context.get("patches", [])
+            
+            # If no patches in context, try to get from analysis result
+            if not patches and "analysis" in context:
+                analysis_result = context.get("analysis", {})
+                if isinstance(analysis_result, dict) and "architect" in analysis_result:
+                    architect_result = analysis_result["architect"]
+                    if isinstance(architect_result, dict) and "action_plan" in architect_result:
+                        action_plan = architect_result["action_plan"]
+                        if isinstance(action_plan, dict):
+                            patches = action_plan.get("patches", [])
+            
+            if not patches:
+                self.logger.warning("⚠️ No patches found for application")
+                return {"success": False, "error": "No patches to apply", "execution_time": time.time() - start_time}
+            
+            self.logger.info(f"🚀 Applying {len(patches)} patches")
+            
             # Apply patches
             loop = asyncio.get_event_loop()
             application_result = await loop.run_in_executor(
                 self.executor,
                 self._apply_patches_sync,
-                context.get("patches", [])
+                patches
             )
+            
+            if application_result["success"]:
+                self.logger.info(f"✅ Successfully applied patches to {len(application_result.get('applied_files', []))} files")
+            else:
+                self.logger.error(f"❌ Failed to apply patches: {application_result.get('error', 'Unknown error')}")
             
             return {
                 "success": application_result["success"],

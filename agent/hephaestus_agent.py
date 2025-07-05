@@ -11,6 +11,7 @@ from typing import Optional, Dict, Any, List, Tuple
 import re
 import asyncio
 import random
+import traceback
 
 from agent.project_scanner import update_project_manifest
 from agent.brain import (
@@ -37,6 +38,9 @@ from agent.utils.infrastructure_manager import InfrastructureManager, get_infras
 from agent.inter_agent_communication import get_inter_agent_communication
 from agent.agents.swarm_coordinator_agent import SwarmCoordinatorAgent
 from .hot_reload_manager import HotReloadManager, SelfEvolutionEngine
+from agent.utils.error_prevention_system import ErrorPreventionSystem, ErrorEvent, ErrorType, ErrorSeverity, validate_constructor
+from agent.utils.continuous_monitor import get_continuous_monitor
+from .agents.autonomous_monitor_agent import AutonomousMonitorAgent
 
 # Configuração do Logging
 logger = logging.getLogger(__name__)
@@ -120,19 +124,35 @@ class HephaestusAgent:
         # Estado de meta-inteligência
         self.meta_intelligence_active = False
 
-        # Inicialização dos Agentes Especializados COM INTEGRAÇÃO DE META-INTELIGÊNCIA
-        self.architect = ArchitectAgent(
-            model_config=self.config.get("models", {}).get("architect_default"),
-            logger=self.logger.getChild("ArchitectAgent")
-        )
-        self.logger.info(f"ArchitectAgent inicializado com a configuração: {self.config.get('models', {}).get('architect_default')}")
+        # Inicializar sistema de prevenção de erros ANTES de tudo
+        self.error_prevention = ErrorPreventionSystem(logger_instance)
+        self.error_prevention.start()
+        logger_instance.info("🚀 Sistema de prevenção de erros inicializado")
 
-        self.maestro = MaestroAgent(
-            model_config=self.config.get("models", {}).get("maestro_default", self.config.get("models", {}).get("architect_default")),
-            config=self.config,
-            logger=self.logger.getChild("MaestroAgent")
-        )
-        self.logger.info(f"MaestroAgent inicializado com a configuração: {self.config.get('models', {}).get('maestro_default')}")
+        # Inicializar monitoramento contínuo
+        self.continuous_monitor = get_continuous_monitor(logger_instance)
+        self.continuous_monitor.start_monitoring()
+        logger_instance.info("🔍 Monitoramento contínuo inicializado")
+
+        # Inicialização dos Agentes Especializados COM INTEGRAÇÃO DE META-INTELIGÊNCIA
+        try:
+            self.architect = ArchitectAgent(
+                model_config=self.config.get("models", {}).get("architect_default"),
+                logger=self.logger.getChild("ArchitectAgent")
+            )
+            self.logger.info(f"ArchitectAgent inicializado com a configuração: {self.config.get('models', {}).get('architect_default')}")
+        except Exception as e:
+            self._handle_agent_initialization_error("ArchitectAgent", e)
+
+        try:
+            self.maestro = MaestroAgent(
+                model_config=self.config.get("models", {}).get("maestro_default", self.config.get("models", {}).get("architect_default")),
+                logger=self.logger.getChild("MaestroAgent"),
+                config=self.config
+            )
+            self.logger.info(f"MaestroAgent inicializado com a configuração: {self.config.get('models', {}).get('maestro_default')}")
+        except Exception as e:
+            self._handle_agent_initialization_error("MaestroAgent", e)
 
         code_review_model_config = self.config.get("models", {}).get("code_reviewer", self.config.get("models", {}).get("architect_default")) # Fallback to architect model
         self.code_reviewer = CodeReviewAgent(
@@ -195,6 +215,10 @@ class HephaestusAgent:
             except ImportError as e:
                 self.logger.warning(f"Could not import optimized pipeline: {e}")
                 self.use_optimized_pipeline = False
+
+        # Inicializa o monitor autônomo
+        self.autonomous_monitor = AutonomousMonitorAgent(config.get('autonomous_monitor', {}))
+        self.monitor_task = None
 
     def _initialize_evolution_log(self):
         """Verifica e inicializa o arquivo de log de evolução com cabeçalho, se necessário."""
@@ -681,6 +705,13 @@ class HephaestusAgent:
         if not initialize_git_repository(self.logger):
             self.logger.error("Falha ao inicializar o repositório Git. O agente não pode continuar sem versionamento.")
             return
+
+        # Inicia o monitoramento autônomo em background
+        try:
+            asyncio.create_task(self.start_autonomous_monitoring())
+            self.logger.info("🤖 Monitoramento autônomo iniciado")
+        except Exception as e:
+            self.logger.error(f"Erro ao iniciar monitoramento autônomo: {e}")
 
         cycle_runner = CycleRunner(self, self.queue_manager)
         cycle_runner.run()
@@ -1913,3 +1944,89 @@ class HephaestusAgent:
         except Exception as e:
             self.logger.error(f"Error generating meta-agent insights: {e}")
             return {"error": str(e)}
+
+    def _handle_agent_initialization_error(self, agent_name: str, error: Exception):
+        """Manipula erros de inicialização de agentes"""
+        error_event = ErrorEvent(
+            timestamp=datetime.now(),
+            error_type=ErrorType.INITIALIZATION_ERROR,
+            severity=ErrorSeverity.CRITICAL,
+            component=agent_name,
+            error_message=str(error),
+            stack_trace=traceback.format_exc(),
+            context={'agent_name': agent_name, 'config': str(self.config.get("models", {}))}
+        )
+        
+        self.error_prevention.record_error(error_event)
+        self.logger.error(f"Falha crítica na inicialização do {agent_name}: {error}")
+        
+        # Tentar recuperação automática
+        if self.error_prevention.auto_recovery.attempt_recovery(error_event):
+            self.logger.info(f"Recuperação automática bem-sucedida para {agent_name}")
+        else:
+            self.logger.critical(f"Falha na recuperação automática para {agent_name}. Sistema pode não funcionar corretamente.")
+
+    def __del__(self):
+        """Cleanup ao destruir o agente"""
+        if hasattr(self, 'error_prevention'):
+            self.error_prevention.stop()
+        if hasattr(self, 'continuous_monitor'):
+            self.continuous_monitor.stop_monitoring()
+
+    def get_system_health_report(self) -> Dict[str, Any]:
+        """Retorna relatório completo de saúde do sistema"""
+        error_status = self.error_prevention.get_system_status()
+        monitoring_status = self.continuous_monitor.get_system_status()
+        
+        return {
+            'error_prevention': error_status,
+            'continuous_monitoring': monitoring_status,
+            'overall_health': self._calculate_overall_health(error_status, monitoring_status),
+            'timestamp': datetime.now().isoformat()
+        }
+    
+    def _calculate_overall_health(self, error_status: Dict, monitoring_status: Dict) -> str:
+        """Calcula saúde geral do sistema"""
+        # Se há erros críticos, sistema não está saudável
+        if error_status.get('error_count', 0) > 0:
+            return 'unhealthy'
+        
+        # Se há alertas críticos, sistema está em risco
+        if monitoring_status.get('alerts', {}).get('critical_alerts', 0) > 0:
+            return 'at_risk'
+        
+        # Se CPU ou memória estão muito altos, sistema está sobrecarregado
+        metrics = monitoring_status.get('current_metrics', {})
+        if metrics.get('cpu_percent', 0) > 90 or metrics.get('memory_percent', 0) > 95:
+            return 'overloaded'
+        
+        return 'healthy'
+
+    async def start_autonomous_monitoring(self):
+        """Inicia o monitoramento autônomo"""
+        try:
+            self.logger.info("🚀 Iniciando monitoramento autônomo do Hephaestus Agent")
+            
+            # Inicia o monitor autônomo em background
+            self.monitor_task = asyncio.create_task(
+                self.autonomous_monitor.start_monitoring()
+            )
+            
+        except Exception as e:
+            self.logger.error(f"Erro ao iniciar monitoramento autônomo: {e}")
+            raise
+    
+    async def stop_autonomous_monitoring(self):
+        """Para o monitoramento autônomo"""
+        try:
+            # Para o monitor autônomo
+            if self.monitor_task:
+                await self.autonomous_monitor.stop()
+                self.monitor_task.cancel()
+            
+        except Exception as e:
+            self.logger.error(f"Erro ao parar monitoramento autônomo: {e}")
+    
+    def get_autonomous_monitor_status(self) -> Dict[str, Any]:
+        """Retorna status do monitor autônomo"""
+        return self.autonomous_monitor.get_status_report()
