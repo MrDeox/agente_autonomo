@@ -123,15 +123,29 @@ class MaestroAgent:
         for strategy, data in self.performance_data.items():
             if data["total_executions"] > 0:
                 success_rate = data["success_count"] / data["total_executions"]
-                # Weight is success rate adjusted by execution count and error analysis
-                weight = success_rate * (1 + min(data["total_executions"]/100, 1))
+                
+                # Improved weight calculation with better factors
+                execution_factor = min(data["total_executions"]/50, 2.0)  # Cap at 2x
+                recency_factor = 1.0  # Could be enhanced with timestamp analysis
+                
+                # Base weight calculation
+                weight = success_rate * (1 + execution_factor) * recency_factor
                 
                 # Apply error analysis adjustment if available
                 if self.error_analyzer:
-                    error_factor = self.error_analyzer.get_error_factor(strategy)
-                    weight *= (1 - error_factor)
+                    try:
+                        error_factor = self.error_analyzer.get_error_factor(strategy)
+                        weight *= (1 - error_factor)
+                    except Exception as e:
+                        self.logger.warning(f"Error getting error factor for {strategy}: {e}")
+                
+                # Ensure weight is within reasonable bounds
+                weight = max(0.1, min(weight, 2.0))
                 
                 self.strategy_weights[strategy] = weight
+                
+                # Log strategy performance for debugging
+                self.logger.debug(f"Strategy {strategy}: success_rate={success_rate:.3f}, weight={weight:.3f}, executions={data['total_executions']}")
             else:
                 self.strategy_weights[strategy] = 0.5  # Default weight for untested strategies
 
@@ -145,19 +159,18 @@ class MaestroAgent:
         Returns:
             Dictionary containing the selected strategy
         """
-        cache_key = self._generate_cache_key(context)
-        
         # Check cache first
         cached_strategy = self.strategy_cache.get(context, "")
         if cached_strategy:
-            self.logger.debug(f"Using cached strategy for key: {cache_key}")
-            return cached_strategy
+            self.logger.debug(f"Using cached strategy")
+            return {"strategy": cached_strategy}
             
         # Generate new strategy with dynamic weighting
         strategy = self._generate_weighted_strategy(context)
         
-        # Store in cache
-        self.strategy_cache.set(cache_key, strategy)
+        # Store in cache - convert strategy to string for cache
+        strategy_str = json.dumps(strategy)
+        self.strategy_cache.put(context, "", strategy_str)
         
         return strategy
 

@@ -1575,6 +1575,141 @@ def worker():
             except Exception as detector_error:
                 logger.error(f"Error detector failed: {detector_error}")
 
+@app.post("/api/activate-maximum-evolution", tags=["Evolution"])
+async def activate_maximum_evolution(auth_user: dict = Depends(get_auth_user)):
+    """Ativa o modo de evolução máxima para desenvolvimento autônomo"""
+    try:
+        global hephaestus_agent_instance
+        
+        if not hephaestus_agent_instance:
+            raise HTTPException(status_code=503, detail="Hephaestus agent not initialized")
+        
+        # Configurar modo de evolução máxima
+        hephaestus_agent_instance.continuous_mode = True
+        hephaestus_agent_instance.evolution_mode = "maximum"
+        hephaestus_agent_instance.max_evolution_cycles = 100  # Muitos ciclos
+        hephaestus_agent_instance.evolution_interval = 30  # Ciclos rápidos
+        
+        # Ativar todos os sistemas de evolução
+        if hasattr(hephaestus_agent_instance, 'meta_intelligence'):
+            hephaestus_agent_instance.meta_intelligence.active = True
+            hephaestus_agent_instance.meta_intelligence.evolution_mode = "aggressive"
+        
+        # Ativar monitor de performance
+        if hasattr(hephaestus_agent_instance, 'performance_monitor'):
+            hephaestus_agent_instance.performance_monitor.start_monitoring()
+        
+        # Configurar objetivos de evolução
+        evolution_objectives = [
+            "Implementar sistema de auto-aprimoramento completo",
+            "Desenvolver planejamento estratégico avançado",
+            "Criar gerador tático inteligente",
+            "Implementar integração de conhecimento externo",
+            "Otimizar algoritmos de seleção de estratégias",
+            "Desenvolver sistema de criação automática de agentes",
+            "Implementar análise de causas raiz avançada",
+            "Criar sistema de otimização de prompts genético",
+            "Desenvolver capacidades de auto-modificação",
+            "Implementar arquitetura de agentes dinâmica"
+        ]
+        
+        # Adicionar objetivos à fila
+        for objective in evolution_objectives:
+            if hasattr(hephaestus_agent_instance, 'queue_manager'):
+                hephaestus_agent_instance.queue_manager.add_objective(objective)
+        
+        logger.info("🚀 MODO DE EVOLUÇÃO MÁXIMA ATIVADO!")
+        logger.info("🧠 Sistema configurado para evolução autônoma durante a noite")
+        logger.info(f"📋 {len(evolution_objectives)} objetivos de evolução adicionados")
+        
+        return {
+            "status": "success",
+            "message": "🚀 Modo de evolução máxima ativado!",
+            "evolution_mode": "maximum",
+            "continuous_mode": True,
+            "objectives_queued": len(evolution_objectives),
+            "evolution_cycles": 100,
+            "cycle_interval": 30,
+            "estimated_completion": "8-12 hours",
+            "features_to_evolve": evolution_objectives
+        }
+        
+    except Exception as e:
+        logger.error(f"Error activating maximum evolution: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.post("/api/start-night-evolution", tags=["Evolution"])
+async def start_night_evolution(auth_user: dict = Depends(get_auth_user)):
+    """Inicia evolução noturna autônoma para desenvolvimento contínuo"""
+    try:
+        global hephaestus_agent_instance
+        
+        if not hephaestus_agent_instance:
+            raise HTTPException(status_code=503, detail="Hephaestus agent not initialized")
+        
+        # Configurar para evolução noturna
+        hephaestus_agent_instance.continuous_mode = True
+        hephaestus_agent_instance.night_mode = True
+        hephaestus_agent_instance.evolution_aggressiveness = "maximum"
+        
+        # Configurar intervalos otimizados para evolução noturna
+        hephaestus_agent_instance.evolution_interval = 60  # 1 minuto entre ciclos
+        hephaestus_agent_instance.max_evolution_cycles = 200  # Muitos ciclos
+        hephaestus_agent_instance.auto_restart = True  # Reiniciar se falhar
+        
+        # Ativar todos os sistemas
+        systems_to_activate = [
+            "meta_intelligence",
+            "performance_monitor", 
+            "error_detector",
+            "knowledge_system",
+            "model_optimizer",
+            "cognitive_evolution"
+        ]
+        
+        activated_systems = []
+        for system_name in systems_to_activate:
+            if hasattr(hephaestus_agent_instance, system_name):
+                system = getattr(hephaestus_agent_instance, system_name)
+                if hasattr(system, 'start_monitoring'):
+                    system.start_monitoring()
+                if hasattr(system, 'activate'):
+                    system.activate()
+                activated_systems.append(system_name)
+        
+        logger.info("🌙 EVOLUÇÃO NOTURNA INICIADA!")
+        logger.info("🧠 Sistema configurado para evolução autônoma durante a noite")
+        logger.info(f"⚙️ Sistemas ativados: {', '.join(activated_systems)}")
+        
+        return {
+            "status": "success",
+            "message": "🌙 Evolução noturna iniciada!",
+            "night_mode": True,
+            "continuous_mode": True,
+            "evolution_aggressiveness": "maximum",
+            "cycle_interval": 60,
+            "max_cycles": 200,
+            "auto_restart": True,
+            "activated_systems": activated_systems,
+            "estimated_evolution_time": "8-12 hours",
+            "expected_improvements": [
+                "Auto-aprimoramento completo",
+                "Planejamento estratégico avançado",
+                "Gerador tático inteligente",
+                "Integração de conhecimento externo",
+                "Otimização de algoritmos",
+                "Criação automática de agentes",
+                "Análise de causas raiz avançada",
+                "Otimização de prompts genético",
+                "Auto-modificação de código",
+                "Arquitetura de agentes dinâmica"
+            ]
+        }
+        
+    except Exception as e:
+        logger.error(f"Error starting night evolution: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
 if __name__ == "__main__":
     uvicorn.run(
         app, 

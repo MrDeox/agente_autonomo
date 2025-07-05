@@ -21,6 +21,7 @@ agente_autonomo/
     HOT_RELOAD_DOCUMENTATION.md
     README_MCP_HEPHAESTUS.md
     poetry.lock
+    CORRECOES_CRITICAS_IMPLEMENTADAS.md
     main.py
     API_REST_DOCUMENTATION.md
     hephaestus_config.json
@@ -52,6 +53,7 @@ agente_autonomo/
         knowledge_integration.py
         model_optimizer.py
         strategic_planner.py
+        performance_monitor.py
         hephaestus_agent.py
         hephaestus_config.json
         git_utils.py
@@ -419,6 +421,10 @@ agente_autonomo/
 - **Função:** `global_exception_handler(request: Request, exc: Exception)`
   - *Global exception handler that reports errors to the detector*
 - **Função:** `worker()`
+- **Função:** `activate_maximum_evolution(auth_user: dict=Depends(get_auth_user))`
+  - *Ativa o modo de evolução máxima para desenvolvimento autônomo*
+- **Função:** `start_night_evolution(auth_user: dict=Depends(get_auth_user))`
+  - *Inicia evolução noturna autônoma para desenvolvimento contínuo*
 
 ### Arquivo: `agent/async_orchestrator.py`
 - **Classe:** `AgentType(Enum)`
@@ -489,6 +495,9 @@ agente_autonomo/
 ### Arquivo: `agent/strategic_planner.py`
 - **Classe:** `StrategicPlanner`
   - *Handles strategic roadmap alignment and high-level objective planning.*
+
+### Arquivo: `agent/performance_monitor.py`
+  - [ERRO] Erro na análise AST: invalid syntax (<unknown>, line 85)
 
 ### Arquivo: `agent/hephaestus_agent.py`
 - **Classe:** `HephaestusAgent`
@@ -951,11 +960,19 @@ agente_autonomo/
 
 ### Arquivo: `agente_autonomo/api/error_resilience.py`
 - **Classe:** `SelfReflectionRequest(BaseModel)`
-  - *Pydantic model for self-reflection requests*
+  - *Modelo Pydantic para validação de requisições de auto-reflexão*
+- **Classe:** `AwarenessMetric(BaseModel)`
+  - *Modelo para métricas de auto-consciência*
+- **Classe:** `CognitiveState(BaseModel)`
+  - *Modelo para estado cognitivo*
 - **Classe:** `SelfAwarenessResponse(BaseModel)`
-  - *Standardized response format for self-awareness endpoints*
+  - *Modelo para respostas de auto-consciência*
 - **Classe:** `ErrorResilience`
-  - *Core error resilience functionality*
+  - *Classe principal para funcionalidades de resiliência a erros*
+- **Classe:** `MCPErrorHandler`
+  - *Specialized error handler for MCP server functions*
+- **Classe:** `RecoveryMechanism`
+  - *Mechanisms for recovering from failures*
 
 ### Arquivo: `agente_autonomo/server/report_service.py`
 - **Classe:** `ReportService`

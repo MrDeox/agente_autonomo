@@ -80,6 +80,25 @@ class HephaestusMCPServer:
         self.memory = None
         self.initialized = False
         self.session_cache = {}
+        self.cache_timestamps = {}
+        self.cache_ttl = 3600  # 1 hora
+        
+    def _get_cached_result(self, key: str) -> Optional[Dict[str, Any]]:
+        """Obtém resultado do cache se ainda válido"""
+        if key in self.session_cache:
+            timestamp = self.cache_timestamps.get(key, 0)
+            if (datetime.now().timestamp() - timestamp) < self.cache_ttl:
+                return self.session_cache[key]
+            else:
+                # Cache expirado, remover
+                del self.session_cache[key]
+                del self.cache_timestamps[key]
+        return None
+    
+    def _set_cached_result(self, key: str, result: Dict[str, Any]):
+        """Armazena resultado no cache"""
+        self.session_cache[key] = result
+        self.cache_timestamps[key] = datetime.now().timestamp()
         
     async def initialize(self):
         """Inicializa o servidor com todas as dependências do Hephaestus"""
@@ -418,17 +437,89 @@ class HephaestusMCPServer:
         self._ensure_initialized()
         
         try:
+            # Validar entrada
+            if not isinstance(focus_area, str) or not focus_area.strip():
+                return {
+                    "error": "Invalid input",
+                    "message": "Focus area must be a non-empty string"
+                }
+            
             if self.hephaestus_agent and hasattr(self.hephaestus_agent, 'perform_deep_self_reflection'):
                 result = self.hephaestus_agent.perform_deep_self_reflection(focus_area)
-                return result
+                
+                # Validar e sanitizar resposta
+                if result is None:
+                    validated_result: Dict[str, Any] = {
+                        "error": "No response",
+                        "message": "Agent returned no response"
+                    }
+                elif isinstance(result, str):
+                    try:
+                        validated_result = json.loads(result)
+                    except json.JSONDecodeError:
+                        validated_result = {"message": result, "raw_response": True}
+                elif isinstance(result, dict):
+                    validated_result = result
+                else:
+                    validated_result = {"message": str(result), "raw_response": True}
+                
+                # Garantir estrutura correta
+                if "error" not in validated_result:
+                    if "meta_awareness" not in validated_result:
+                        validated_result["meta_awareness"] = 0.0
+                    if "new_insights" not in validated_result:
+                        validated_result["new_insights"] = []
+                    if "self_narrative" not in validated_result:
+                        validated_result["self_narrative"] = {}
+                    if "current_cognitive_state" not in validated_result:
+                        validated_result["current_cognitive_state"] = {}
+                    if "introspection_depth" not in validated_result:
+                        validated_result["introspection_depth"] = 0.0
+                
+                return validated_result
             else:
                 return {
                     "error": "SelfAwarenessCore não disponível",
-                    "message": "Sistema de auto-reflexão não foi inicializado"
+                    "message": "Sistema de auto-reflexão não foi inicializado",
+                    "meta_awareness": 0.0,
+                    "new_insights": [],
+                    "self_narrative": {},
+                    "current_cognitive_state": {},
+                    "introspection_depth": 0.0
                 }
+        except AttributeError as e:
+            self.logger.error(f"AttributeError na auto-reflexão: {e}")
+            return {
+                "error": "Missing attribute",
+                "message": f"Required attribute not found: {str(e)}",
+                "meta_awareness": 0.0,
+                "new_insights": [],
+                "self_narrative": {},
+                "current_cognitive_state": {},
+                "introspection_depth": 0.0
+            }
+        except TypeError as e:
+            self.logger.error(f"TypeError na auto-reflexão: {e}")
+            return {
+                "error": "Type error",
+                "message": f"Invalid data type: {str(e)}",
+                "meta_awareness": 0.0,
+                "new_insights": [],
+                "self_narrative": {},
+                "current_cognitive_state": {},
+                "introspection_depth": 0.0
+            }
         except Exception as e:
             self.logger.error(f"Erro na auto-reflexão: {e}")
-            return {"error": str(e)}
+            return {
+                "error": "Internal error",
+                "message": f"Unexpected error occurred: {str(e)}",
+                "meta_awareness": 0.0,
+                "new_insights": [],
+                "self_narrative": {},
+                "current_cognitive_state": {},
+                "introspection_depth": 0.0
+            }
     
     async def get_self_awareness_report(self) -> Dict[str, Any]:
         """Obtém relatório completo de auto-consciência"""
@@ -437,15 +528,80 @@ class HephaestusMCPServer:
         try:
             if self.hephaestus_agent and hasattr(self.hephaestus_agent, 'get_self_awareness_report'):
                 result = self.hephaestus_agent.get_self_awareness_report()
-                return result
+                
+                # Validar e sanitizar resposta
+                if result is None:
+                    validated_result: Dict[str, Any] = {
+                        "error": "No response",
+                        "message": "Agent returned no response"
+                    }
+                elif isinstance(result, str):
+                    try:
+                        validated_result = json.loads(result)
+                    except json.JSONDecodeError:
+                        validated_result = {"message": result, "raw_response": True}
+                elif isinstance(result, dict):
+                    validated_result = result
+                else:
+                    validated_result = {"message": str(result), "raw_response": True}
+                
+                # Garantir estrutura correta
+                if "error" not in validated_result:
+                    if "self_awareness_metrics" not in validated_result:
+                        validated_result["self_awareness_metrics"] = {}
+                    if "current_cognitive_state" not in validated_result:
+                        validated_result["current_cognitive_state"] = {}
+                    if "cognitive_trajectory" not in validated_result:
+                        validated_result["cognitive_trajectory"] = {}
+                    if "recent_insights" not in validated_result:
+                        validated_result["recent_insights"] = []
+                    if "monitoring_status" not in validated_result:
+                        validated_result["monitoring_status"] = {}
+                
+                return validated_result
             else:
                 return {
                     "error": "SelfAwarenessCore não disponível",
-                    "message": "Sistema de auto-consciência não foi inicializado"
+                    "message": "Sistema de auto-consciência não foi inicializado",
+                    "self_awareness_metrics": {},
+                    "current_cognitive_state": {},
+                    "cognitive_trajectory": {},
+                    "recent_insights": [],
+                    "monitoring_status": {}
                 }
+        except AttributeError as e:
+            self.logger.error(f"AttributeError no relatório de auto-consciência: {e}")
+            return {
+                "error": "Missing attribute",
+                "message": f"Required attribute not found: {str(e)}",
+                "self_awareness_metrics": {},
+                "current_cognitive_state": {},
+                "cognitive_trajectory": {},
+                "recent_insights": [],
+                "monitoring_status": {}
+            }
+        except TypeError as e:
+            self.logger.error(f"TypeError no relatório de auto-consciência: {e}")
+            return {
+                "error": "Type error",
+                "message": f"Invalid data type: {str(e)}",
+                "self_awareness_metrics": {},
+                "current_cognitive_state": {},
+                "cognitive_trajectory": {},
+                "recent_insights": [],
+                "monitoring_status": {}
+            }
         except Exception as e:
             self.logger.error(f"Erro no relatório de auto-consciência: {e}")
-            return {"error": str(e)}
+            return {
+                "error": "Internal error",
+                "message": f"Unexpected error occurred: {str(e)}",
+                "self_awareness_metrics": {},
+                "current_cognitive_state": {},
+                "cognitive_trajectory": {},
+                "recent_insights": [],
+                "monitoring_status": {}
+            }
 
 # Instanciar servidor
 hephaestus_server = HephaestusMCPServer()
