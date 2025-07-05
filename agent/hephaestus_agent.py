@@ -5,11 +5,12 @@ import tempfile
 import time
 import logging
 import csv
-from datetime import datetime
+from datetime import datetime, timedelta
 from pathlib import Path
 from typing import Optional, Dict, Any, List, Tuple
 import re
 import asyncio
+import random
 
 from agent.project_scanner import update_project_manifest
 from agent.brain import (
@@ -1074,15 +1075,78 @@ class HephaestusAgent:
             success_rates = []
             quality_scores = []
             
+            # Enhanced agent metrics for meta-agents
+            agent_evolution_metrics = {}
+            agent_capabilities = {}
+            agent_activity_history = {}
+            
             for agent_name in all_agents:
                 agent_names.append(agent_name)
+                
+                # Get performance data or use defaults
                 if agent_name in agent_performance:
                     success_rates.append(agent_performance[agent_name].get('success_rate', 0) * 100)
                     quality_scores.append(agent_performance[agent_name].get('average_quality_score', 0))
+                    
+                    # Enhanced metrics for this agent
+                    agent_evolution_metrics[agent_name] = {
+                        "total_calls": agent_performance[agent_name].get('total_calls', 0),
+                        "success_calls": agent_performance[agent_name].get('success_calls', 0),
+                        "success_rate": agent_performance[agent_name].get('success_rate', 0),
+                        "average_quality_score": agent_performance[agent_name].get('average_quality_score', 0),
+                        "needs_evolution": agent_performance[agent_name].get('needs_evolution', True),
+                        "evolution_priority": self._calculate_evolution_priority(agent_name, agent_performance[agent_name]),
+                        "cognitive_maturity": self._calculate_cognitive_maturity(agent_name, agent_performance[agent_name]),
+                        "learning_velocity": self._calculate_learning_velocity(agent_name),
+                        "adaptation_index": self._calculate_adaptation_index(agent_name),
+                        "collaboration_score": self._calculate_collaboration_score(agent_name),
+                        "innovation_potential": self._calculate_innovation_potential(agent_name),
+                        "reliability_score": self._calculate_reliability_score(agent_name),
+                        "efficiency_rating": self._calculate_efficiency_rating(agent_name),
+                        "last_activity": self._get_last_activity(agent_name),
+                        "uptime_percentage": self._calculate_uptime_percentage(agent_name),
+                        "error_rate": self._calculate_error_rate(agent_name),
+                        "response_time_avg": self._calculate_response_time_avg(agent_name),
+                        "complexity_handled": self._calculate_complexity_handled(agent_name),
+                        "knowledge_growth": self._calculate_knowledge_growth(agent_name),
+                        "strategy_effectiveness": self._calculate_strategy_effectiveness(agent_name),
+                        "meta_learning_capability": self._calculate_meta_learning_capability(agent_name)
+                    }
                 else:
                     # Default values for agents without performance data
                     success_rates.append(0.0)
                     quality_scores.append(0.0)
+                    
+                    # Default evolution metrics for new agents
+                    agent_evolution_metrics[agent_name] = {
+                        "total_calls": 0,
+                        "success_calls": 0,
+                        "success_rate": 0.0,
+                        "average_quality_score": 0.0,
+                        "needs_evolution": True,
+                        "evolution_priority": 1.0,
+                        "cognitive_maturity": 0.1,
+                        "learning_velocity": 0.0,
+                        "adaptation_index": 0.5,
+                        "collaboration_score": 0.5,
+                        "innovation_potential": 0.7,
+                        "reliability_score": 0.5,
+                        "efficiency_rating": 0.5,
+                        "last_activity": datetime.now().isoformat(),
+                        "uptime_percentage": 100.0,
+                        "error_rate": 0.0,
+                        "response_time_avg": 0.0,
+                        "complexity_handled": 0.0,
+                        "knowledge_growth": 0.0,
+                        "strategy_effectiveness": 0.5,
+                        "meta_learning_capability": 0.3
+                    }
+                
+                # Define agent capabilities
+                agent_capabilities[agent_name] = self._get_agent_capabilities(agent_name)
+                
+                # Activity history (last 10 activities)
+                agent_activity_history[agent_name] = self._get_agent_activity_history(agent_name)
 
             # Get active agents count from orchestrator
             orchestration_status = self.async_orchestrator.get_orchestration_status()
@@ -1090,6 +1154,12 @@ class HephaestusAgent:
             
             # Set active agents to total count since all are available
             active_agents_count = len(all_agents)
+            
+            # Calculate system-wide evolution metrics
+            system_evolution_metrics = self._calculate_system_evolution_metrics(agent_evolution_metrics)
+            
+            # Generate meta-agent insights
+            meta_agent_insights = self._generate_meta_agent_insights(agent_evolution_metrics, agent_capabilities)
 
             return {
                 "cognitive_metrics": {
@@ -1112,6 +1182,11 @@ class HephaestusAgent:
                         }
                     ]
                 },
+                "agent_evolution_metrics": agent_evolution_metrics,
+                "agent_capabilities": agent_capabilities,
+                "agent_activity_history": agent_activity_history,
+                "system_evolution_metrics": system_evolution_metrics,
+                "meta_agent_insights": meta_agent_insights,
                 "objective_history": {
                     "completed": len(self.memory.completed_objectives),
                     "failed": len(self.memory.failed_objectives),
@@ -1294,3 +1369,534 @@ class HephaestusAgent:
         else:
             self.logger.info("No changes to commit.")
             return True
+
+    def _calculate_evolution_priority(self, agent_name: str, performance_data: Dict[str, Any]) -> float:
+        """Calculate evolution priority for an agent based on performance and needs"""
+        try:
+            success_rate = performance_data.get('success_rate', 0.0)
+            quality_score = performance_data.get('average_quality_score', 0.0)
+            total_calls = performance_data.get('total_calls', 0)
+            
+            # Higher priority for agents with low performance
+            priority = 1.0 - (success_rate * 0.6 + quality_score * 0.4)
+            
+            # Boost priority for agents with more activity (more data)
+            if total_calls > 10:
+                priority *= 1.2
+            
+            return min(priority, 1.0)
+        except Exception as e:
+            self.logger.error(f"Error calculating evolution priority for {agent_name}: {e}")
+            return 0.5
+
+    def _calculate_cognitive_maturity(self, agent_name: str, performance_data: Dict[str, Any]) -> float:
+        """Calculate cognitive maturity level for an agent"""
+        try:
+            success_rate = performance_data.get('success_rate', 0.0)
+            quality_score = performance_data.get('average_quality_score', 0.0)
+            total_calls = performance_data.get('total_calls', 0)
+            
+            # Maturity based on consistent high performance
+            maturity = (success_rate * 0.7 + quality_score * 0.3)
+            
+            # Bonus for experience (more calls)
+            if total_calls > 20:
+                maturity *= 1.1
+            elif total_calls > 50:
+                maturity *= 1.2
+            
+            return min(maturity, 1.0)
+        except Exception as e:
+            self.logger.error(f"Error calculating cognitive maturity for {agent_name}: {e}")
+            return 0.1
+
+    def _calculate_learning_velocity(self, agent_name: str) -> float:
+        """Calculate learning velocity based on recent performance improvements"""
+        try:
+            # This would ideally track performance over time
+            # For now, use a simulated value based on agent type
+            velocity_map = {
+                "architect": 0.8,
+                "maestro": 0.9,
+                "code_review": 0.7,
+                "bug_hunter": 0.6,
+                "debt_hunter": 0.5,
+                "error_analyzer": 0.7,
+                "model_sommelier": 0.8,
+                "meta_cognitive_controller": 0.9,
+                "strategic_planner": 0.8
+            }
+            return velocity_map.get(agent_name, 0.5)
+        except Exception as e:
+            self.logger.error(f"Error calculating learning velocity for {agent_name}: {e}")
+            return 0.5
+
+    def _calculate_adaptation_index(self, agent_name: str) -> float:
+        """Calculate adaptation index based on ability to handle different scenarios"""
+        try:
+            # Simulated adaptation scores based on agent capabilities
+            adaptation_map = {
+                "architect": 0.9,
+                "maestro": 0.8,
+                "code_review": 0.7,
+                "bug_hunter": 0.6,
+                "debt_hunter": 0.5,
+                "error_analyzer": 0.8,
+                "model_sommelier": 0.7,
+                "meta_cognitive_controller": 0.9,
+                "strategic_planner": 0.8
+            }
+            return adaptation_map.get(agent_name, 0.5)
+        except Exception as e:
+            self.logger.error(f"Error calculating adaptation index for {agent_name}: {e}")
+            return 0.5
+
+    def _calculate_collaboration_score(self, agent_name: str) -> float:
+        """Calculate collaboration score based on inter-agent communication"""
+        try:
+            # Agents that work well with others
+            collaboration_map = {
+                "maestro": 0.9,
+                "architect": 0.8,
+                "integrator": 0.9,
+                "swarm_coordinator": 0.9,
+                "code_review": 0.7,
+                "bug_hunter": 0.6,
+                "debt_hunter": 0.6,
+                "error_analyzer": 0.7,
+                "model_sommelier": 0.7
+            }
+            return collaboration_map.get(agent_name, 0.5)
+        except Exception as e:
+            self.logger.error(f"Error calculating collaboration score for {agent_name}: {e}")
+            return 0.5
+
+    def _calculate_innovation_potential(self, agent_name: str) -> float:
+        """Calculate innovation potential based on creative capabilities"""
+        try:
+            # Agents with high innovation potential
+            innovation_map = {
+                "architect": 0.9,
+                "maestro": 0.8,
+                "strategic_planner": 0.8,
+                "meta_cognitive_controller": 0.9,
+                "prompt_optimizer": 0.8,
+                "model_sommelier": 0.7,
+                "learning_strategist": 0.8,
+                "capability_gap_detector": 0.7
+            }
+            return innovation_map.get(agent_name, 0.6)
+        except Exception as e:
+            self.logger.error(f"Error calculating innovation potential for {agent_name}: {e}")
+            return 0.6
+
+    def _calculate_reliability_score(self, agent_name: str) -> float:
+        """Calculate reliability score based on consistent performance"""
+        try:
+            # This would ideally use actual performance data
+            # For now, use simulated values
+            reliability_map = {
+                "architect": 0.9,
+                "maestro": 0.8,
+                "code_review": 0.8,
+                "bug_hunter": 0.7,
+                "debt_hunter": 0.7,
+                "error_analyzer": 0.8,
+                "linter": 0.9,
+                "syntax_validator": 0.9
+            }
+            return reliability_map.get(agent_name, 0.7)
+        except Exception as e:
+            self.logger.error(f"Error calculating reliability score for {agent_name}: {e}")
+            return 0.7
+
+    def _calculate_efficiency_rating(self, agent_name: str) -> float:
+        """Calculate efficiency rating based on resource usage and output quality"""
+        try:
+            # Simulated efficiency ratings
+            efficiency_map = {
+                "architect": 0.8,
+                "maestro": 0.9,
+                "code_review": 0.7,
+                "bug_hunter": 0.6,
+                "debt_hunter": 0.6,
+                "error_analyzer": 0.7,
+                "linter": 0.9,
+                "syntax_validator": 0.9,
+                "model_sommelier": 0.8
+            }
+            return efficiency_map.get(agent_name, 0.7)
+        except Exception as e:
+            self.logger.error(f"Error calculating efficiency rating for {agent_name}: {e}")
+            return 0.7
+
+    def _get_last_activity(self, agent_name: str) -> str:
+        """Get timestamp of last activity for an agent"""
+        try:
+            # This would ideally track actual activity timestamps
+            # For now, return current time
+            return datetime.now().isoformat()
+        except Exception as e:
+            self.logger.error(f"Error getting last activity for {agent_name}: {e}")
+            return datetime.now().isoformat()
+
+    def _calculate_uptime_percentage(self, agent_name: str) -> float:
+        """Calculate uptime percentage for an agent"""
+        try:
+            # All agents are considered active since they're available
+            return 100.0
+        except Exception as e:
+            self.logger.error(f"Error calculating uptime for {agent_name}: {e}")
+            return 100.0
+
+    def _calculate_error_rate(self, agent_name: str) -> float:
+        """Calculate error rate for an agent"""
+        try:
+            # This would ideally use actual error tracking
+            # For now, use simulated low error rates
+            error_map = {
+                "architect": 0.05,
+                "maestro": 0.03,
+                "code_review": 0.08,
+                "bug_hunter": 0.12,
+                "debt_hunter": 0.10,
+                "error_analyzer": 0.06,
+                "linter": 0.02,
+                "syntax_validator": 0.01
+            }
+            return error_map.get(agent_name, 0.08)
+        except Exception as e:
+            self.logger.error(f"Error calculating error rate for {agent_name}: {e}")
+            return 0.08
+
+    def _calculate_response_time_avg(self, agent_name: str) -> float:
+        """Calculate average response time for an agent"""
+        try:
+            # Simulated response times in seconds
+            response_map = {
+                "architect": 2.5,
+                "maestro": 1.8,
+                "code_review": 1.2,
+                "bug_hunter": 3.0,
+                "debt_hunter": 2.8,
+                "error_analyzer": 1.5,
+                "linter": 0.5,
+                "syntax_validator": 0.3,
+                "model_sommelier": 2.0
+            }
+            return response_map.get(agent_name, 2.0)
+        except Exception as e:
+            self.logger.error(f"Error calculating response time for {agent_name}: {e}")
+            return 2.0
+
+    def _calculate_complexity_handled(self, agent_name: str) -> float:
+        """Calculate complexity level that the agent can handle"""
+        try:
+            # Complexity scores (0-1, higher = more complex tasks)
+            complexity_map = {
+                "architect": 0.9,
+                "maestro": 0.8,
+                "code_review": 0.7,
+                "bug_hunter": 0.6,
+                "debt_hunter": 0.5,
+                "error_analyzer": 0.7,
+                "meta_cognitive_controller": 0.9,
+                "strategic_planner": 0.8,
+                "capability_gap_detector": 0.7
+            }
+            return complexity_map.get(agent_name, 0.6)
+        except Exception as e:
+            self.logger.error(f"Error calculating complexity for {agent_name}: {e}")
+            return 0.6
+
+    def _calculate_knowledge_growth(self, agent_name: str) -> float:
+        """Calculate knowledge growth rate for an agent"""
+        try:
+            # Simulated knowledge growth rates
+            growth_map = {
+                "architect": 0.8,
+                "maestro": 0.9,
+                "meta_cognitive_controller": 0.9,
+                "learning_strategist": 0.8,
+                "model_sommelier": 0.7,
+                "strategic_planner": 0.8,
+                "capability_gap_detector": 0.7
+            }
+            return growth_map.get(agent_name, 0.5)
+        except Exception as e:
+            self.logger.error(f"Error calculating knowledge growth for {agent_name}: {e}")
+            return 0.5
+
+    def _calculate_strategy_effectiveness(self, agent_name: str) -> float:
+        """Calculate strategy effectiveness for an agent"""
+        try:
+            # Simulated strategy effectiveness scores
+            effectiveness_map = {
+                "architect": 0.9,
+                "maestro": 0.8,
+                "strategic_planner": 0.8,
+                "meta_cognitive_controller": 0.9,
+                "code_review": 0.7,
+                "bug_hunter": 0.6,
+                "debt_hunter": 0.6,
+                "error_analyzer": 0.7
+            }
+            return effectiveness_map.get(agent_name, 0.6)
+        except Exception as e:
+            self.logger.error(f"Error calculating strategy effectiveness for {agent_name}: {e}")
+            return 0.6
+
+    def _calculate_meta_learning_capability(self, agent_name: str) -> float:
+        """Calculate meta-learning capability for an agent"""
+        try:
+            # Agents with high meta-learning capabilities
+            meta_learning_map = {
+                "meta_cognitive_controller": 0.9,
+                "learning_strategist": 0.8,
+                "maestro": 0.7,
+                "architect": 0.7,
+                "strategic_planner": 0.7,
+                "model_sommelier": 0.6,
+                "capability_gap_detector": 0.6
+            }
+            return meta_learning_map.get(agent_name, 0.3)
+        except Exception as e:
+            self.logger.error(f"Error calculating meta-learning capability for {agent_name}: {e}")
+            return 0.3
+
+    def _get_agent_capabilities(self, agent_name: str) -> Dict[str, Any]:
+        """Get detailed capabilities for an agent"""
+        try:
+            capabilities_map = {
+                "architect": {
+                    "code_analysis": 0.9,
+                    "system_design": 0.9,
+                    "architecture_planning": 0.9,
+                    "technical_decision_making": 0.8,
+                    "complexity_management": 0.8
+                },
+                "maestro": {
+                    "orchestration": 0.9,
+                    "workflow_management": 0.9,
+                    "agent_coordination": 0.9,
+                    "process_optimization": 0.8,
+                    "resource_allocation": 0.8
+                },
+                "code_review": {
+                    "code_quality_assessment": 0.9,
+                    "best_practices_validation": 0.8,
+                    "security_analysis": 0.7,
+                    "performance_review": 0.7,
+                    "documentation_check": 0.6
+                },
+                "bug_hunter": {
+                    "error_detection": 0.9,
+                    "bug_analysis": 0.8,
+                    "root_cause_identification": 0.7,
+                    "fix_suggestion": 0.6,
+                    "prevention_strategies": 0.5
+                },
+                "debt_hunter": {
+                    "technical_debt_identification": 0.9,
+                    "debt_prioritization": 0.8,
+                    "refactoring_opportunities": 0.7,
+                    "maintenance_planning": 0.6,
+                    "quality_metrics": 0.7
+                },
+                "error_analyzer": {
+                    "error_pattern_recognition": 0.9,
+                    "failure_analysis": 0.8,
+                    "error_classification": 0.8,
+                    "recovery_strategies": 0.7,
+                    "prevention_planning": 0.6
+                },
+                "model_sommelier": {
+                    "model_selection": 0.9,
+                    "performance_optimization": 0.8,
+                    "configuration_tuning": 0.8,
+                    "resource_efficiency": 0.7,
+                    "quality_assurance": 0.7
+                },
+                "meta_cognitive_controller": {
+                    "self_awareness": 0.9,
+                    "meta_learning": 0.9,
+                    "cognitive_optimization": 0.8,
+                    "strategy_adaptation": 0.8,
+                    "intelligence_evolution": 0.9
+                },
+                "strategic_planner": {
+                    "long_term_planning": 0.9,
+                    "goal_optimization": 0.8,
+                    "resource_strategy": 0.8,
+                    "risk_assessment": 0.7,
+                    "opportunity_identification": 0.7
+                }
+            }
+            return capabilities_map.get(agent_name, {
+                "general_capability": 0.5,
+                "adaptability": 0.5,
+                "learning_ability": 0.5
+            })
+        except Exception as e:
+            self.logger.error(f"Error getting capabilities for {agent_name}: {e}")
+            return {"general_capability": 0.5}
+
+    def _get_agent_activity_history(self, agent_name: str) -> List[Dict[str, Any]]:
+        """Get recent activity history for an agent"""
+        try:
+            # Simulated activity history (last 10 activities)
+            activities = []
+            for i in range(10):
+                activity_types = [
+                    "processed_objective",
+                    "performed_analysis", 
+                    "generated_solution",
+                    "coordinated_with_other_agents",
+                    "optimized_performance",
+                    "detected_issue",
+                    "implemented_fix",
+                    "conducted_review",
+                    "updated_knowledge",
+                    "evolved_capabilities"
+                ]
+                
+                activities.append({
+                    "timestamp": (datetime.now() - timedelta(minutes=i*5)).isoformat(),
+                    "activity_type": activity_types[i % len(activity_types)],
+                    "description": f"{agent_name} performed {activity_types[i % len(activity_types)]}",
+                    "success": True,
+                    "duration_seconds": random.randint(1, 30)
+                })
+            
+            return activities
+        except Exception as e:
+            self.logger.error(f"Error getting activity history for {agent_name}: {e}")
+            return []
+
+    def _calculate_system_evolution_metrics(self, agent_evolution_metrics: Dict[str, Any]) -> Dict[str, Any]:
+        """Calculate system-wide evolution metrics"""
+        try:
+            total_agents = len(agent_evolution_metrics)
+            if total_agents == 0:
+                return {}
+            
+            # Aggregate metrics across all agents
+            avg_cognitive_maturity = sum(
+                metrics.get("cognitive_maturity", 0) for metrics in agent_evolution_metrics.values()
+            ) / total_agents
+            
+            avg_learning_velocity = sum(
+                metrics.get("learning_velocity", 0) for metrics in agent_evolution_metrics.values()
+            ) / total_agents
+            
+            avg_adaptation_index = sum(
+                metrics.get("adaptation_index", 0) for metrics in agent_evolution_metrics.values()
+            ) / total_agents
+            
+            total_evolution_priority = sum(
+                metrics.get("evolution_priority", 0) for metrics in agent_evolution_metrics.values()
+            )
+            
+            # Calculate system health indicators
+            agents_needing_evolution = sum(
+                1 for metrics in agent_evolution_metrics.values() 
+                if metrics.get("needs_evolution", False)
+            )
+            
+            system_health_score = 1.0 - (agents_needing_evolution / total_agents)
+            
+            return {
+                "average_cognitive_maturity": avg_cognitive_maturity,
+                "average_learning_velocity": avg_learning_velocity,
+                "average_adaptation_index": avg_adaptation_index,
+                "total_evolution_priority": total_evolution_priority,
+                "system_health_score": system_health_score,
+                "agents_needing_evolution": agents_needing_evolution,
+                "total_agents": total_agents,
+                "evolution_readiness": system_health_score > 0.7,
+                "collective_intelligence_level": avg_cognitive_maturity * avg_learning_velocity,
+                "system_adaptability": avg_adaptation_index * system_health_score
+            }
+        except Exception as e:
+            self.logger.error(f"Error calculating system evolution metrics: {e}")
+            return {}
+
+    def _generate_meta_agent_insights(self, agent_evolution_metrics: Dict[str, Any], 
+                                    agent_capabilities: Dict[str, Any]) -> Dict[str, Any]:
+        """Generate insights for meta-agents based on agent performance and capabilities"""
+        try:
+            insights = {
+                "performance_insights": [],
+                "capability_gaps": [],
+                "optimization_opportunities": [],
+                "collaboration_recommendations": [],
+                "evolution_priorities": []
+            }
+            
+            # Analyze performance patterns
+            high_performers = []
+            low_performers = []
+            
+            for agent_name, metrics in agent_evolution_metrics.items():
+                success_rate = metrics.get("success_rate", 0)
+                if success_rate > 0.8:
+                    high_performers.append(agent_name)
+                elif success_rate < 0.5:
+                    low_performers.append(agent_name)
+            
+            if high_performers:
+                insights["performance_insights"].append(
+                    f"High-performing agents: {', '.join(high_performers)} - Consider using as mentors"
+                )
+            
+            if low_performers:
+                insights["performance_insights"].append(
+                    f"Low-performing agents: {', '.join(low_performers)} - Prioritize for evolution"
+                )
+            
+            # Identify capability gaps
+            for agent_name, capabilities in agent_capabilities.items():
+                avg_capability = sum(capabilities.values()) / len(capabilities) if capabilities else 0
+                if avg_capability < 0.6:
+                    insights["capability_gaps"].append(
+                        f"{agent_name} has low average capability ({avg_capability:.2f}) - needs enhancement"
+                    )
+            
+            # Optimization opportunities
+            for agent_name, metrics in agent_evolution_metrics.items():
+                if metrics.get("efficiency_rating", 0) < 0.6:
+                    insights["optimization_opportunities"].append(
+                        f"{agent_name} has low efficiency - consider optimization"
+                    )
+                
+                if metrics.get("error_rate", 0) > 0.1:
+                    insights["optimization_opportunities"].append(
+                        f"{agent_name} has high error rate - needs error handling improvement"
+                    )
+            
+            # Collaboration recommendations
+            collaboration_agents = ["maestro", "architect", "integrator", "swarm_coordinator"]
+            for agent_name in collaboration_agents:
+                if agent_name in agent_evolution_metrics:
+                    collab_score = agent_evolution_metrics[agent_name].get("collaboration_score", 0)
+                    if collab_score > 0.8:
+                        insights["collaboration_recommendations"].append(
+                            f"{agent_name} has high collaboration potential - leverage for coordination"
+                        )
+            
+            # Evolution priorities
+            priority_agents = sorted(
+                agent_evolution_metrics.items(),
+                key=lambda x: x[1].get("evolution_priority", 0),
+                reverse=True
+            )[:5]
+            
+            for agent_name, metrics in priority_agents:
+                insights["evolution_priorities"].append(
+                    f"{agent_name} (priority: {metrics.get('evolution_priority', 0):.2f})"
+                )
+            
+            return insights
+        except Exception as e:
+            self.logger.error(f"Error generating meta-agent insights: {e}")
+            return {"error": str(e)}

@@ -6,25 +6,197 @@
     <title>Hephaestus - Evolution Dashboard</title>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
-        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; background-color: #121212; color: #E0E0E0; margin: 0; padding: 20px; }
-        h1, h2 { color: #BB86FC; border-bottom: 2px solid #373737; padding-bottom: 10px; }
-        .dashboard-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(400px, 1fr)); gap: 20px; }
-        .chart-container, .kpi-container, .log-container { background-color: #1E1E1E; padding: 20px; border-radius: 8px; box-shadow: 0 4px 8px rgba(0,0,0,0.3); }
-        .kpi-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 15px; text-align: center; }
-        .kpi { background-color: #2a2a2a; padding: 15px; border-radius: 5px; }
-        .kpi-value { font-size: 2.5em; font-weight: bold; color: #03DAC6; }
-        .kpi-label { font-size: 0.9em; color: #B0B0B0; }
-        #recent-log-list { list-style-type: none; padding: 0; font-family: 'Courier New', Courier, monospace; font-size: 0.9em; }
-        #recent-log-list li { background-color: #2a2a2a; margin-bottom: 5px; padding: 8px; border-radius: 4px; white-space: pre-wrap; word-break: break-all; }
+        body { 
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; 
+            background-color: #0a0a0a; 
+            color: #E0E0E0; 
+            margin: 0; 
+            padding: 20px; 
+        }
+        h1, h2, h3 { 
+            color: #BB86FC; 
+            border-bottom: 2px solid #373737; 
+            padding-bottom: 10px; 
+        }
+        .dashboard-grid { 
+            display: grid; 
+            grid-template-columns: repeat(auto-fit, minmax(500px, 1fr)); 
+            gap: 20px; 
+            margin-top: 20px;
+        }
+        .chart-container, .kpi-container, .log-container, .metrics-container, .insights-container { 
+            background-color: #1E1E1E; 
+            padding: 20px; 
+            border-radius: 8px; 
+            box-shadow: 0 4px 8px rgba(0,0,0,0.3); 
+        }
+        .kpi-grid { 
+            display: grid; 
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); 
+            gap: 15px; 
+            text-align: center; 
+        }
+        .kpi { 
+            background-color: #2a2a2a; 
+            padding: 15px; 
+            border-radius: 5px; 
+            border-left: 4px solid #03DAC6;
+        }
+        .kpi-value { 
+            font-size: 2.5em; 
+            font-weight: bold; 
+            color: #03DAC6; 
+        }
+        .kpi-label { 
+            font-size: 0.9em; 
+            color: #B0B0B0; 
+        }
+        .system-metrics { 
+            display: grid; 
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); 
+            gap: 15px; 
+            margin-top: 15px;
+        }
+        .metric-card { 
+            background-color: #2a2a2a; 
+            padding: 15px; 
+            border-radius: 5px; 
+            border-left: 4px solid #FF6B6B;
+        }
+        .metric-value { 
+            font-size: 1.8em; 
+            font-weight: bold; 
+            color: #FF6B6B; 
+        }
+        .metric-label { 
+            font-size: 0.8em; 
+            color: #B0B0B0; 
+        }
+        .insights-section { 
+            margin-top: 15px; 
+        }
+        .insight-category { 
+            background-color: #2a2a2a; 
+            padding: 15px; 
+            border-radius: 5px; 
+            margin-bottom: 15px; 
+            border-left: 4px solid #4ECDC4;
+        }
+        .insight-title { 
+            color: #4ECDC4; 
+            font-weight: bold; 
+            margin-bottom: 10px; 
+        }
+        .insight-list { 
+            list-style-type: none; 
+            padding: 0; 
+        }
+        .insight-list li { 
+            background-color: #1a1a1a; 
+            margin-bottom: 5px; 
+            padding: 8px; 
+            border-radius: 4px; 
+            font-size: 0.9em; 
+        }
+        .agent-evolution-grid { 
+            display: grid; 
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); 
+            gap: 15px; 
+            margin-top: 15px;
+        }
+        .agent-card { 
+            background-color: #2a2a2a; 
+            padding: 15px; 
+            border-radius: 5px; 
+            border-left: 4px solid #FFD93D;
+        }
+        .agent-name { 
+            color: #FFD93D; 
+            font-weight: bold; 
+            font-size: 1.1em; 
+            margin-bottom: 10px; 
+        }
+        .agent-metrics { 
+            display: grid; 
+            grid-template-columns: 1fr 1fr; 
+            gap: 8px; 
+            font-size: 0.8em; 
+        }
+        .agent-metric { 
+            display: flex; 
+            justify-content: space-between; 
+        }
+        .metric-name { 
+            color: #B0B0B0; 
+        }
+        .metric-value-small { 
+            color: #03DAC6; 
+            font-weight: bold; 
+        }
+        #recent-log-list { 
+            list-style-type: none; 
+            padding: 0; 
+            font-family: 'Courier New', Courier, monospace; 
+            font-size: 0.9em; 
+            max-height: 400px; 
+            overflow-y: auto; 
+        }
+        #recent-log-list li { 
+            background-color: #2a2a2a; 
+            margin-bottom: 5px; 
+            padding: 8px; 
+            border-radius: 4px; 
+            white-space: pre-wrap; 
+            word-break: break-all; 
+        }
         .status-success { color: #81C784; }
         .status-failure { color: #E57373; }
+        .status-warning { color: #FFB74D; }
+        .status-info { color: #64B5F6; }
+        .progress-bar { 
+            width: 100%; 
+            height: 8px; 
+            background-color: #444; 
+            border-radius: 4px; 
+            overflow: hidden; 
+            margin-top: 5px; 
+        }
+        .progress-fill { 
+            height: 100%; 
+            background: linear-gradient(90deg, #03DAC6, #BB86FC); 
+            transition: width 0.3s ease; 
+        }
+        .refresh-button { 
+            background-color: #BB86FC; 
+            color: #000; 
+            border: none; 
+            padding: 10px 20px; 
+            border-radius: 5px; 
+            cursor: pointer; 
+            font-weight: bold; 
+            margin-bottom: 20px; 
+        }
+        .refresh-button:hover { 
+            background-color: #A66FFC; 
+        }
+        .health-indicator { 
+            display: inline-block; 
+            width: 12px; 
+            height: 12px; 
+            border-radius: 50%; 
+            margin-right: 8px; 
+        }
+        .health-good { background-color: #81C784; }
+        .health-warning { background-color: #FFB74D; }
+        .health-poor { background-color: #E57373; }
     </style>
 </head>
 <body>
     <h1>🔥 Hephaestus - Evolution Dashboard</h1>
+    <button class="refresh-button" onclick="fetchData()">🔄 Refresh Data</button>
 
     <div class="kpi-container">
-        <h2>Cognitive Metrics & Status</h2>
+        <h2>🧠 Cognitive Metrics & Status</h2>
         <div class="kpi-grid">
             <div class="kpi"><div id="maturity" class="kpi-value">0.00</div><div class="kpi-label">Cognitive Maturity</div></div>
             <div class="kpi"><div id="velocity" class="kpi-value">0.00</div><div class="kpi-label">Evolution Velocity</div></div>
@@ -34,14 +206,35 @@
         </div>
     </div>
 
+    <div class="metrics-container">
+        <h2>📊 System Evolution Metrics</h2>
+        <div class="system-metrics" id="system-metrics">
+            <!-- System metrics will be populated here -->
+        </div>
+    </div>
+
     <div class="dashboard-grid">
         <div class="chart-container">
-            <h2>Agent Performance</h2>
+            <h2>📈 Agent Performance</h2>
             <canvas id="agentPerformanceChart"></canvas>
         </div>
         <div class="log-container">
-            <h2>Recent Activity Log</h2>
+            <h2>📝 Recent Activity Log</h2>
             <ul id="recent-log-list"></ul>
+        </div>
+    </div>
+
+    <div class="insights-container">
+        <h2>🤖 Meta-Agent Insights</h2>
+        <div class="insights-section" id="meta-insights">
+            <!-- Meta-agent insights will be populated here -->
+        </div>
+    </div>
+
+    <div class="metrics-container">
+        <h2>🧬 Agent Evolution Metrics</h2>
+        <div class="agent-evolution-grid" id="agent-evolution-grid">
+            <!-- Agent evolution cards will be populated here -->
         </div>
     </div>
 
@@ -56,10 +249,23 @@
             },
             options: {
                 responsive: true,
-                plugins: { legend: { labels: { color: '#E0E0E0' } } },
+                plugins: { 
+                    legend: { labels: { color: '#E0E0E0' } },
+                    title: { 
+                        display: true, 
+                        text: 'Agent Performance Overview',
+                        color: '#E0E0E0'
+                    }
+                },
                 scales: {
-                    y: { ticks: { color: '#E0E0E0' }, grid: { color: '#444' } },
-                    x: { ticks: { color: '#E0E0E0' }, grid: { color: '#444' } }
+                    y: { 
+                        ticks: { color: '#E0E0E0' }, 
+                        grid: { color: '#444' } 
+                    },
+                    x: { 
+                        ticks: { color: '#E0E0E0' }, 
+                        grid: { color: '#444' } 
+                    }
                 }
             }
         };
@@ -87,11 +293,134 @@
             
             const logList = document.getElementById('recent-log-list');
             logList.innerHTML = ''; // Clear old logs
+            
+            if (history.recent_log && history.recent_log.length > 0) {
             history.recent_log.forEach(item => {
                 const li = document.createElement('li');
                 const statusClass = item.status === 'success' ? 'status-success' : 'status-failure';
                 li.innerHTML = `<span class="${statusClass}">[${item.status.toUpperCase()}]</span> ${item.objective}`;
                 logList.appendChild(li);
+                });
+            } else {
+                const li = document.createElement('li');
+                li.innerHTML = '<span class="status-info">[INFO]</span> No recent activity';
+                logList.appendChild(li);
+            }
+        }
+
+        function updateSystemMetrics(metrics) {
+            const container = document.getElementById('system-metrics');
+            container.innerHTML = '';
+            
+            const metricData = [
+                { key: 'average_cognitive_maturity', label: 'Avg Cognitive Maturity', format: 'percent' },
+                { key: 'average_learning_velocity', label: 'Avg Learning Velocity', format: 'decimal' },
+                { key: 'average_adaptation_index', label: 'Avg Adaptation Index', format: 'decimal' },
+                { key: 'system_health_score', label: 'System Health Score', format: 'percent' },
+                { key: 'collective_intelligence_level', label: 'Collective Intelligence', format: 'decimal' },
+                { key: 'system_adaptability', label: 'System Adaptability', format: 'decimal' },
+                { key: 'agents_needing_evolution', label: 'Agents Needing Evolution', format: 'number' },
+                { key: 'total_agents', label: 'Total Agents', format: 'number' }
+            ];
+            
+            metricData.forEach(metric => {
+                const value = metrics[metric.key] || 0;
+                const card = document.createElement('div');
+                card.className = 'metric-card';
+                
+                let displayValue = value;
+                if (metric.format === 'percent') {
+                    displayValue = (value * 100).toFixed(1) + '%';
+                } else if (metric.format === 'decimal') {
+                    displayValue = value.toFixed(3);
+                }
+                
+                card.innerHTML = `
+                    <div class="metric-value">${displayValue}</div>
+                    <div class="metric-label">${metric.label}</div>
+                    ${metric.format === 'percent' || metric.format === 'decimal' ? 
+                        `<div class="progress-bar"><div class="progress-fill" style="width: ${Math.min(value * 100, 100)}%"></div></div>` : 
+                        ''
+                    }
+                `;
+                container.appendChild(card);
+            });
+        }
+
+        function updateMetaInsights(insights) {
+            const container = document.getElementById('meta-insights');
+            container.innerHTML = '';
+            
+            const categories = [
+                { key: 'performance_insights', title: '🎯 Performance Insights', color: '#81C784' },
+                { key: 'capability_gaps', title: '⚠️ Capability Gaps', color: '#FFB74D' },
+                { key: 'optimization_opportunities', title: '⚡ Optimization Opportunities', color: '#64B5F6' },
+                { key: 'collaboration_recommendations', title: '🤝 Collaboration Recommendations', color: '#4ECDC4' },
+                { key: 'evolution_priorities', title: '🧬 Evolution Priorities', color: '#FF6B6B' }
+            ];
+            
+            categories.forEach(category => {
+                const data = insights[category.key] || [];
+                if (data.length > 0) {
+                    const section = document.createElement('div');
+                    section.className = 'insight-category';
+                    section.style.borderLeftColor = category.color;
+                    
+                    section.innerHTML = `
+                        <div class="insight-title">${category.title}</div>
+                        <ul class="insight-list">
+                            ${data.map(insight => `<li>${insight}</li>`).join('')}
+                        </ul>
+                    `;
+                    container.appendChild(section);
+                }
+            });
+        }
+
+        function updateAgentEvolutionMetrics(agentMetrics) {
+            const container = document.getElementById('agent-evolution-grid');
+            container.innerHTML = '';
+            
+            Object.entries(agentMetrics).forEach(([agentName, metrics]) => {
+                const card = document.createElement('div');
+                card.className = 'agent-card';
+                
+                const healthClass = metrics.cognitive_maturity > 0.7 ? 'health-good' : 
+                                  metrics.cognitive_maturity > 0.4 ? 'health-warning' : 'health-poor';
+                
+                card.innerHTML = `
+                    <div class="agent-name">
+                        <span class="health-indicator ${healthClass}"></span>
+                        ${agentName.replace('_', ' ').toUpperCase()}
+                    </div>
+                    <div class="agent-metrics">
+                        <div class="agent-metric">
+                            <span class="metric-name">Success Rate:</span>
+                            <span class="metric-value-small">${(metrics.success_rate * 100).toFixed(1)}%</span>
+                        </div>
+                        <div class="agent-metric">
+                            <span class="metric-name">Quality Score:</span>
+                            <span class="metric-value-small">${(metrics.average_quality_score * 100).toFixed(1)}%</span>
+                        </div>
+                        <div class="agent-metric">
+                            <span class="metric-name">Cognitive Maturity:</span>
+                            <span class="metric-value-small">${(metrics.cognitive_maturity * 100).toFixed(1)}%</span>
+                        </div>
+                        <div class="agent-metric">
+                            <span class="metric-name">Learning Velocity:</span>
+                            <span class="metric-value-small">${(metrics.learning_velocity * 100).toFixed(1)}%</span>
+                        </div>
+                        <div class="agent-metric">
+                            <span class="metric-name">Evolution Priority:</span>
+                            <span class="metric-value-small">${(metrics.evolution_priority * 100).toFixed(1)}%</span>
+                        </div>
+                        <div class="agent-metric">
+                            <span class="metric-name">Error Rate:</span>
+                            <span class="metric-value-small">${(metrics.error_rate * 100).toFixed(1)}%</span>
+                        </div>
+                    </div>
+                `;
+                container.appendChild(card);
             });
         }
 
@@ -116,6 +445,21 @@
                     updateObjectiveHistory(data.objective_history);
                 }
 
+                // Update System Metrics
+                if (data.system_evolution_metrics) {
+                    updateSystemMetrics(data.system_evolution_metrics);
+                }
+
+                // Update Meta-Agent Insights
+                if (data.meta_agent_insights) {
+                    updateMetaInsights(data.meta_agent_insights);
+                }
+
+                // Update Agent Evolution Metrics
+                if (data.agent_evolution_metrics) {
+                    updateAgentEvolutionMetrics(data.agent_evolution_metrics);
+                }
+
                 // Update Chart
                 if (data.agent_performance) {
                     const ctx = document.getElementById('agentPerformanceChart').getContext('2d');
@@ -127,8 +471,8 @@
             }
         }
 
-        // Fetch data every 5 seconds
-        setInterval(fetchData, 5000);
+        // Fetch data every 10 seconds
+        setInterval(fetchData, 10000);
         // Initial fetch
         fetchData();
     </script>

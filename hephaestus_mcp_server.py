@@ -508,7 +508,7 @@ class HephaestusMCPServer:
                 "self_narrative": {},
                 "current_cognitive_state": {},
                 "introspection_depth": 0.0
-            }
+                }
         except Exception as e:
             self.logger.error(f"Erro na auto-reflexão: {e}")
             return {
@@ -590,7 +590,7 @@ class HephaestusMCPServer:
                 "cognitive_trajectory": {},
                 "recent_insights": [],
                 "monitoring_status": {}
-            }
+                }
         except Exception as e:
             self.logger.error(f"Erro no relatório de auto-consciência: {e}")
             return {

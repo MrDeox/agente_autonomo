@@ -18,7 +18,7 @@ logger = logging.getLogger(__name__)
 class SelfReflectionRequest(BaseModel):
     """Modelo Pydantic para validação de requisições de auto-reflexão"""
     focus_area: str = Field(default="general", min_length=1, max_length=100)
-    
+
     @validator('focus_area')
     def validate_focus_area(cls, v):
         """Validação adicional para área de foco"""

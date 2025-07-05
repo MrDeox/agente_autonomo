@@ -1,14 +1,15 @@
 import json
+import random
 from collections import defaultdict
 from datetime import datetime, timedelta
-from typing import Dict, List, Optional, Tuple
+from typing import Dict, List, Optional, Tuple, Any
 from agent.utils.llm_client import call_llm_with_fallback
 from agent.utils.intelligent_cache import IntelligentCache
 
 class StrategyCache:
     """LRU cache with TTL for strategy decisions."""
     def __init__(self, maxsize=100, ttl=3600):
-        self.cache = IntelligentCache(maxsize=maxsize, ttl=ttl)
+        self.cache = IntelligentCache(max_size=maxsize, default_ttl=ttl)
 
     def get(self, key):
         return self.cache.get(key)
@@ -19,9 +20,10 @@ class StrategyCache:
 class MaestroAgent:
     """Orchestrates strategy selection and execution for the Hephaestus system with weighted strategy selection."""
     
-    def __init__(self, model_config: Dict[str, str], logger):
+    def __init__(self, model_config: Dict[str, str], logger, config: Optional[Dict[str, Any]] = None):
         self.model_config = model_config
         self.logger = logger
+        self.config = config or {}
         self.strategy_cache = StrategyCache()
         self.strategy_weights = defaultdict(float)
         self._load_strategy_weights()
@@ -57,7 +59,7 @@ class MaestroAgent:
             cumulative += weight
             if rand < cumulative:
                 return strategy
-        
+
         return "fallback"
 
     def execute_strategy(self, strategy: str, context: Dict) -> Dict:
@@ -87,3 +89,34 @@ class MaestroAgent:
             "meta_cognitive": 0.27,
             "fallback": 0.15
         }
+
+    def choose_strategy(self, action_plan_data: Dict[str, Any], memory_summary: str = "", failed_strategy_context: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
+        """Choose the best strategy for executing the current objective."""
+        try:
+            # Analyze context and select strategy
+            context = {
+                "action_plan": action_plan_data,
+                "memory": memory_summary,
+                "failed_context": failed_strategy_context
+            }
+            
+            strategy = self.select_strategy(context)
+            
+            # Execute the strategy
+            result = self.execute_strategy(strategy, context)
+            
+            return {
+                "success": True,
+                "strategy": strategy,
+                "result": result,
+                "weights": dict(self.strategy_weights)
+            }
+            
+        except Exception as e:
+            self.logger.error(f"Strategy selection failed: {str(e)}")
+            return {
+                "success": False,
+                "strategy": "fallback",
+                "error": str(e),
+                "weights": dict(self.strategy_weights)
+            }
