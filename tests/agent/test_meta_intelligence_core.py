@@ -1,69 +1,106 @@
 """
-Unit tests for meta_intelligence_core.py module
+Unit tests for meta_intelligence_core.py
 """
 import pytest
 from unittest.mock import Mock, patch
 
 from agent.meta_intelligence_core import (
-    MetaIntelligenceCore,
     PromptGene,
     AgentBlueprint,
-    CognitiveArchitecture
+    CognitiveArchitecture,
+    PromptEvolutionEngine,
+    AgentGenesisFactory,
+    MetaIntelligenceCore,
+    get_meta_intelligence
 )
-from agent.utils.llm_client import call_llm_api
-from agent.model_optimizer import ModelOptimizer
-from agent.advanced_knowledge_system import AdvancedKnowledgeSystem
-from agent.root_cause_analyzer import RootCauseAnalyzer
+
+class TestPromptGene:
+    def test_prompt_gene_initialization(self):
+        """Test PromptGene dataclass initialization"""
+        gene = PromptGene(
+            section_type="task",
+            content="Test content",
+            effectiveness_score=0.8
+        )
+        assert gene.section_type == "task"
+        assert gene.content == "Test content"
+        assert gene.effectiveness_score == 0.8
+
+class TestAgentBlueprint:
+    def test_agent_blueprint_initialization(self):
+        """Test AgentBlueprint dataclass initialization"""
+        blueprint = AgentBlueprint(
+            name="TestAgent",
+            purpose="Test purpose",
+            required_capabilities=["cap1", "cap2"],
+            prompt_template="Test template",
+            cognitive_patterns={},
+            integration_points=[],
+            estimated_value=0.9,
+            creation_reason="Test reason"
+        )
+        assert blueprint.name == "TestAgent"
+        assert blueprint.estimated_value == 0.9
+
+class TestPromptEvolutionEngine:
+    @pytest.fixture
+    def engine(self):
+        """Fixture for PromptEvolutionEngine"""
+        return PromptEvolutionEngine(
+            model_config={},
+            logger=Mock()
+        )
+
+    def test_evolve_prompt(self, engine):
+        """Test prompt evolution functionality"""
+        # TODO: Implement test cases
+        pass
+
+    def test_decompose_prompt_to_genes(self, engine):
+        """Test prompt decomposition"""
+        # TODO: Implement test cases
+        pass
+
+class TestAgentGenesisFactory:
+    @pytest.fixture
+    def factory(self):
+        """Fixture for AgentGenesisFactory"""
+        return AgentGenesisFactory(
+            model_config={},
+            logger=Mock()
+        )
+
+    def test_detect_capability_gaps(self, factory):
+        """Test capability gap detection"""
+        # TODO: Implement test cases
+        pass
+
+    def test_create_new_agent(self, factory):
+        """Test agent creation"""
+        # TODO: Implement test cases
+        pass
 
 class TestMetaIntelligenceCore:
-    """Test suite for MetaIntelligenceCore"""
+    @pytest.fixture
+    def core(self):
+        """Fixture for MetaIntelligenceCore"""
+        return MetaIntelligenceCore(
+            model_config={},
+            logger=Mock()
+        )
 
-    def setup_method(self):
-        """Setup test fixtures"""
-        self.mock_logger = Mock()
-        self.mock_config = {"model": "test-model", "api_key": "test-key"}
-        self.meta_core = MetaIntelligenceCore(self.mock_config, self.mock_logger)
-
-    def test_analyze_cognitive_patterns(self):
-        """Test analyze_cognitive_patterns functionality"""
-        # TODO: Implement test cases
-        pass
-
-    def test_generate_meta_insights(self):
-        """Test generate_meta_insights functionality"""
-        # TODO: Implement test cases
-        pass
-
-    def test_meta_cognitive_cycle(self):
+    def test_meta_cognitive_cycle(self, core):
         """Test the main meta-cognitive cycle"""
         # TODO: Implement test cases
         pass
 
-    def test_get_meta_intelligence_report(self):
+    def test_get_meta_intelligence_report(self, core):
         """Test report generation"""
         # TODO: Implement test cases
         pass
 
-class TestPromptGene:
-    """Test suite for PromptGene dataclass"""
-
-    def test_prompt_gene_creation(self):
-        """Test PromptGene initialization"""
-        # TODO: Implement test cases
-        pass
-
-class TestAgentBlueprint:
-    """Test suite for AgentBlueprint dataclass"""
-
-    def test_blueprint_creation(self):
-        """Test AgentBlueprint initialization"""
-        # TODO: Implement test cases
-        pass
-
-class TestCognitiveArchitecture:
-    """Test suite for CognitiveArchitecture dataclass"""
-
-    def test_architecture_creation(self):
-        """Test CognitiveArchitecture initialization"""
+class TestModuleFunctions:
+    def test_get_meta_intelligence(self):
+        """Test the singleton factory function"""
         # TODO: Implement test cases
         pass

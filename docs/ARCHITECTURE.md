@@ -4,6 +4,7 @@
 
 agente_autonomo/
     MCP_SETUP_GUIDE.md
+    RESUMO_REVISAO_FINAL.md
     README.md
     mcp_server.log
     PROPOSTA_SERVIDOR_MCP.md
@@ -28,8 +29,10 @@ agente_autonomo/
     demo_organizer_agent.py
     evolution_monitoring.txt
     demo_meta_intelligence.py
+    REVISAO_COMPLETA_BUGS_MELHORIAS.md
     GUIA_CONFIGURACAO_CURSOR.md
     start_mcp_server.sh
+    CORRECOES_IMEDIATAS.md
     setup_mcp.py
     ERROR_DETECTOR_DOCUMENTATION.md
     cursor_mcp_config.json
