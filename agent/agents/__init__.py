@@ -11,6 +11,8 @@ from .model_sommelier_agent import ModelSommelierAgent
 from .prompt_optimizer import PromptOptimizer
 from .debt_hunter_agent import DebtHunterAgent, DebtType, TechnicalDebtItem
 from .error_analyzer import ErrorAnalysisAgent
+from .frontend_artisan_agent import FrontendArtisanAgent
+from .linter_agent import LinterAgent
 
 __all__ = [
     'CapabilityGapDetector',
@@ -27,5 +29,7 @@ __all__ = [
     'DebtHunterAgent',
     'DebtType',
     'TechnicalDebtItem',
-    'ErrorAnalysisAgent'
+    'ErrorAnalysisAgent',
+    'FrontendArtisanAgent',
+    'LinterAgent'
 ]

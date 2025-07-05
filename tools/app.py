@@ -321,6 +321,16 @@ def periodic_log_analysis_task():
                 queue_manager.put_objective(model_sommelier_objective)
                 logger.info("Model sommelier task queued successfully.")
 
+                time.sleep(10)
+
+                # --- Queue Linter Task ---
+                logger.info("Queuing periodic linter task...")
+                linter_objective = {
+                    "objective": "Proactively run linter to find and fix code quality issues.",
+                    "is_linter_task": True,
+                }
+                queue_manager.put_objective(linter_objective)
+                logger.info("Linter task queued successfully.")
 
         except Exception as e:
             logger.error(f"❌ Error in periodic monitoring task: {e}", exc_info=True)

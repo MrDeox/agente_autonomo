@@ -17,6 +17,7 @@ from agent.brain import (
 from agent.tool_executor import run_pytest, check_file_existence, run_git_command, list_available_models
 from agent.agents import ErrorAnalysisAgent, PromptOptimizer, ModelSommelierAgent
 from agent.agents.debt_hunter_agent import DebtHunterAgent
+from agent.agents.linter_agent import LinterAgent
 from agent.validation_steps import get_validation_step
 
 if TYPE_CHECKING:
@@ -119,6 +120,10 @@ class CycleRunner:
             if current_objective.get("is_model_sommelier_task"):
                 self.agent.logger.info("Handling special task: Model Sommelier.")
                 self._run_model_sommelier_task()
+                return
+            if current_objective.get("is_linter_task"):
+                self.agent.logger.info("Handling special task: Linter.")
+                self._run_linter_task()
                 return
         
         # Standard objectives are strings
@@ -416,6 +421,17 @@ class CycleRunner:
             self.queue_manager.put_objective(new_objective)
         else:
             self.agent.logger.info("Model Sommelier did not propose any optimization in this cycle.")
+
+    def _run_linter_task(self):
+        """Runs the linter agent to find and queue a new objective."""
+        linter = LinterAgent(self.agent.logger.getChild("LinterAgent"))
+        new_objective = linter.run_linter_and_propose_objective()
+        
+        if new_objective:
+            self.agent.logger.info(f"Linter Agent found fixes and proposed a new objective.")
+            self.queue_manager.put_objective(new_objective)
+        else:
+            self.agent.logger.info("Linter Agent cycle complete. No new objective proposed.")
 
     def _run_debt_hunter_task(self):
         """Runs the debt hunter agent to find and queue a new objective."""
