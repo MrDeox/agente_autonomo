@@ -22,6 +22,7 @@ from agent.config_loader import load_config
 from agent.arthur_interface_generator import ArthurInterfaceGenerator
 from agent.agents.error_detector_agent import ErrorDetectorAgent
 from agent.agents.dependency_fixer_agent import DependencyFixerAgent
+from agent.agents.cycle_monitor_agent import CycleMonitorAgent
 from agent.cycle_runner import CycleRunner
 from agent.async_orchestrator import AgentType, AgentTask
 
@@ -121,6 +122,7 @@ hephaestus_worker_thread = None
 interface_generator = None
 error_detector_agent = None
 dependency_fixer_agent = None
+cycle_monitor_agent = None
 log_analyzer_thread = None
 
 # === PYDANTIC MODELS === #
@@ -244,6 +246,10 @@ async def startup_event():
         
         # Initialize Dependency Fixer Agent
         dependency_fixer_agent = DependencyFixerAgent(config)
+        
+        # Initialize Cycle Monitor Agent
+        cycle_monitor_agent = CycleMonitorAgent(config)
+        cycle_monitor_agent.start_monitoring()
         
         # Start meta-intelligence
         hephaestus_agent_instance.start_meta_intelligence()
@@ -1765,6 +1771,47 @@ async def get_dependency_fixer_status(auth_user: dict = Depends(get_auth_user)):
     except Exception as e:
         logger.error(f"❌ Error getting dependency fixer status: {e}")
         raise HTTPException(status_code=500, detail=f"Failed to get status: {str(e)}")
+
+@app.get("/cycle-monitor/status", tags=["Cycle Monitor"])
+async def get_cycle_monitor_status(auth_user: dict = Depends(get_auth_user)):
+    """Get cycle monitor status and system health"""
+    try:
+        global cycle_monitor_agent
+        
+        if not cycle_monitor_agent:
+            raise HTTPException(status_code=503, detail="Cycle Monitor Agent not initialized")
+        
+        status = cycle_monitor_agent.get_system_status()
+        
+        return {
+            "status": "success",
+            "data": status
+        }
+        
+    except Exception as e:
+        logger.error(f"Error getting cycle monitor status: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.post("/cycle-monitor/force-cleanup", tags=["Cycle Monitor"])
+async def force_cycle_cleanup(auth_user: dict = Depends(get_auth_user)):
+    """Force immediate cleanup of all detected issues"""
+    try:
+        global cycle_monitor_agent
+        
+        if not cycle_monitor_agent:
+            raise HTTPException(status_code=503, detail="Cycle Monitor Agent not initialized")
+        
+        cleanup_result = cycle_monitor_agent.force_cleanup()
+        
+        return {
+            "status": "success",
+            "message": "Forced cleanup completed",
+            "data": cleanup_result
+        }
+        
+    except Exception as e:
+        logger.error(f"Error during forced cleanup: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
 
 if __name__ == "__main__":
     uvicorn.run(

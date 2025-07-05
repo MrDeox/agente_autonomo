@@ -103,9 +103,11 @@ agente_autonomo/
             performance_analyzer.py
             error_correction.py
             organizer_agent.py
+            cycle_monitor_agent.py
             error_detector_agent.py
             code_review_agent.py
             maestro_agent.py
+            dependency_fixer_agent.py
             model_sommelier_agent.py
             swarm_coordinator_agent.py
             prompt_optimizer.py
@@ -430,6 +432,10 @@ agente_autonomo/
   - *Ativa o modo de evolução máxima para desenvolvimento autônomo*
 - **Função:** `start_night_evolution(auth_user: dict=Depends(get_auth_user))`
   - *Inicia evolução noturna autônoma para desenvolvimento contínuo*
+- **Função:** `analyze_dependencies(error_logs: str=Body(..., description='Error logs to analyze for import issues'), auth_user: dict=Depends(get_auth_user))`
+  - *Analyze and fix import/dependency issues*
+- **Função:** `get_dependency_fixer_status(auth_user: dict=Depends(get_auth_user))`
+  - *Get Dependency Fixer Agent status*
 
 ### Arquivo: `agent/async_orchestrator.py`
 - **Classe:** `AgentType(Enum)`
@@ -855,6 +861,10 @@ agente_autonomo/
 - **Classe:** `OrganizerAgent`
   - *Agente organizador que reorganiza a estrutura do projeto de forma inteligente.*
 
+### Arquivo: `agent/agents/cycle_monitor_agent.py`
+- **Classe:** `CycleMonitorAgent`
+  - *Agent that monitors and resolves system bottlenecks and stuck cycles*
+
 ### Arquivo: `agent/agents/error_detector_agent.py`
 - **Classe:** `ErrorPattern`
   - *Representa um padrão de erro detectado*
@@ -869,6 +879,10 @@ agente_autonomo/
   - *LRU cache with TTL for strategy decisions.*
 - **Classe:** `MaestroAgent`
   - *Orchestrates strategy selection and execution for the Hephaestus system.*
+
+### Arquivo: `agent/agents/dependency_fixer_agent.py`
+- **Classe:** `DependencyFixerAgent`
+  - *Agent that automatically fixes import and dependency issues*
 
 ### Arquivo: `agent/agents/model_sommelier_agent.py`
 - **Classe:** `ModelSommelierAgent`
