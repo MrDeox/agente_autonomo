@@ -25,6 +25,7 @@ agente_autonomo/
     hephaestus_config.json
     GUIA_MCP_CURSOR.md
     CHECKLIST_MCP_HEPHAESTUS.md
+    demo_organizer_agent.py
     evolution_monitoring.txt
     demo_meta_intelligence.py
     GUIA_CONFIGURACAO_CURSOR.md
@@ -92,6 +93,7 @@ agente_autonomo/
             frontend_artisan_agent.py
             performance_analyzer.py
             error_correction.py
+            organizer_agent.py
             error_detector_agent.py
             code_review_agent.py
             maestro_agent.py
@@ -238,6 +240,12 @@ agente_autonomo/
 
 ### Arquivo: `main.py`
 
+### Arquivo: `demo_organizer_agent.py`
+- **Classe:** `OrganizerAgentDemo`
+  - *Demonstração do OrganizerAgent*
+- **Função:** `main()`
+  - *Função principal*
+
 ### Arquivo: `demo_meta_intelligence.py`
 - **Função:** `setup_logging()`
   - *Setup comprehensive logging for the demo*
@@ -350,6 +358,14 @@ agente_autonomo/
   - *Disparar auto-evolução baseada em performance*
 - **Função:** `get_evolution_history(limit: int=20, auth_user: dict=Depends(get_auth_user))`
   - *Obter histórico de evoluções em tempo real*
+- **Função:** `analyze_project_structure(auth_user: dict=Depends(get_auth_user))`
+  - *Analisa a estrutura atual do projeto*
+- **Função:** `generate_organization_plan(auth_user: dict=Depends(get_auth_user))`
+  - *Gera plano de reorganização do projeto*
+- **Função:** `execute_organization_plan(dry_run: bool=Body(True, description='Se True, apenas simula a execução'), auth_user: dict=Depends(get_auth_user))`
+  - *Executa o plano de reorganização*
+- **Função:** `get_organization_report(auth_user: dict=Depends(get_auth_user))`
+  - *Gera relatório completo da organização*
 - **Função:** `get_error_detector_status(auth_user: dict=Depends(get_auth_user))`
   - *Get current status of the error detector agent*
 - **Função:** `get_error_report(auth_user: dict=Depends(get_auth_user))`
@@ -746,6 +762,16 @@ agente_autonomo/
 ### Arquivo: `agent/agents/error_correction.py`
 - **Classe:** `ErrorCorrectionAgent`
   - *Agent for analyzing errors and generating corrective actions.*
+
+### Arquivo: `agent/agents/organizer_agent.py`
+- **Classe:** `FileAnalysis`
+  - *Análise de um arquivo para organização*
+- **Classe:** `DirectoryStructure`
+  - *Estrutura de diretório proposta*
+- **Classe:** `OrganizationPlan`
+  - *Plano de reorganização do projeto*
+- **Classe:** `OrganizerAgent`
+  - *Agente organizador que reorganiza a estrutura do projeto de forma inteligente.*
 
 ### Arquivo: `agent/agents/error_detector_agent.py`
 - **Classe:** `ErrorPattern`

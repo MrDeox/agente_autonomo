@@ -1076,6 +1076,79 @@ async def get_evolution_history(limit: int = 20, auth_user: dict = Depends(get_a
         logger.error(f"Error getting evolution history: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
+# ===== ENDPOINTS DO ORGANIZER AGENT =====
+
+@app.get("/api/organizer/analyze-structure", tags=["Project Organization"])
+async def analyze_project_structure(auth_user: dict = Depends(get_auth_user)):
+    """Analisa a estrutura atual do projeto"""
+    try:
+        if not hephaestus_agent_instance:
+            raise HTTPException(status_code=503, detail="Hephaestus agent not initialized")
+        
+        result = await hephaestus_agent_instance.analyze_project_structure()
+        return result
+    except Exception as e:
+        logger.error(f"Erro na análise da estrutura: {e}")
+        return {
+            "success": False,
+            "error": str(e),
+            "timestamp": datetime.now().isoformat()
+        }
+
+@app.get("/api/organizer/generate-plan", tags=["Project Organization"])
+async def generate_organization_plan(auth_user: dict = Depends(get_auth_user)):
+    """Gera plano de reorganização do projeto"""
+    try:
+        if not hephaestus_agent_instance:
+            raise HTTPException(status_code=503, detail="Hephaestus agent not initialized")
+        
+        result = await hephaestus_agent_instance.generate_organization_plan()
+        return result
+    except Exception as e:
+        logger.error(f"Erro na geração do plano: {e}")
+        return {
+            "success": False,
+            "error": str(e),
+            "timestamp": datetime.now().isoformat()
+        }
+
+@app.post("/api/organizer/execute-plan", tags=["Project Organization"])
+async def execute_organization_plan(
+    dry_run: bool = Body(True, description="Se True, apenas simula a execução"),
+    auth_user: dict = Depends(get_auth_user)
+):
+    """Executa o plano de reorganização"""
+    try:
+        if not hephaestus_agent_instance:
+            raise HTTPException(status_code=503, detail="Hephaestus agent not initialized")
+        
+        result = await hephaestus_agent_instance.execute_organization_plan(dry_run=dry_run)
+        return result
+    except Exception as e:
+        logger.error(f"Erro na execução da reorganização: {e}")
+        return {
+            "success": False,
+            "error": str(e),
+            "timestamp": datetime.now().isoformat()
+        }
+
+@app.get("/api/organizer/report", tags=["Project Organization"])
+async def get_organization_report(auth_user: dict = Depends(get_auth_user)):
+    """Gera relatório completo da organização"""
+    try:
+        if not hephaestus_agent_instance:
+            raise HTTPException(status_code=503, detail="Hephaestus agent not initialized")
+        
+        result = await hephaestus_agent_instance.get_organization_report()
+        return result
+    except Exception as e:
+        logger.error(f"Erro na geração do relatório: {e}")
+        return {
+            "success": False,
+            "error": str(e),
+            "timestamp": datetime.now().isoformat()
+        }
+
 # === ERROR DETECTION ENDPOINTS === #
 
 @app.get("/error-detector/status", tags=["Error Detection"])

@@ -17,7 +17,7 @@ from agent.brain import (
     generate_capacitation_objective,
     generate_commit_message
 )
-from agent.agents import ArchitectAgent, MaestroAgent, CodeReviewAgent
+from agent.agents import ArchitectAgent, MaestroAgent, CodeReviewAgent, IntegratorAgent, OrganizerAgent
 from agent.tool_executor import run_pytest, check_file_existence, run_git_command, read_file
 from agent.git_utils import initialize_git_repository
 from agent.cycle_runner import CycleRunner
@@ -123,6 +123,13 @@ class HephaestusAgent:
             logger=self.logger.getChild("CodeReviewAgent")
         )
         self.logger.info(f"CodeReviewAgent inicializado com a configuração: {code_review_model_config}")
+
+        # Inicializar OrganizerAgent
+        self.organizer = OrganizerAgent(
+            config=self.config,
+            logger=self.logger.getChild("OrganizerAgent")
+        )
+        self.logger.info("OrganizerAgent inicializado para reorganização inteligente do projeto")
 
         self.evolution_log_file = "logs/evolution_log.csv"
         self._initialize_evolution_log()
@@ -1022,6 +1029,99 @@ class HephaestusAgent:
         if not self.meta_intelligence_active:
             return {"status": "inactive"}
         return self.evolution_manager.get_evolution_report()
+
+    # ===== MÉTODOS DO ORGANIZER AGENT =====
+    
+    async def analyze_project_structure(self) -> Dict[str, Any]:
+        """Analisa a estrutura atual do projeto"""
+        try:
+            analysis = self.organizer.analyze_current_structure()
+            self.logger.info("✅ Análise da estrutura do projeto concluída")
+            return {
+                "success": True,
+                "analysis": analysis,
+                "timestamp": datetime.now().isoformat()
+            }
+        except Exception as e:
+            self.logger.error(f"❌ Erro na análise da estrutura: {e}")
+            return {
+                "success": False,
+                "error": str(e),
+                "timestamp": datetime.now().isoformat()
+            }
+    
+    async def generate_organization_plan(self) -> Dict[str, Any]:
+        """Gera plano de reorganização do projeto"""
+        try:
+            analysis = self.organizer.analyze_current_structure()
+            plan = self.organizer.generate_organization_plan(analysis)
+            self.logger.info("✅ Plano de reorganização gerado")
+            return {
+                "success": True,
+                "plan": {
+                    "file_movements": plan.file_movements,
+                    "new_directories": plan.new_directories,
+                    "cleanup_actions": plan.cleanup_actions,
+                    "estimated_impact": plan.estimated_impact,
+                    "execution_steps": plan.execution_steps
+                },
+                "timestamp": datetime.now().isoformat()
+            }
+        except Exception as e:
+            self.logger.error(f"❌ Erro na geração do plano: {e}")
+            return {
+                "success": False,
+                "error": str(e),
+                "timestamp": datetime.now().isoformat()
+            }
+    
+    async def execute_organization_plan(self, dry_run: bool = True) -> Dict[str, Any]:
+        """Executa o plano de reorganização"""
+        try:
+            analysis = self.organizer.analyze_current_structure()
+            plan = self.organizer.generate_organization_plan(analysis)
+            result = self.organizer.execute_organization_plan(plan, dry_run=dry_run)
+            
+            if dry_run:
+                self.logger.info("✅ Dry run da reorganização concluído")
+            else:
+                self.logger.info("✅ Reorganização executada com sucesso")
+            
+            return {
+                "success": result["success"],
+                "result": result,
+                "dry_run": dry_run,
+                "timestamp": datetime.now().isoformat()
+            }
+        except Exception as e:
+            self.logger.error(f"❌ Erro na execução da reorganização: {e}")
+            return {
+                "success": False,
+                "error": str(e),
+                "dry_run": dry_run,
+                "timestamp": datetime.now().isoformat()
+            }
+    
+    async def get_organization_report(self) -> Dict[str, Any]:
+        """Gera relatório completo da organização"""
+        try:
+            analysis = self.organizer.analyze_current_structure()
+            plan = self.organizer.generate_organization_plan(analysis)
+            report = self.organizer.get_organization_report(analysis, plan)
+            
+            self.logger.info("✅ Relatório de organização gerado")
+            return {
+                "success": True,
+                "report": report,
+                "timestamp": datetime.now().isoformat()
+            }
+        except Exception as e:
+            self.logger.error(f"❌ Erro na geração do relatório: {e}")
+            return {
+                "success": False,
+                "error": str(e),
+                "timestamp": datetime.now().isoformat()
+            }
 
     def _run_sanity_check(self) -> tuple[bool, str, str]:
         """Runs the configured sanity check step and returns success, tool name, and details."""
