@@ -35,9 +35,11 @@ agente_autonomo/
         app.py
     agent/
         async_orchestrator.py
+        objective_generator.py
         analysis_processor.py
         brain.py
         __init__.py
+        commit_message_generator.py
         arthur_interface_generator.py
         code_metrics.py
         model_optimizer.py
@@ -348,18 +350,22 @@ agente_autonomo/
 - **Classe:** `AsyncAgentOrchestrator`
   - *Orquestrador assíncrono para múltiplos agentes*
 
-### Arquivo: `agent/analysis_processor.py`
-- **Classe:** `AnalysisProcessor`
-
-### Arquivo: `agent/brain.py`
+### Arquivo: `agent/objective_generator.py`
 - **Função:** `generate_next_objective(model_config: Dict[str, str], current_manifest: str, logger: logging.Logger, project_root_dir: str, config: Optional[Dict[str, Any]]=None, memory: Optional[Memory]=None, model_optimizer: Optional[ModelOptimizer]=None, current_objective: Optional[str]=None)`
   - *Generates the next evolutionary objective using code analysis and performance data.*
 - **Função:** `generate_capacitation_objective(model_config: Dict[str, str], engineer_analysis: str, memory_summary: Optional[str]=None, logger: Optional[logging.Logger]=None)`
   - *Generates an objective to create necessary new capabilities.*
-- **Função:** `generate_commit_message(analysis_summary: str, objective: str, logger: logging.Logger)`
-  - *Generates a concise and informative commit message using a rule-based system.*
+
+### Arquivo: `agent/analysis_processor.py`
+- **Classe:** `AnalysisProcessor`
+
+### Arquivo: `agent/brain.py`
 
 ### Arquivo: `agent/__init__.py`
+
+### Arquivo: `agent/commit_message_generator.py`
+- **Função:** `generate_commit_message(analysis_summary: str, objective: str, logger: logging.Logger)`
+  - *Generates a concise and informative commit message using a rule-based system.*
 
 ### Arquivo: `agent/arthur_interface_generator.py`
 - **Classe:** `InterfaceElement`
