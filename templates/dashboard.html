@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Hephaestus - Evolution Dashboard</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; background-color: #121212; color: #E0E0E0; margin: 0; padding: 20px; }
+        h1, h2 { color: #BB86FC; border-bottom: 2px solid #373737; padding-bottom: 10px; }
+        .dashboard-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(400px, 1fr)); gap: 20px; }
+        .chart-container, .kpi-container, .log-container { background-color: #1E1E1E; padding: 20px; border-radius: 8px; box-shadow: 0 4px 8px rgba(0,0,0,0.3); }
+        .kpi-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 15px; text-align: center; }
+        .kpi { background-color: #2a2a2a; padding: 15px; border-radius: 5px; }
+        .kpi-value { font-size: 2.5em; font-weight: bold; color: #03DAC6; }
+        .kpi-label { font-size: 0.9em; color: #B0B0B0; }
+        #recent-log-list { list-style-type: none; padding: 0; font-family: 'Courier New', Courier, monospace; font-size: 0.9em; }
+        #recent-log-list li { background-color: #2a2a2a; margin-bottom: 5px; padding: 8px; border-radius: 4px; white-space: pre-wrap; word-break: break-all; }
+        .status-success { color: #81C784; }
+        .status-failure { color: #E57373; }
+    </style>
+</head>
+<body>
+    <h1>🔥 Hephaestus - Evolution Dashboard</h1>
+
+    <div class="kpi-container">
+        <h2>Cognitive Metrics & Status</h2>
+        <div class="kpi-grid">
+            <div class="kpi"><div id="maturity" class="kpi-value">0.00</div><div class="kpi-label">Cognitive Maturity</div></div>
+            <div class="kpi"><div id="velocity" class="kpi-value">0.00</div><div class="kpi-label">Evolution Velocity</div></div>
+            <div class="kpi"><div id="growth" class="kpi-value">0.00</div><div class="kpi-label">Capability Growth</div></div>
+            <div class="kpi"><div id="completed" class="kpi-value">0</div><div class="kpi-label">Objectives Completed</div></div>
+            <div class="kpi"><div id="failed" class="kpi-value">0</div><div class="kpi-label">Objectives Failed</div></div>
+        </div>
+    </div>
+
+    <div class="dashboard-grid">
+        <div class="chart-container">
+            <h2>Agent Performance</h2>
+            <canvas id="agentPerformanceChart"></canvas>
+        </div>
+        <div class="log-container">
+            <h2>Recent Activity Log</h2>
+            <ul id="recent-log-list"></ul>
+        </div>
+    </div>
+
+    <script>
+        let agentChart;
+
+        const chartConfig = {
+            type: 'bar',
+            data: {
+                labels: [],
+                datasets: []
+            },
+            options: {
+                responsive: true,
+                plugins: { legend: { labels: { color: '#E0E0E0' } } },
+                scales: {
+                    y: { ticks: { color: '#E0E0E0' }, grid: { color: '#444' } },
+                    x: { ticks: { color: '#E0E0E0' }, grid: { color: '#444' } }
+                }
+            }
+        };
+
+        function createOrUpdateChart(ctx, data) {
+            if (agentChart) {
+                agentChart.data.labels = data.labels;
+                agentChart.data.datasets = data.datasets;
+                agentChart.update();
+            } else {
+                chartConfig.data = data;
+                agentChart = new Chart(ctx, chartConfig);
+            }
+        }
+
+        function updateKpis(metrics) {
+            document.getElementById('maturity').textContent = (metrics.maturity_level * 100).toFixed(1) + '%';
+            document.getElementById('velocity').textContent = metrics.evolution_velocity.toFixed(2);
+            document.getElementById('growth').textContent = metrics.capability_growth_rate.toFixed(2);
+        }
+        
+        function updateObjectiveHistory(history) {
+            document.getElementById('completed').textContent = history.completed;
+            document.getElementById('failed').textContent = history.failed;
+            
+            const logList = document.getElementById('recent-log-list');
+            logList.innerHTML = ''; // Clear old logs
+            history.recent_log.forEach(item => {
+                const li = document.createElement('li');
+                const statusClass = item.status === 'success' ? 'status-success' : 'status-failure';
+                li.innerHTML = `<span class="${statusClass}">[${item.status.toUpperCase()}]</span> ${item.objective}`;
+                logList.appendChild(li);
+            });
+        }
+
+        async function fetchData() {
+            try {
+                const response = await fetch('/api/dashboard-data', {
+                    headers: { 'Authorization': 'Bearer my-secret-token' }
+                });
+                if (!response.ok) {
+                    console.error('Failed to fetch dashboard data:', response.statusText);
+                    return;
+                }
+                const data = await response.json();
+
+                // Update KPIs
+                if (data.cognitive_metrics) {
+                    updateKpis(data.cognitive_metrics);
+                }
+                
+                // Update Objective History
+                if (data.objective_history) {
+                    updateObjectiveHistory(data.objective_history);
+                }
+
+                // Update Chart
+                if (data.agent_performance) {
+                    const ctx = document.getElementById('agentPerformanceChart').getContext('2d');
+                    createOrUpdateChart(ctx, data.agent_performance);
+                }
+
+            } catch (error) {
+                console.error('Error fetching or processing data:', error);
+            }
+        }
+
+        // Fetch data every 5 seconds
+        setInterval(fetchData, 5000);
+        // Initial fetch
+        fetchData();
+    </script>
+</body>
+</html> 

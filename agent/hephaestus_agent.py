@@ -971,6 +971,52 @@ class HephaestusAgent:
         except Exception as e:
             self.logger.error(f"❌ Error registering hot reload callbacks: {e}")
 
+    def get_evolution_dashboard_data(self) -> Dict[str, Any]:
+        """Aggregates data from all subsystems for the evolution dashboard."""
+        try:
+            cognitive_report = self.evolution_manager.get_evolution_report()
+            agent_performance = self.model_optimizer.get_agent_performance_summary()
+            
+            # Prepare data in a chart-friendly format
+            agent_names = list(agent_performance.keys())
+            success_rates = [agent_performance[name].get('success_rate', 0) * 100 for name in agent_names]
+            quality_scores = [agent_performance[name].get('average_quality_score', 0) for name in agent_names]
+
+            return {
+                "cognitive_metrics": {
+                    "maturity_level": cognitive_report.get("cognitive_status", {}).get("maturity_level", 0),
+                    "evolution_velocity": cognitive_report.get("evolution_metrics", {}).get("evolution_velocity", 0),
+                    "capability_growth_rate": cognitive_report.get("evolution_metrics", {}).get("capability_growth_rate", 0),
+                },
+                "agent_performance": {
+                    "labels": agent_names,
+                    "datasets": [
+                        {
+                            "label": "Success Rate (%)",
+                            "data": success_rates,
+                            "backgroundColor": "rgba(75, 192, 192, 0.6)",
+                        },
+                        {
+                            "label": "Average Quality Score",
+                            "data": quality_scores,
+                            "backgroundColor": "rgba(255, 159, 64, 0.6)",
+                        }
+                    ]
+                },
+                "objective_history": {
+                    "completed": len(self.memory.completed_objectives),
+                    "failed": len(self.memory.failed_objectives),
+                    "recent_log": self.memory.recent_objectives_log[-5:] # Last 5 events
+                },
+                "swarm_status": {
+                    "queued_objectives": self.queue_manager.is_empty(),
+                    "active_agents": self.async_orchestrator.get_orchestration_status().get('active_tasks', 0)
+                }
+            }
+        except Exception as e:
+            self.logger.error(f"Error aggregating dashboard data: {e}", exc_info=True)
+            return {"error": str(e)}
+
     def get_meta_intelligence_status(self) -> Dict[str, Any]:
         """Retorna o status detalhado do sistema de meta-inteligência."""
         if not self.meta_intelligence_active:

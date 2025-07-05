@@ -114,6 +114,8 @@ agente_autonomo/
             local.yaml
         validation_strategies/
             main.yaml
+    templates/
+        dashboard.html
     reports/
         model_performance.db
         night_work/
@@ -301,6 +303,10 @@ agente_autonomo/
   - *Get comprehensive system metrics*
 - **Função:** `get_recent_logs(limit: int=50, auth_user: dict=Depends(get_auth_user))`
   - *Get recent system logs*
+- **Função:** `get_dashboard_page()`
+  - *Serves the main evolution dashboard HTML page.*
+- **Função:** `get_dashboard_data(auth_user: dict=Depends(get_auth_user))`
+  - *Provides real-time data for the evolution dashboard.*
 - **Função:** `update_agent_config(request: AgentConfigRequest, auth_user: dict=Depends(get_auth_user))`
   - *Update agent configuration and persist it*
 - **Função:** `get_current_config(auth_user: dict=Depends(get_auth_user))`

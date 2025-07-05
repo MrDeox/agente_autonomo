@@ -24,6 +24,10 @@ from agent.agents.error_detector_agent import ErrorDetectorAgent
 from agent.cycle_runner import CycleRunner
 from agent.async_orchestrator import AgentType, AgentTask
 
+# Ensure templates directory exists
+if not os.path.exists("templates"):
+    os.makedirs("templates")
+
 # Configure logging
 logging.basicConfig(
     level=logging.INFO, 
@@ -800,6 +804,24 @@ async def get_recent_logs(limit: int = 50, auth_user: dict = Depends(get_auth_us
     except Exception as e:
         logger.error(f"Error getting logs: {e}")
         raise HTTPException(status_code=500, detail=str(e))
+
+@app.get("/dashboard", response_class=HTMLResponse, tags=["Monitoring"])
+async def get_dashboard_page():
+    """Serves the main evolution dashboard HTML page."""
+    try:
+        with open("templates/dashboard.html", "r", encoding="utf-8") as f:
+            html_content = f.read()
+        return HTMLResponse(content=html_content)
+    except FileNotFoundError:
+        raise HTTPException(status_code=404, detail="Dashboard HTML not found. Please ensure 'templates/dashboard.html' exists.")
+
+@app.get("/api/dashboard-data", tags=["Monitoring"])
+async def get_dashboard_data(auth_user: dict = Depends(get_auth_user)):
+    """Provides real-time data for the evolution dashboard."""
+    if hephaestus_agent_instance:
+        return hephaestus_agent_instance.get_evolution_dashboard_data()
+    else:
+        raise HTTPException(status_code=503, detail="Agent not initialized")
 
 # === CONFIGURATION ENDPOINTS === #
 

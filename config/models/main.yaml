@@ -5,35 +5,35 @@ architect_default:
   temperature: ${default_model_settings.temperature}
   max_tokens: ${default_model_settings.max_tokens}
   primary: "deepseek/deepseek-chat-v3-0324:free"
-  fallback: "gemini/gemini-2.5-pro"
+  fallback: "mistralai/mistral-7b-instruct:free"
 
 maestro_default:
   _target_: "builtins.dict"
   temperature: ${default_model_settings.temperature}
   max_tokens: ${default_model_settings.max_tokens}
   primary: "deepseek/deepseek-chat-v3-0324:free"
-  fallback: "gemini/gemini-2.5-pro"
+  fallback: "mistralai/mistral-7b-instruct:free"
 
 objective_generator:
   _target_: "builtins.dict"
   temperature: ${default_model_settings.temperature}
   max_tokens: ${default_model_settings.max_tokens}
   primary: "deepseek/deepseek-chat-v3-0324:free"
-  fallback: "gemini/gemini-2.5-pro"
+  fallback: "mistralai/mistral-7b-instruct:free"
 
 capacitation_generator:
   _target_: "builtins.dict"
   temperature: ${default_model_settings.temperature}
   max_tokens: ${default_model_settings.max_tokens}
   primary: "deepseek/deepseek-chat-v3-0324:free"
-  fallback: "gemini/gemini-2.5-pro"
+  fallback: "mistralai/mistral-7b-instruct:free"
 
 error_analyzer:
   _target_: "builtins.dict"
   temperature: ${default_model_settings.temperature}
   max_tokens: ${default_model_settings.max_tokens}
   primary: "deepseek/deepseek-chat-v3-0324:free"
-  fallback: "gemini/gemini-2.5-pro"
+  fallback: "mistralai/mistral-7b-instruct:free"
 
 code_reviewer:
   _target_: "builtins.dict"
