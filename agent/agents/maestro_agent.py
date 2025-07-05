@@ -3,6 +3,7 @@ from datetime import datetime, timedelta
 from collections import OrderedDict
 import logging
 import hashlib
+import json
 import csv
 from pathlib import Path
 
@@ -18,7 +19,7 @@ class StrategyCache:
         self.cache = OrderedDict()
         self.max_size = max_size
         self.ttl = timedelta(seconds=ttl)
-
+    
     def get(self, action_plan_data: Dict[str, Any], memory_summary: str = "") -> Optional[str]:
         """Retrieve a strategy from cache if it exists and isn't expired."""
         key = self._generate_key(action_plan_data, memory_summary)
@@ -35,32 +36,27 @@ class StrategyCache:
         self.cache.move_to_end(key)
         return strategy
 
-    def set(self, key: str, strategy: Dict) -> None:
-        """Store a strategy in the cache."""
-        if key in self.cache:
-            self.cache.move_to_end(key)
-        else:
-            if len(self.cache) >= self.max_size:
-                self.cache.popitem(last=False)
-        self.cache[key] = (strategy, datetime.now())
-
-    def _generate_key(self, action_plan_data: Dict[str, Any], memory_summary: str = "") -> str:
-        """Generates a cache key from the context dictionary."""
-        context_str = str(sorted(action_plan_data.items())) + memory_summary
-        return hashlib.md5(context_str.encode()).hexdigest()
-
     def put(self, action_plan_data: Dict[str, Any], memory_summary: str, strategy: str):
         """Adiciona estratégia ao cache"""
         key = self._generate_key(action_plan_data, memory_summary)
         
-        # Remove item mais antigo se necessário
         if key in self.cache:
             self.cache.move_to_end(key)
-        else:
-            if len(self.cache) >= self.max_size:
-                self.cache.popitem(last=False)
+        elif len(self.cache) >= self.max_size:
+            self.cache.popitem(last=False)
+        
         self.cache[key] = (strategy, datetime.now())
 
+    def _generate_key(self, action_plan_data: Dict[str, Any], memory_summary: str = "") -> str:
+        """Generates a cache key from the context dictionary."""
+        context_str = json.dumps({
+            'patches_count': len(action_plan_data.get('patches_to_apply', [])),
+            'patch_operations': [p.get('operation') for p in action_plan_data.get('patches_to_apply', [])],
+            'target_files': sorted([p.get('file_path') for p in action_plan_data.get('patches_to_apply', [])]),
+            'memory_hash': hashlib.md5(memory_summary.encode()).hexdigest()[:8] if memory_summary else ""
+        }, sort_keys=True)
+        
+        return hashlib.md5(context_str.encode()).hexdigest()
 
 class MaestroAgent:
     """
@@ -226,9 +222,9 @@ class MaestroAgent:
             return any("config/" in p.get("file_path", "") for p in patches)
         elif strategy == "DOC_UPDATE_STRATEGY":
             return all(p.get("file_path", "").endswith(".md") for p in patches)
-            
+        
         return True
-
+    
     def record_performance(self, strategy: Dict, success: bool, metrics: Dict) -> None:
         """
         Records the performance of a strategy for future optimization.

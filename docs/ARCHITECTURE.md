@@ -80,6 +80,7 @@ agente_autonomo/
             technical_debt_config.yaml
         agents/
             capability_gap_detector.py
+            linter_agent.py
             __init__.py
             self_reflection_agent.py
             log_analysis_agent.py
@@ -695,6 +696,10 @@ agente_autonomo/
 ### Arquivo: `agent/agents/capability_gap_detector.py`
 - **Classe:** `CapabilityGapDetector`
   - *Analyzes failure patterns and evolution history to detect when the agent*
+
+### Arquivo: `agent/agents/linter_agent.py`
+- **Classe:** `LinterAgent`
+  - *An agent that uses a static linter (ruff) to find, fix, and safely propose*
 
 ### Arquivo: `agent/agents/__init__.py`
 
