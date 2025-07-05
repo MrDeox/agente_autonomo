@@ -725,7 +725,7 @@ agente_autonomo/
 - **Função:** `_fix_common_json_errors(json_string: str, logger: logging.Logger)`
   - *Tenta corrigir erros comuns de JSON gerado por LLM.*
 - **Função:** `parse_json_response(raw_str: str, logger: logging.Logger)`
-  - *Analisa uma string bruta que se espera conter JSON, limpando-a e decodificando-a.*
+  - *Analyzes a raw string to find and parse a JSON object, cleaning and fixing it as needed.*
 
 ### Arquivo: `agent/utils/smart_validator.py`
 - **Classe:** `SmartValidator`

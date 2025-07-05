@@ -3,6 +3,8 @@ from datetime import datetime, timedelta
 from collections import OrderedDict
 import logging
 import hashlib
+import csv
+from pathlib import Path
 
 class StrategyCache:
     """
@@ -44,7 +46,6 @@ class StrategyCache:
 
     def _generate_key(self, action_plan_data: Dict[str, Any], memory_summary: str = "") -> str:
         """Generates a cache key from the context dictionary."""
-        # TODO: Implement robust key generation
         context_str = str(sorted(action_plan_data.items())) + memory_summary
         return hashlib.md5(context_str.encode()).hexdigest()
 
@@ -69,19 +70,67 @@ class MaestroAgent:
         strategy_cache: Cache for storing strategy decisions
         logger: Logger instance for logging
         performance_data: Tracks performance of different strategies
+        strategy_weights: Dynamic weights for strategy selection
     """
     def __init__(self, config: Dict[str, Any], logger: logging.Logger):
         self.config = config
-        # The agent is responsible for getting its own model config from the main config
         self.model_config = config.get("models", {}).get("maestro_default", {})
         self.logger = logger
         self.created_strategies = {}  # Track dynamically created strategies
         self.strategy_cache = StrategyCache()
         self.performance_data = {}
+        self.strategy_weights = {}
+        self._load_historical_performance()
+
+    def _load_historical_performance(self) -> None:
+        """Load historical performance data from evolution_log.csv."""
+        log_path = Path("logs/evolution_log.csv")
+        if not log_path.exists():
+            self.logger.warning("No evolution_log.csv found, using default weights")
+            return
+
+        try:
+            with open(log_path, 'r') as f:
+                reader = csv.DictReader(f)
+                for row in reader:
+                    strategy = row.get('strategy')
+                    success = row.get('success', '').lower() == 'true'
+                    
+                    if strategy:
+                        if strategy not in self.performance_data:
+                            self.performance_data[strategy] = {
+                                "success_count": 0,
+                                "failure_count": 0,
+                                "total_executions": 0,
+                                "average_metrics": {}
+                            }
+                        
+                        stats = self.performance_data[strategy]
+                        stats["total_executions"] += 1
+                        if success:
+                            stats["success_count"] += 1
+                        else:
+                            stats["failure_count"] += 1
+            
+            self._calculate_strategy_weights()
+        except Exception as e:
+            self.logger.error(f"Failed to load historical performance data: {e}")
+
+    def _calculate_strategy_weights(self) -> None:
+        """Calculate dynamic weights for each strategy based on historical performance."""
+        total_success = sum(data["success_count"] for data in self.performance_data.values())
+        
+        for strategy, data in self.performance_data.items():
+            if data["total_executions"] > 0:
+                success_rate = data["success_count"] / data["total_executions"]
+                # Weight is success rate adjusted by execution count
+                self.strategy_weights[strategy] = success_rate * (1 + min(data["total_executions"]/100, 1))
+            else:
+                self.strategy_weights[strategy] = 0.5  # Default weight for untested strategies
 
     def select_strategy(self, context: Dict) -> Dict:
         """
-        Selects the optimal strategy based on the given context.
+        Selects the optimal strategy based on the given context and historical performance.
         
         Args:
             context: Dictionary containing context for strategy selection
@@ -97,22 +146,17 @@ class MaestroAgent:
             self.logger.debug(f"Using cached strategy for key: {cache_key}")
             return cached_strategy
             
-        # Generate new strategy
-        strategy = self._generate_strategy(context)
+        # Generate new strategy with dynamic weighting
+        strategy = self._generate_weighted_strategy(context)
         
         # Store in cache
         self.strategy_cache.set(cache_key, strategy)
         
         return strategy
 
-    def _generate_cache_key(self, context: Dict) -> str:
-        """Generates a cache key from the context dictionary."""
-        # TODO: Implement robust key generation
-        return str(sorted(context.items()))
-
-    def _generate_strategy(self, context: Dict) -> Dict:
+    def _generate_weighted_strategy(self, context: Dict) -> Dict:
         """
-        Generates a new strategy based on the context.
+        Generates a new strategy based on the context and historical performance weights.
         
         Args:
             context: Dictionary containing context for strategy generation
@@ -120,12 +164,62 @@ class MaestroAgent:
         Returns:
             Dictionary containing the generated strategy
         """
-        # TODO: Implement adaptive strategy generation
+        available_strategies = self.config.get("validation_strategies", {})
+        
+        if not available_strategies:
+            return {
+                "strategy_type": "default",
+                "parameters": {},
+                "fallback_strategy": None
+            }
+        
+        # Filter strategies by context
+        applicable_strategies = [
+            s for s in available_strategies 
+            if self._is_strategy_applicable(s, context)
+        ]
+        
+        if not applicable_strategies:
+            return {
+                "strategy_type": "default",
+                "parameters": {},
+                "fallback_strategy": None
+            }
+        
+        # Sort by weight descending
+        sorted_strategies = sorted(
+            applicable_strategies,
+            key=lambda s: self.strategy_weights.get(s, 0.5),
+            reverse=True
+        )
+        
+        primary_strategy = sorted_strategies[0]
+        fallback_strategy = sorted_strategies[1] if len(sorted_strategies) > 1 else None
+        
         return {
-            "strategy_type": "default",
+            "strategy_type": primary_strategy,
             "parameters": {},
-            "fallback_strategy": None
+            "fallback_strategy": fallback_strategy
         }
+
+    def _is_strategy_applicable(self, strategy: str, context: Dict) -> bool:
+        """Determines if a strategy is applicable to the given context."""
+        # First check rule-based classification
+        rule_based = self._classify_strategy_by_rules(context)
+        if rule_based and rule_based == strategy:
+            return True
+            
+        # Then check other applicability criteria
+        patches = context.get("patches_to_apply", [])
+        
+        if strategy == "CREATE_NEW_TEST_FILE_STRATEGY":
+            return any("tests/" in p.get("file_path", "") for p in patches)
+        elif strategy == "CONFIG_UPDATE_STRATEGY":
+            return any("config/" in p.get("file_path", "") for p in patches)
+        elif strategy == "DOC_UPDATE_STRATEGY":
+            return all(p.get("file_path", "").endswith(".md") for p in patches)
+            
+        return True
 
     def record_performance(self, strategy: Dict, success: bool, metrics: Dict) -> None:
         """
@@ -164,6 +258,7 @@ class MaestroAgent:
                 stats["average_metrics"][metric] = ((current_avg * (n-1)) + value) / n
         
         self.logger.debug(f"Recorded performance for strategy {strategy_type}: {stats}")
+        self._calculate_strategy_weights()
 
     def get_success_rate(self, strategy_type: str) -> float:
         """
@@ -204,6 +299,17 @@ class MaestroAgent:
         return None
 
     def choose_strategy(self, action_plan_data: Dict[str, Any], memory_summary: Optional[str] = None, failed_strategy_context: Optional[Dict[str, str]] = None) -> List[Dict[str, Any]]:
+        """
+        Chooses the best strategy based on context and historical performance.
+        
+        Args:
+            action_plan_data: Data about the action to be performed
+            memory_summary: Summary of relevant memory
+            failed_strategy_context: Context about any previous failed strategy
+            
+        Returns:
+            List of strategy results
+        """
         if not failed_strategy_context:
             cached_strategy = self.strategy_cache.get(action_plan_data, memory_summary or "")
             if cached_strategy:
@@ -216,25 +322,11 @@ class MaestroAgent:
             self.strategy_cache.put(action_plan_data, memory_summary or "", rule_based_strategy)
             return [{"model": "rule_based_classifier", "parsed_json": {"strategy_key": rule_based_strategy}, "success": True}]
             
-        self.logger.info("MaestroAgent: No rule matched. Falling back to LLM for strategy decision.")
+        # Use weighted strategy selection
+        selected_strategy = self._generate_weighted_strategy(action_plan_data)
+        strategy_key = selected_strategy["strategy_type"]
         
-        # (A lógica completa de chamada do LLM e parsing da resposta segue aqui)
-        # Por simplicidade na restauração, vamos usar uma lógica de fallback mais simples por enquanto
-        # para garantir que o método exista e funcione.
-
-        available_strategies = self.config.get("validation_strategies", {})
+        self.logger.info(f"MaestroAgent: Selected strategy '{strategy_key}' based on weighted selection")
+        self.strategy_cache.put(action_plan_data, memory_summary or "", strategy_key)
         
-        # Fallback simples: se tiver testes, use uma estratégia com pytest. Senão, use uma mais simples.
-        has_test_files = any("tests/" in p.get("file_path", "") for p in action_plan_data.get("patches_to_apply", []))
-        
-        if has_test_files and "CREATE_NEW_TEST_FILE_STRATEGY" in available_strategies:
-             chosen_strategy = "CREATE_NEW_TEST_FILE_STRATEGY"
-        elif "sandbox_validation_no_tests" in available_strategies:
-            chosen_strategy = "sandbox_validation_no_tests"
-        else:
-            chosen_strategy = "NO_OP_STRATEGY"
-
-        self.logger.info(f"MaestroAgent: Using simple fallback logic, chose strategy: {chosen_strategy}")
-        return [{"model": "simple_fallback", "parsed_json": {"strategy_key": chosen_strategy}, "success": True}]
-
-    # O resto dos métodos como analyze_strategy_need, create_new_strategy, etc. podem ser adicionados aqui depois.
+        return [{"model": "weighted_selection", "parsed_json": {"strategy_key": strategy_key}, "success": True}]
