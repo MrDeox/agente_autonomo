@@ -1685,6 +1685,77 @@ async def activate_maximum_evolution(auth_user: dict = Depends(get_auth_user)):
         logger.error(f"Error activating maximum evolution: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
+@app.get("/api/protected-processes", tags=["System"])
+async def get_protected_processes(auth_user: dict = Depends(get_auth_user)):
+    """Lista processos protegidos que não serão mortos pelo CycleMonitorAgent"""
+    try:
+        global cycle_monitor_agent
+        
+        if not cycle_monitor_agent:
+            raise HTTPException(status_code=503, detail="Cycle monitor agent not initialized")
+        
+        return {
+            "protected_processes": cycle_monitor_agent.protected_processes,
+            "total_protected": len(cycle_monitor_agent.protected_processes)
+        }
+        
+    except Exception as e:
+        logger.error(f"Erro ao obter processos protegidos: {e}")
+        raise HTTPException(status_code=500, detail=f"Erro interno: {str(e)}")
+
+@app.post("/api/protected-processes", tags=["System"])
+async def add_protected_process(process_name: str, auth_user: dict = Depends(get_auth_user)):
+    """Adiciona um processo à lista de protegidos"""
+    try:
+        global cycle_monitor_agent
+        
+        if not cycle_monitor_agent:
+            raise HTTPException(status_code=503, detail="Cycle monitor agent not initialized")
+        
+        if process_name.lower() not in cycle_monitor_agent.protected_processes:
+            cycle_monitor_agent.protected_processes.append(process_name.lower())
+            logger.info(f"✅ Processo '{process_name}' adicionado à lista de protegidos")
+        
+        return {
+            "success": True,
+            "message": f"Processo '{process_name}' protegido",
+            "protected_processes": cycle_monitor_agent.protected_processes
+        }
+        
+    except Exception as e:
+        logger.error(f"Erro ao adicionar processo protegido: {e}")
+        raise HTTPException(status_code=500, detail=f"Erro interno: {str(e)}")
+
+@app.post("/api/activate-features", tags=["System"])
+async def activate_system_features(auth_user: dict = Depends(get_auth_user)):
+    """Ativa funcionalidades não utilizadas do sistema"""
+    try:
+        global hephaestus_agent_instance
+        
+        if not hephaestus_agent_instance:
+            raise HTTPException(status_code=503, detail="Hephaestus agent not initialized")
+        
+        # Ativar funcionalidades através do system activator
+        from agent.system_activator import get_system_activator
+        activator = get_system_activator(logger, hephaestus_agent_instance.config)
+        results = activator.activate_all_features()
+        
+        # Gerar relatório
+        report = activator.get_activation_report()
+        active_features = activator.get_active_features()
+        
+        return {
+            "success": True,
+            "message": "Funcionalidades ativadas com sucesso",
+            "activated_features": active_features,
+            "total_activated": len(active_features),
+            "report": report
+        }
+        
+    except Exception as e:
+        logger.error(f"Erro ao ativar funcionalidades: {e}")
+        raise HTTPException(status_code=500, detail=f"Erro interno: {str(e)}")
+
 @app.post("/api/start-night-evolution", tags=["Evolution"])
 async def start_night_evolution(auth_user: dict = Depends(get_auth_user)):
     """Inicia evolução noturna autônoma para desenvolvimento contínuo"""

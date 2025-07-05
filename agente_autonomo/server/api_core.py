@@ -6,6 +6,7 @@ from fastapi.middleware.cors import CORSMiddleware
 import asyncio
 import sys
 import os
+from datetime import datetime
 
 # Adiciona o diretório raiz ao path para importar módulos
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
@@ -87,3 +88,62 @@ async def get_autonomous_monitor_issues():
             return {"error": "Servidor não inicializado"}
     except Exception as e:
         return {"error": f"Erro ao obter problemas: {str(e)}"}
+
+
+@app.post("/api/activate-coverage")
+async def activate_coverage():
+    """Ativa o sistema de cobertura para aumentar cobertura total"""
+    try:
+        if hephaestus_server and hephaestus_server.hephaestus_agent:
+            results = await hephaestus_server.hephaestus_agent.activate_coverage_system()
+            
+            return {
+                "success": results["success"],
+                "message": results["message"],
+                "results": results.get("results", {}),
+                "report_file": results.get("report_file", ""),
+                "timestamp": datetime.now().isoformat()
+            }
+        else:
+            return {"error": "Servidor não inicializado"}
+        
+    except Exception as e:
+        return {"error": f"Erro ao ativar sistema de cobertura: {str(e)}"}
+
+
+@app.get("/api/coverage-status")
+async def get_coverage_status():
+    """Retorna status do ativador de cobertura"""
+    try:
+        if hephaestus_server and hephaestus_server.hephaestus_agent:
+            status = hephaestus_server.hephaestus_agent.get_coverage_activator_status()
+            
+            return {
+                "success": True,
+                "status": status,
+                "timestamp": datetime.now().isoformat()
+            }
+        else:
+            return {"error": "Servidor não inicializado"}
+        
+    except Exception as e:
+        return {"error": f"Erro ao obter status de cobertura: {str(e)}"}
+
+
+@app.get("/api/coverage-report")
+async def get_coverage_report():
+    """Retorna relatório de cobertura atual"""
+    try:
+        if hephaestus_server and hephaestus_server.hephaestus_agent:
+            report = hephaestus_server.hephaestus_agent.get_coverage_report()
+            
+            return {
+                "success": True,
+                "report": report,
+                "timestamp": datetime.now().isoformat()
+            }
+        else:
+            return {"error": "Servidor não inicializado"}
+        
+    except Exception as e:
+        return {"error": f"Erro ao obter relatório de cobertura: {str(e)}"}

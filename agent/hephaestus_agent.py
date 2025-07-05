@@ -134,6 +134,31 @@ class HephaestusAgent:
         self.continuous_monitor.start_monitoring()
         logger_instance.info("🔍 Monitoramento contínuo inicializado")
 
+        # ATIVAR FUNCIONALIDADES NÃO UTILIZADAS
+        from agent.system_activator import get_system_activator
+        self.system_activator = get_system_activator(logger_instance, self.config)
+        activation_results = self.system_activator.activate_all_features()
+        
+        # Mostrar relatório de ativação
+        activation_report = self.system_activator.get_activation_report()
+        logger_instance.info(activation_report)
+        
+        logger_instance.info("🎯 Sistema ativador integrado - Funcionalidades não utilizadas foram implementadas!")
+        
+        # Log dos resultados de ativação
+        successful_activations = len([r for r in activation_results if r.success])
+        total_activations = len(activation_results)
+        self.logger.info(f"🎯 SystemActivator: {successful_activations}/{total_activations} componentes ativados com sucesso")
+        
+        # Mostrar relatório de ativação
+        activation_report = self.system_activator.get_activation_report()
+        self.logger.info(f"📊 Relatório de Ativação:\n{activation_report}")
+        
+        # INICIALIZAR ATIVADOR DE COBERTURA
+        from agent.coverage_activator import CoverageActivator
+        self.coverage_activator = CoverageActivator(self.config)
+        logger_instance.info("📊 CoverageActivator inicializado para aumentar cobertura do sistema")
+
         # Inicialização dos Agentes Especializados COM INTEGRAÇÃO DE META-INTELIGÊNCIA
         try:
             self.architect = ArchitectAgent(
@@ -2030,3 +2055,55 @@ class HephaestusAgent:
     def get_autonomous_monitor_status(self) -> Dict[str, Any]:
         """Retorna status do monitor autônomo"""
         return self.autonomous_monitor.get_status_report()
+    
+    async def activate_coverage_system(self) -> Dict[str, Any]:
+        """Ativa o sistema de cobertura para aumentar cobertura total"""
+        try:
+            self.logger.info("🚀 Iniciando ativação do sistema de cobertura...")
+            results = await self.coverage_activator.activate_all_coverage()
+            
+            # Salvar relatório
+            report_file = self.coverage_activator.save_activation_report()
+            
+            return {
+                "success": True,
+                "results": results,
+                "report_file": report_file,
+                "message": "Sistema de cobertura ativado com sucesso"
+            }
+            
+        except Exception as e:
+            self.logger.error(f"❌ Erro ao ativar sistema de cobertura: {e}")
+            return {
+                "success": False,
+                "error": str(e),
+                "message": "Falha ao ativar sistema de cobertura"
+            }
+    
+    def get_coverage_activator_status(self) -> Dict[str, Any]:
+        """Retorna status do ativador de cobertura"""
+        try:
+            if hasattr(self, 'coverage_activator'):
+                return {
+                    "active": True,
+                    "target_modules": len(self.coverage_activator.target_modules),
+                    "target_features": sum(len(methods) for methods in self.coverage_activator.target_features.values()),
+                    "activation_results": self.coverage_activator.activation_results,
+                    "test_results": self.coverage_activator.test_results
+                }
+            else:
+                return {"active": False, "error": "CoverageActivator not initialized"}
+                
+        except Exception as e:
+            return {"active": False, "error": str(e)}
+    
+    def get_coverage_report(self) -> Dict[str, Any]:
+        """Retorna relatório de cobertura atual"""
+        try:
+            if hasattr(self, 'coverage_activator'):
+                return self.coverage_activator.get_activation_report()
+            else:
+                return {"error": "CoverageActivator not initialized"}
+                
+        except Exception as e:
+            return {"error": str(e)}

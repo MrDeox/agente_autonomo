@@ -9,6 +9,7 @@ agente_autonomo/
     README.md
     mcp_server.log
     PROPOSTA_SERVIDOR_MCP.md
+    RELATORIO_ATIVACAO_FUNCIONALIDADES.md
     CURSOR_MCP_GUIA_FINAL.md
     REVISAO_PROJETO_HEPHAESTUS.md
     demo_self_awareness.py
@@ -34,9 +35,11 @@ agente_autonomo/
     ANALISE_PIPELINE_HEPHAESTUS.md
     REVISAO_COMPLETA_BUGS_MELHORIAS.md
     GUIA_CONFIGURACAO_CURSOR.md
+    vulture_report.txt
     start_mcp_server.sh
     MONITORAMENTO_HEPHAESTUS.md
     CORRECOES_IMEDIATAS.md
+    vulture_report_full.txt
     setup_mcp.py
     ERROR_DETECTOR_DOCUMENTATION.md
     cursor_mcp_config.json
@@ -53,6 +56,7 @@ agente_autonomo/
         arthur_interface_generator.py
         code_metrics.py
         tactical_generator.py
+        system_activator.py
         knowledge_integration.py
         model_optimizer.py
         strategic_planner.py
@@ -73,6 +77,7 @@ agente_autonomo/
         self_improvement_engine.py
         memory.py
         capability_assessor.py
+        coverage_activator.py
         cognitive_evolution_manager.py
         prompt_builder.py
         tool_executor.py
@@ -180,15 +185,135 @@ agente_autonomo/
         error_prevention.log
         monitor_test_results_20250705_112439.json
         uvicorn.log
+        performance_metrics.json
         autonomous_monitor.log
         uvicorn_optimized.log
         monitor_hephaestus.log
+        cursor_protection_test.log
         night_evolution_20250705.log
         evolution_log.csv
+        feature_activation_test.log
         hephaestus_alerts.json
         hephaestus_evolution_20250705_014830.log
+        test_json_serialization.log
         hephaestus_evolution_20250705_014743.log
         monitor_tester.log
+    htmlcov/
+        z_7b3b582f7f8368b5_maestro_agent_py.html
+        z_4bd4c6a8045d9ace_ux_enhancer_py.html
+        z_e2a0fc020fba741d_optimized_pipeline_py.html
+        z_e2a0fc020fba741d_strategy_optimizer_py.html
+        z_de1a740d5dc98ffd_test_error_prevention_py.html
+        z_d2124bdaa37ca9f2_validation_service_py.html
+        z_d2c68e40a9804d22_api_core_py.html
+        z_7b3b582f7f8368b5_architect_agent_py.html
+        z_4bd4c6a8045d9ace_startup_validator_py.html
+        style_cb_81f8c14c.css
+        z_e2a0fc020fba741d___init___py.html
+        z_e2a0fc020fba741d_arthur_interface_generator_py.html
+        z_7b3b582f7f8368b5_frontend_artisan_agent_py.html
+        z_eaa3f0c6b6bfb04f_pytest_validator_py.html
+        z_de1a740d5dc98ffd_evolution_monitor_py.html
+        z_de1a740d5dc98ffd_night_agent_py.html
+        z_4bd4c6a8045d9ace_error_handling_py.html
+        z_e2a0fc020fba741d_cognitive_evolution_manager_py.html
+        z_4bd4c6a8045d9ace___init___py.html
+        z_4bd4c6a8045d9ace_llm_client_py.html
+        z_e2a0fc020fba741d_code_metrics_py.html
+        z_7b3b582f7f8368b5_capability_gap_detector_py.html
+        z_7b3b582f7f8368b5_self_reflection_agent_py.html
+        z_b9a00e55f22b3d77_test_meta_intelligence_py.html
+        z_e2a0fc020fba741d_learning_strategist_py.html
+        z_7b3b582f7f8368b5_prompt_optimizer_py.html
+        z_7b3b582f7f8368b5___init___py.html
+        z_7b3b582f7f8368b5_performance_analyzer_py.html
+        z_e2a0fc020fba741d_advanced_knowledge_system_py.html
+        z_eaa3f0c6b6bfb04f_patch_applicator_py.html
+        z_e2a0fc020fba741d_memory_py.html
+        z_7b3b582f7f8368b5_bug_hunter_agent_py.html
+        z_e2a0fc020fba741d_root_cause_analyzer_py.html
+        z_e2a0fc020fba741d_flow_self_modifier_py.html
+        z_e2a0fc020fba741d_hot_reload_manager_py.html
+        z_4bd4c6a8045d9ace_advanced_logging_py.html
+        z_e2a0fc020fba741d_strategic_planner_py.html
+        z_e2a0fc020fba741d_meta_intelligence_core_py.html
+        z_d2c68e40a9804d22_reflection_service_py.html
+        z_7b3b582f7f8368b5_code_review_agent_py.html
+        z_eaa3f0c6b6bfb04f_json_serialization_test_py.html
+        z_e2a0fc020fba741d_llm_performance_booster_py.html
+        z_e2a0fc020fba741d_self_awareness_core_py.html
+        z_7b3b582f7f8368b5_error_analyzer_py.html
+        z_e2a0fc020fba741d_commit_message_generator_py.html
+        z_d2124bdaa37ca9f2_error_resilience_py.html
+        z_eaa3f0c6b6bfb04f_syntax_validator_py.html
+        z_e2a0fc020fba741d_project_scanner_py.html
+        z_e2a0fc020fba741d_objective_generator_py.html
+        z_de1a740d5dc98ffd_test_autonomous_evolution_py.html
+        z_4bd4c6a8045d9ace_llm_optimizer_py.html
+        status.json
+        z_7b3b582f7f8368b5_integrator_agent_py.html
+        z_de1a740d5dc98ffd_evolution_analyzer_py.html
+        z_7b3b582f7f8368b5_debt_hunter_agent_py.html
+        favicon_32_cb_58284776.png
+        z_7f351f10b201bbbf_hephaestus_mcp_server_py.html
+        z_7b3b582f7f8368b5_agent_expansion_coordinator_py.html
+        z_7b3b582f7f8368b5_swarm_coordinator_agent_py.html
+        z_4bd4c6a8045d9ace_infrastructure_manager_py.html
+        z_e2a0fc020fba741d_analysis_processor_py.html
+        z_7b3b582f7f8368b5_error_detector_agent_py.html
+        z_e2a0fc020fba741d_queue_manager_py.html
+        z_e2a0fc020fba741d_patch_applicator_py.html
+        z_e2a0fc020fba741d_inter_agent_communication_py.html
+        z_e2a0fc020fba741d_hephaestus_agent_py.html
+        z_e2a0fc020fba741d_git_utils_py.html
+        z_7b3b582f7f8368b5_dependency_fixer_agent_py.html
+        z_de1a740d5dc98ffd_run_agent_py.html
+        z_4bd4c6a8045d9ace_smart_validator_py.html
+        z_e2a0fc020fba741d_state_py.html
+        function_index.html
+        z_e2a0fc020fba741d_cycle_runner_py.html
+        z_de1a740d5dc98ffd_setup_env_py.html
+        z_e2a0fc020fba741d_self_improvement_engine_py.html
+        z_de1a740d5dc98ffd_test_autonomous_monitor_py.html
+        z_eaa3f0c6b6bfb04f___init___py.html
+        z_4bd4c6a8045d9ace_error_prevention_system_py.html
+        z_7b3b582f7f8368b5_cycle_monitor_agent_py.html
+        z_de1a740d5dc98ffd_monitor_hephaestus_py.html
+        z_e2a0fc020fba741d_system_activator_py.html
+        z_e2a0fc020fba741d_coverage_activator_py.html
+        z_7b3b582f7f8368b5_autonomous_monitor_agent_py.html
+        z_e2a0fc020fba741d_config_loader_py.html
+        z_e2a0fc020fba741d_capability_assessor_py.html
+        z_e2a0fc020fba741d_tactical_generator_py.html
+        z_de1a740d5dc98ffd_monitor_evolution_py.html
+        keybd_closed_cb_ce680311.png
+        z_e2a0fc020fba741d_brain_py.html
+        coverage_html_cb_6fb7b396.js
+        z_eaa3f0c6b6bfb04f_pytest_new_file_validator_py.html
+        z_eaa3f0c6b6bfb04f_base_py.html
+        z_e2a0fc020fba741d_tool_executor_py.html
+        z_4bd4c6a8045d9ace_json_parser_py.html
+        z_4bd4c6a8045d9ace_intelligent_cache_py.html
+        z_e2a0fc020fba741d_code_validator_py.html
+        z_b9a00e55f22b3d77_app_py.html
+        z_e2a0fc020fba741d_meta_cognitive_controller_py.html
+        z_4bd4c6a8045d9ace_night_improvements_py.html
+        index.html
+        class_index.html
+        z_7b3b582f7f8368b5_log_analysis_agent_py.html
+        z_e2a0fc020fba741d_performance_monitor_py.html
+        z_7b3b582f7f8368b5_model_sommelier_agent_py.html
+        z_e2a0fc020fba741d_async_orchestrator_py.html
+        z_e2a0fc020fba741d_knowledge_integration_py.html
+        z_7b3b582f7f8368b5_error_correction_py.html
+        z_e2a0fc020fba741d_model_optimizer_py.html
+        z_d2c68e40a9804d22_report_service_py.html
+        z_eaa3f0c6b6bfb04f_test_syntax_validator_py.html
+        z_4bd4c6a8045d9ace_continuous_monitor_py.html
+        z_7b3b582f7f8368b5_organizer_agent_py.html
+        z_de1a740d5dc98ffd_get_performance_py.html
+        z_7b3b582f7f8368b5_linter_agent_py.html
+        z_e2a0fc020fba741d_prompt_builder_py.html
     generated_interfaces/
         arthur_interface_1751661619.html
 
@@ -452,6 +577,12 @@ agente_autonomo/
 - **Função:** `worker()`
 - **Função:** `activate_maximum_evolution(auth_user: dict=Depends(get_auth_user))`
   - *Ativa o modo de evolução máxima para desenvolvimento autônomo*
+- **Função:** `get_protected_processes(auth_user: dict=Depends(get_auth_user))`
+  - *Lista processos protegidos que não serão mortos pelo CycleMonitorAgent*
+- **Função:** `add_protected_process(process_name: str, auth_user: dict=Depends(get_auth_user))`
+  - *Adiciona um processo à lista de protegidos*
+- **Função:** `activate_system_features(auth_user: dict=Depends(get_auth_user))`
+  - *Ativa funcionalidades não utilizadas do sistema*
 - **Função:** `start_night_evolution(auth_user: dict=Depends(get_auth_user))`
   - *Inicia evolução noturna autônoma para desenvolvimento contínuo*
 - **Função:** `analyze_dependencies(error_logs: str=Body(..., description='Error logs to analyze for import issues'), auth_user: dict=Depends(get_auth_user))`
@@ -539,6 +670,13 @@ agente_autonomo/
 - **Classe:** `TacticalGenerator`
   - *Handles concrete objective formulation based on strategic direction.*
 
+### Arquivo: `agent/system_activator.py`
+- **Classe:** `ActivationResult`
+- **Classe:** `SystemActivator`
+  - *Ativa funcionalidades não utilizadas e implementa melhorias*
+- **Função:** `get_system_activator(logger: logging.Logger, config: Dict[str, Any])`
+  - *Factory function para criar ativador do sistema*
+
 ### Arquivo: `agent/knowledge_integration.py`
 - **Classe:** `KnowledgePattern`
   - *Represents a recognized pattern in knowledge.*
@@ -560,7 +698,10 @@ agente_autonomo/
   - *Handles strategic roadmap alignment and high-level objective planning.*
 
 ### Arquivo: `agent/performance_monitor.py`
-  - [ERRO] Erro na análise AST: invalid syntax (<unknown>, line 85)
+- **Classe:** `PerformanceMonitor`
+  - *Monitor de performance em tempo real*
+- **Classe:** `PerformanceOptimizer`
+  - *Otimizador automático de performance*
 
 ### Arquivo: `agent/hephaestus_agent.py`
 - **Classe:** `HephaestusAgent`
@@ -701,6 +842,12 @@ agente_autonomo/
 ### Arquivo: `agent/capability_assessor.py`
 - **Classe:** `CapabilityAssessor`
   - *Assesses capability gaps and recommends focus areas for improvement.*
+
+### Arquivo: `agent/coverage_activator.py`
+- **Classe:** `CoverageActivator`
+  - *Sistema para ativar e testar funcionalidades não utilizadas*
+- **Função:** `activate_coverage_system()`
+  - *Função principal para ativar o sistema de cobertura*
 
 ### Arquivo: `agent/cognitive_evolution_manager.py`
 - **Classe:** `EvolutionEvent`
@@ -1140,6 +1287,12 @@ agente_autonomo/
   - *Reinicia o monitor autônomo*
 - **Função:** `get_autonomous_monitor_issues()`
   - *Retorna problemas detectados pelo monitor autônomo*
+- **Função:** `activate_coverage()`
+  - *Ativa o sistema de cobertura para aumentar cobertura total*
+- **Função:** `get_coverage_status()`
+  - *Retorna status do ativador de cobertura*
+- **Função:** `get_coverage_report()`
+  - *Retorna relatório de cobertura atual*
 
 ## 3. CONTEÚDO COMPLETO DOS ARQUIVOS ALVO
 

@@ -77,12 +77,12 @@ class PerformanceMonitor:
         success_rate = 1.0 if success else 0.0
         self.record_metric("success_rate", success_rate, {"operation": operation})
         
-    def record_error(self, error_type: str, error_message: str, context: Dict[str, Any] = None):
+    def record_error(self, error_type: str, error_message: str, context: Optional[Dict[str, Any]] = None):
         """Registra um erro"""
         self.record_metric("error_count", 1.0, {
             "error_type": error_type,
             "error_message": error_message,
-            **context or {}
+            **(context if context else {})
         })
         
     def get_performance_summary(self) -> Dict[str, Any]:

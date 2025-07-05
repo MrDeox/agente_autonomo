@@ -27,6 +27,20 @@ class CycleMonitorAgent:
         self.max_memory_usage = config.get("max_memory_usage", 80)  # 80%
         self.max_cpu_usage = config.get("max_cpu_usage", 90)  # 90%
         
+        # Lista de processos que NÃO devem ser mortos (IDEs, editores, etc.)
+        self.protected_processes = [
+            'cursor', 'code', 'sublime', 'vim', 'nano', 'emacs',  # Editores
+            'chrome', 'firefox', 'safari', 'edge',  # Navegadores
+            'terminal', 'gnome-terminal', 'konsole', 'xterm',  # Terminais
+            'spotify', 'vlc', 'mpv',  # Media players
+            'discord', 'slack', 'telegram',  # Apps de comunicação
+            'steam', 'minecraft',  # Games
+            'docker', 'kubectl', 'helm',  # Ferramentas de desenvolvimento
+            'git', 'ssh', 'rsync',  # Ferramentas de sistema
+            'systemd', 'init', 'cron',  # Processos do sistema
+            'hephaestus', 'python', 'node', 'java'  # Processos do próprio sistema
+        ]
+        
         logger.info("🔄 Cycle Monitor Agent initialized")
     
     def start_monitoring(self):
@@ -66,6 +80,8 @@ class CycleMonitorAgent:
         if stuck_processes:
             issues_found.append(f"Found {len(stuck_processes)} stuck processes")
             self._resolve_stuck_processes(stuck_processes)
+        else:
+            logger.debug("✅ No stuck processes detected (protected processes ignored)")
         
         # Check for orphaned sandboxes
         orphaned_sandboxes = self._detect_orphaned_sandboxes()
@@ -102,6 +118,12 @@ class CycleMonitorAgent:
         
         for proc in psutil.process_iter(['pid', 'name', 'cpu_percent', 'memory_percent', 'create_time']):
             try:
+                process_name = proc.info['name'].lower()
+                
+                # PULAR processos protegidos (IDEs, editores, etc.)
+                if any(protected in process_name for protected in self.protected_processes):
+                    continue
+                
                 # Check for processes consuming high CPU for too long
                 if proc.info['cpu_percent'] > 50:
                     # Get process creation time
@@ -117,7 +139,7 @@ class CycleMonitorAgent:
                             })
                 
                 # Check for multiprocessing processes that might be orphaned
-                if 'multiprocessing' in proc.info['name'].lower():
+                if 'multiprocessing' in process_name:
                     create_time = proc.info['create_time']
                     if create_time:
                         uptime = time.time() - create_time

@@ -1,4 +1,5 @@
 import pytest
+import logging
 from agent.analysis_processor import AnalysisProcessor
 
 @pytest.fixture
@@ -11,11 +12,10 @@ def analysis_processor(logger):
 
 
 def test_analyze_code(analysis_processor, logger):
-    code = 'def example():
-    pass'
+    code = '''def example():
+    pass'''
     result = analysis_processor.analyze_code(code)
-    assert 'Analysis Result for Code: def example():
-    pass' in result
+    assert 'Analysis Result for Code: def example():\n    pass' in result
     logger.info(f'Test result: {result}')
 
 
