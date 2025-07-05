@@ -18,6 +18,7 @@ from agent.brain import (
     generate_commit_message
 )
 from agent.agents import ArchitectAgent, MaestroAgent, CodeReviewAgent, IntegratorAgent, OrganizerAgent
+from agent.agents.bug_hunter_agent import BugHunterAgent
 from agent.tool_executor import run_pytest, check_file_existence, run_git_command, read_file
 from agent.git_utils import initialize_git_repository
 from agent.cycle_runner import CycleRunner
@@ -131,6 +132,14 @@ class HephaestusAgent:
             logger=self.logger.getChild("OrganizerAgent")
         )
         self.logger.info("OrganizerAgent inicializado para reorganização inteligente do projeto")
+
+        # Inicializar BugHunterAgent
+        self.bug_hunter = BugHunterAgent(
+            model_config=self.config.get("models", {}).get("bug_hunter_default", self.config.get("models", {}).get("architect_default")),
+            config=self.config,
+            logger=self.logger.getChild("BugHunterAgent")
+        )
+        self.logger.info("BugHunterAgent inicializado para detecção e correção automática de bugs")
 
         self.evolution_log_file = "logs/evolution_log.csv"
         self._initialize_evolution_log()

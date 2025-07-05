@@ -1286,6 +1286,87 @@ async def capture_agent_error(
         logger.error(f"Error capturing agent error: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
+# === BUG HUNTER ENDPOINTS === #
+
+@app.post("/bug-hunter/start", tags=["Bug Hunter"])
+async def start_bug_hunter(auth_user: dict = Depends(get_auth_user)):
+    """Start bug hunting monitoring"""
+    try:
+        if hephaestus_agent_instance and hasattr(hephaestus_agent_instance, 'bug_hunter'):
+            success = hephaestus_agent_instance.bug_hunter.start_monitoring()
+            return {
+                "status": "success" if success else "already_running",
+                "message": "Bug Hunter monitoring started" if success else "Bug Hunter already running"
+            }
+        else:
+            raise HTTPException(status_code=503, detail="Bug Hunter Agent not available")
+    except Exception as e:
+        logger.error(f"Error starting bug hunter: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.post("/bug-hunter/stop", tags=["Bug Hunter"])
+async def stop_bug_hunter(auth_user: dict = Depends(get_auth_user)):
+    """Stop bug hunting monitoring"""
+    try:
+        if hephaestus_agent_instance and hasattr(hephaestus_agent_instance, 'bug_hunter'):
+            success = hephaestus_agent_instance.bug_hunter.stop_monitoring()
+            return {
+                "status": "success" if success else "not_running",
+                "message": "Bug Hunter monitoring stopped" if success else "Bug Hunter not running"
+            }
+        else:
+            raise HTTPException(status_code=503, detail="Bug Hunter Agent not available")
+    except Exception as e:
+        logger.error(f"Error stopping bug hunter: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.get("/bug-hunter/status", tags=["Bug Hunter"])
+async def get_bug_hunter_status(auth_user: dict = Depends(get_auth_user)):
+    """Get bug hunter status and report"""
+    try:
+        if hephaestus_agent_instance and hasattr(hephaestus_agent_instance, 'bug_hunter'):
+            report = hephaestus_agent_instance.bug_hunter.get_bug_report()
+            priority_bugs = hephaestus_agent_instance.bug_hunter.get_priority_bugs()
+            
+            return {
+                "status": "success",
+                "bug_hunter_status": report,
+                "priority_bugs": [
+                    {
+                        "id": bug.bug_id,
+                        "type": bug.bug_type,
+                        "severity": bug.severity,
+                        "file": bug.file_path,
+                        "description": bug.description,
+                        "confidence": bug.confidence
+                    }
+                    for bug in priority_bugs
+                ]
+            }
+        else:
+            raise HTTPException(status_code=503, detail="Bug Hunter Agent not available")
+    except Exception as e:
+        logger.error(f"Error getting bug hunter status: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.post("/bug-hunter/scan", tags=["Bug Hunter"])
+async def trigger_bug_scan(auth_user: dict = Depends(get_auth_user)):
+    """Trigger immediate bug scan"""
+    try:
+        if hephaestus_agent_instance and hasattr(hephaestus_agent_instance, 'bug_hunter'):
+            bugs_found = hephaestus_agent_instance.bug_hunter.scan_for_bugs()
+            return {
+                "status": "success",
+                "bugs_found": len(bugs_found),
+                "scan_completed": True,
+                "message": f"Bug scan completed: {len(bugs_found)} bugs found"
+            }
+        else:
+            raise HTTPException(status_code=503, detail="Bug Hunter Agent not available")
+    except Exception as e:
+        logger.error(f"Error triggering bug scan: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
 # Add custom exception handler to capture all API errors
 @app.exception_handler(Exception)
 async def global_exception_handler(request: Request, exc: Exception):

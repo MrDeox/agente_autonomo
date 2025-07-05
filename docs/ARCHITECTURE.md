@@ -91,6 +91,7 @@ agente_autonomo/
         agents/
             capability_gap_detector.py
             linter_agent.py
+            bug_hunter_agent.py
             __init__.py
             self_reflection_agent.py
             log_analysis_agent.py
@@ -128,6 +129,12 @@ agente_autonomo/
             local.yaml
         validation_strategies/
             main.yaml
+    agente_autonomo/
+        hephaestus_mcp_server.py
+        server/
+            report_service.py
+            reflection_service.py
+            api_core.py
     templates/
         dashboard.html
     reports/
@@ -385,6 +392,14 @@ agente_autonomo/
   - *Get real-time analysis of system errors and health*
 - **Função:** `capture_agent_error(agent_name: str=Body(..., description='Name of the agent that generated the error'), error_message: str=Body(..., description='Error message from the agent'), context: Optional[Dict[str, Any]]=Body(None, description='Additional error context'), auth_user: dict=Depends(get_auth_user))`
   - *Capture and analyze an error from a specific agent*
+- **Função:** `start_bug_hunter(auth_user: dict=Depends(get_auth_user))`
+  - *Start bug hunting monitoring*
+- **Função:** `stop_bug_hunter(auth_user: dict=Depends(get_auth_user))`
+  - *Stop bug hunting monitoring*
+- **Função:** `get_bug_hunter_status(auth_user: dict=Depends(get_auth_user))`
+  - *Get bug hunter status and report*
+- **Função:** `trigger_bug_scan(auth_user: dict=Depends(get_auth_user))`
+  - *Trigger immediate bug scan*
 - **Função:** `global_exception_handler(request: Request, exc: Exception)`
   - *Global exception handler that reports errors to the detector*
 - **Função:** `worker()`
@@ -751,6 +766,14 @@ agente_autonomo/
 - **Classe:** `LinterAgent`
   - *An agent that uses a static linter (ruff) to find, fix, and safely propose*
 
+### Arquivo: `agent/agents/bug_hunter_agent.py`
+- **Classe:** `BugReport`
+  - *Relatório de bug detectado*
+- **Classe:** `BugFix`
+  - *Correção de bug proposta*
+- **Classe:** `BugHunterAgent`
+  - *Agente especializado em detectar e corrigir bugs automaticamente.*
+
 ### Arquivo: `agent/agents/__init__.py`
 
 ### Arquivo: `agent/agents/self_reflection_agent.py`
@@ -883,6 +906,18 @@ agente_autonomo/
 ### Arquivo: `agent/utils/night_improvements.py`
 - **Classe:** `ContinuousImprovement`
   - *Sistema de melhorias contínuas*
+
+### Arquivo: `agente_autonomo/hephaestus_mcp_server.py`
+
+### Arquivo: `agente_autonomo/server/report_service.py`
+- **Classe:** `ReportService`
+  - *Service handling report generation and formatting*
+
+### Arquivo: `agente_autonomo/server/reflection_service.py`
+- **Classe:** `ReflectionService`
+  - *Service handling deep self-reflection and introspection*
+
+### Arquivo: `agente_autonomo/server/api_core.py`
 
 ## 3. CONTEÚDO COMPLETO DOS ARQUIVOS ALVO
 

@@ -18,3 +18,24 @@ code_analysis_thresholds:
 
 # Add a top-level key to confirm this file is loaded, if necessary for debugging
 config_source: "default.yaml"
+
+# Configurações dos modelos LLM
+models:
+  architect_default: "deepseek/deepseek-chat-v3-0324:free"
+  maestro_default: "deepseek/deepseek-chat-v3-0324:free"
+  code_reviewer: "mistralai/mistral-7b-instruct:free"
+  log_analyzer_default: "deepseek/deepseek-chat-v3-0324:free"
+  sommelier_default: "deepseek/deepseek-chat-v3-0324:free"
+  frontend_artisan_default: "deepseek/deepseek-chat-v3-0324:free"
+  bug_hunter_default: "deepseek/deepseek-chat-v3-0324:free"
+
+# Configurações do Bug Hunter Agent
+bug_hunter:
+  scan_interval: 30  # segundos entre scans
+  max_concurrent_fixes: 3  # máximo de correções simultâneas
+  auto_fix_enabled: true  # correção automática habilitada
+  scan_syntax_errors: true
+  scan_import_errors: true
+  scan_log_errors: true
+  scan_test_failures: true
+  scan_performance_issues: true

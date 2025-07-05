@@ -15,6 +15,7 @@ from agent.agents import ArchitectAgent, MaestroAgent, CodeReviewAgent
 from agent.agents.log_analysis_agent import LogAnalysisAgent
 from agent.agents.model_sommelier_agent import ModelSommelierAgent
 from agent.agents.frontend_artisan_agent import FrontendArtisanAgent
+from agent.agents.bug_hunter_agent import BugHunterAgent
 from agent.tool_executor import list_available_models
 
 
@@ -25,6 +26,7 @@ class AgentType(Enum):
     LOG_ANALYSIS = "log_analysis"
     MODEL_SOMMELIER = "model_sommelier"
     FRONTEND_ARTISAN = "frontend_artisan"
+    BUG_HUNTER = "bug_hunter"
 
 
 @dataclass
@@ -118,6 +120,12 @@ class AsyncAgentOrchestrator:
                 model_config=self.config.get("models", {}).get("frontend_artisan_default", self.config.get("models", {}).get("architect_default")),
                 config=self.config,
                 logger=self.logger.getChild("FrontendArtisanAgent")
+            )
+            
+            self.agent_pools[AgentType.BUG_HUNTER] = BugHunterAgent(
+                model_config=self.config.get("models", {}).get("bug_hunter_default", self.config.get("models", {}).get("architect_default")),
+                config=self.config,
+                logger=self.logger.getChild("BugHunterAgent")
             )
             
             self.logger.info("✅ Agent pools initialized successfully")
@@ -284,6 +292,15 @@ class AsyncAgentOrchestrator:
                 )
                 return await loop.run_in_executor(None, future.result)
         
+        elif task.agent_type == AgentType.BUG_HUNTER:
+            with concurrent.futures.ThreadPoolExecutor() as executor:
+                future = executor.submit(
+                    agent.hunt_bugs,
+                    task.context.get('project_path', ''),
+                    task.context.get('code_to_analyze', '')
+                )
+                return await loop.run_in_executor(None, future.result)
+        
         else:
             raise ValueError(f"Unknown agent type: {task.agent_type}")
     
@@ -302,7 +319,18 @@ class AsyncAgentOrchestrator:
         )
         tasks.append(architect_task)
         
-        # Task 2: Code Review em paralelo
+        # Task 2: Bug Hunter em paralelo (nova!)
+        bug_hunter_task = AgentTask(
+            agent_type=AgentType.BUG_HUNTER,
+            task_id=f"bug_hunter_{int(time.time())}",
+            objective=f"Hunt for bugs while processing: {objective}",
+            context=context,
+            priority=8,
+            timeout=180
+        )
+        tasks.append(bug_hunter_task)
+        
+        # Task 3: Code Review em paralelo
         code_review_task = AgentTask(
             agent_type=AgentType.CODE_REVIEW,
             task_id=f"code_review_{int(time.time())}",
@@ -313,7 +341,7 @@ class AsyncAgentOrchestrator:
         )
         tasks.append(code_review_task)
         
-        # Task 3: Maestro escolhe estratégia (depende do Architect)
+        # Task 4: Maestro escolhe estratégia (depende do Architect)
         maestro_task = AgentTask(
             agent_type=AgentType.MAESTRO,
             task_id=f"maestro_{int(time.time())}",
@@ -325,7 +353,7 @@ class AsyncAgentOrchestrator:
         )
         tasks.append(maestro_task)
         
-        self.logger.info(f"🚀 Created parallel evolution cycle with {len(tasks)} tasks")
+        self.logger.info(f"🚀 Created parallel evolution cycle with {len(tasks)} tasks (including Bug Hunter!)")
         return tasks
     
     def get_orchestration_status(self) -> Dict[str, Any]:
