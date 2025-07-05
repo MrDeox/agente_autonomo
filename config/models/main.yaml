@@ -39,19 +39,19 @@ code_reviewer:
   _target_: "builtins.dict"
   temperature: ${default_model_settings.temperature}
   max_tokens: ${default_model_settings.max_tokens}
-  primary: "google/gemma-7b-it:free"
+  primary: "mistralai/mistral-7b-instruct:free"
   fallback: "deepseek/deepseek-chat-v3-0324:free"
 
 log_analyzer_default:
   _target_: "builtins.dict"
   temperature: ${default_model_settings.temperature}
   max_tokens: ${default_model_settings.max_tokens}
-  primary: "google/gemma-7b-it:free"
-  fallback: "deepseek/deepseek-chat-v3-0324:free"
+  primary: "qwen/qwen3-0.6b-04-28:free"
+  fallback: "mistralai/mistral-7b-instruct:free"
 
 debt_hunter_default:
   _target_: "builtins.dict"
   temperature: ${default_model_settings.temperature}
   max_tokens: ${default_model_settings.max_tokens}
-  primary: "google/gemma-7b-it:free"
-  fallback: "deepseek/deepseek-chat-v3-0324:free"
+  primary: "qwen/qwen3-0.6b-04-28:free"
+  fallback: "mistralai/mistral-7b-instruct:free"

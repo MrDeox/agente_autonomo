@@ -1,40 +1,55 @@
 import pytest
-from unittest.mock import Mock, patch
+from unittest.mock import MagicMock, patch
 from agent.agents.maestro_agent import MaestroAgent, StrategyCache
+
+class TestStrategyCache:
+    def test_cache_initialization(self):
+        """Test that the StrategyCache initializes correctly."""
+        # TODO: Implement test cases
+        pass
+
+    def test_cache_retrieval(self):
+        """Test that the StrategyCache retrieves cached strategies correctly."""
+        # TODO: Implement test cases
+        pass
+
+    def test_cache_expiration(self):
+        """Test that the StrategyCache respects TTL for cached strategies."""
+        # TODO: Implement test cases
+        pass
 
 class TestMaestroAgent:
     @pytest.fixture
-    def maestro_agent(self):
-        """Fixture to create a MaestroAgent instance for testing."""
+    def mock_agent(self):
+        """Fixture to create a mock MaestroAgent instance."""
         return MaestroAgent()
 
-    def test_evaluate_syntax_strategy(self, maestro_agent):
-        """Test the syntax evaluation strategy selection."""
-        # TODO: Implement test cases for syntax strategy evaluation
+    def test_strategy_selection(self, mock_agent):
+        """Test the strategy selection logic with different inputs."""
+        # TODO: Implement test cases for various strategy selection scenarios
         pass
 
-    def test_evaluate_test_strategy(self, maestro_agent):
-        """Test the test strategy evaluation."""
-        # TODO: Implement test cases for test strategy evaluation
+    def test_fallback_strategy(self, mock_agent):
+        """Test that fallback strategies are used when primary strategies fail."""
+        # TODO: Implement test cases
         pass
 
-    def test_strategy_cache_operations(self):
-        """Test the StrategyCache operations."""
-        # TODO: Implement test cases for StrategyCache functionality
+    def test_strategy_adaptation(self, mock_agent):
+        """Test that the agent adapts strategies based on performance feedback."""
+        # TODO: Implement test cases
         pass
 
-    def test_integrated_strategy_selection(self, maestro_agent):
-        """Test the integrated strategy selection flow."""
-        # TODO: Implement test cases for full strategy selection process
+    def test_performance_tracking(self, mock_agent):
+        """Test that strategy performance is tracked correctly."""
+        # TODO: Implement test cases
         pass
 
-    @patch('agent.agents.maestro_agent.MaestroAgent._evaluate_syntax_strategy')
-    def test_strategy_fallback_mechanism(self, mock_eval_syntax, maestro_agent):
-        """Test strategy fallback when primary strategy fails."""
-        # TODO: Implement test cases for fallback behavior
+    def test_config_validation(self, mock_agent):
+        """Test that configuration validation strategies work as expected."""
+        # TODO: Implement test cases
         pass
 
-    def test_performance_metrics_tracking(self, maestro_agent):
-        """Test that strategy performance metrics are properly tracked."""
-        # TODO: Implement test cases for performance tracking
+    def test_error_handling(self, mock_agent):
+        """Test error handling in strategy execution."""
+        # TODO: Implement test cases
         pass

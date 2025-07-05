@@ -693,8 +693,9 @@ agente_autonomo/
 
 ### Arquivo: `agent/agents/maestro_agent.py`
 - **Classe:** `StrategyCache`
-  - *Cache LRU com TTL para decisões de estratégia*
+  - *LRU cache with TTL for strategy decisions.*
 - **Classe:** `MaestroAgent`
+  - *Orchestrates strategy selection and execution for the Hephaestus system.*
 
 ### Arquivo: `agent/agents/prompt_optimizer.py`
 - **Classe:** `PromptOptimizer`
