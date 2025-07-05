@@ -137,10 +137,21 @@ agente_autonomo/
         hephaestus_mcp_server.py
         api/
             error_resilience.py
+            validation_service.py
+            validation.py
         server/
             report_service.py
             reflection_service.py
             api_core.py
+    logs_old_20250705_010429/
+        hephaestus.log
+        continuous_evolution_corrected.log
+        continuous_evolution.log
+        evolution_monitoring.log
+        night_agent.log
+        hephaestus_corrected.log
+        evolution_log.csv
+        continuous_evolution_fixed.log
     templates/
         dashboard.html
     reports/
@@ -154,14 +165,8 @@ agente_autonomo/
             evolution_report_20250704_085755.json
             night_report_20250704_004455.json
     logs/
-        hephaestus.log
-        continuous_evolution_corrected.log
-        continuous_evolution.log
-        evolution_monitoring.log
-        night_agent.log
-        hephaestus_corrected.log
+        night_evolution_20250705.log
         evolution_log.csv
-        continuous_evolution_fixed.log
     generated_interfaces/
         arthur_interface_1751661619.html
 
@@ -973,6 +978,24 @@ agente_autonomo/
   - *Specialized error handler for MCP server functions*
 - **Classe:** `RecoveryMechanism`
   - *Mechanisms for recovering from failures*
+
+### Arquivo: `agente_autonomo/api/validation_service.py`
+- **Classe:** `SelfReflectionResponse(BaseModel)`
+  - *Pydantic model for deep_self_reflection endpoint response*
+- **Classe:** `AwarenessReportResponse(BaseModel)`
+  - *Pydantic model for self_awareness_report endpoint response*
+- **Classe:** `ValidationService`
+  - *Service for validating and recovering from invalid responses*
+
+### Arquivo: `agente_autonomo/api/validation.py`
+- **Classe:** `SelfReflectionSchema(BaseModel)`
+  - *Schema for deep_self_reflection endpoint*
+- **Classe:** `AwarenessReportSchema(BaseModel)`
+  - *Schema for self_awareness_report endpoint*
+- **Função:** `validate_self_reflection(data: Dict[str, Any])`
+  - *Validate deep_self_reflection response*
+- **Função:** `validate_awareness_report(data: Dict[str, Any])`
+  - *Validate self_awareness_report response*
 
 ### Arquivo: `agente_autonomo/server/report_service.py`
 - **Classe:** `ReportService`
