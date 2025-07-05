@@ -42,6 +42,7 @@ agente_autonomo/
         commit_message_generator.py
         arthur_interface_generator.py
         code_metrics.py
+        knowledge_integration.py
         model_optimizer.py
         hephaestus_agent.py
         hephaestus_config.json
@@ -56,6 +57,7 @@ agente_autonomo/
         flow_self_modifier.py
         patch_applicator.py
         cycle_runner.py
+        self_improvement_engine.py
         memory.py
         cognitive_evolution_manager.py
         prompt_builder.py
@@ -63,6 +65,7 @@ agente_autonomo/
         project_scanner.py
         queue_manager.py
         state.py
+        strategy_optimizer.py
         config_loader.py
         advanced_knowledge_system.py
         validation_steps/
@@ -388,6 +391,12 @@ agente_autonomo/
 - **Função:** `detect_code_duplication(code_string: str, min_lines: int=4, strip_comments_and_blanks: bool=True)`
   - *Detects duplicated code blocks in the given Python code string.*
 
+### Arquivo: `agent/knowledge_integration.py`
+- **Classe:** `KnowledgePattern`
+  - *Represents a recognized pattern in knowledge.*
+- **Classe:** `KnowledgeIntegrator`
+  - *Core knowledge integration engine.*
+
 ### Arquivo: `agent/model_optimizer.py`
 - **Classe:** `ModelPerformanceData`
   - *Performance data for a specific model call*
@@ -518,6 +527,12 @@ agente_autonomo/
 - **Classe:** `CycleRunner`
   - *Manages the main execution loop of the Hephaestus agent.*
 
+### Arquivo: `agent/self_improvement_engine.py`
+- **Classe:** `ImprovementProposal`
+  - *A proposed system improvement with justification.*
+- **Classe:** `SelfImprovementEngine`
+  - *Core self-improvement engine.*
+
 ### Arquivo: `agent/memory.py`
 - **Classe:** `SemanticPattern`
   - *Represents a learned pattern in objectives or strategies.*
@@ -616,6 +631,12 @@ agente_autonomo/
 ### Arquivo: `agent/state.py`
 - **Classe:** `AgentState`
   - *Representa o estado interno do agente Hephaestus durante um ciclo de processamento.*
+
+### Arquivo: `agent/strategy_optimizer.py`
+- **Classe:** `StrategyVariant`
+  - *A specific strategy variant with performance metrics.*
+- **Classe:** `StrategyOptimizer`
+  - *Core strategy optimization engine.*
 
 ### Arquivo: `agent/config_loader.py`
 - **Função:** `load_config()`
