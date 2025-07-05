@@ -112,6 +112,7 @@ class HephaestusAgent:
         self.logger.info(f"ArchitectAgent inicializado com a configuração: {self.config.get('models', {}).get('architect_default')}")
 
         self.maestro = MaestroAgent(
+            model_config=self.config.get("models", {}).get("maestro_default", self.config.get("models", {}).get("architect_default")),
             config=self.config,
             logger=self.logger.getChild("MaestroAgent")
         )

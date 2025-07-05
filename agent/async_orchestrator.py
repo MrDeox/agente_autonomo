@@ -92,6 +92,7 @@ class AsyncAgentOrchestrator:
             )
             
             self.agent_pools[AgentType.MAESTRO] = MaestroAgent(
+                model_config=self.config.get("models", {}).get("maestro_default", self.config.get("models", {}).get("architect_default")),
                 config=self.config,
                 logger=self.logger.getChild("MaestroAgent")
             )

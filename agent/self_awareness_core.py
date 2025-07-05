@@ -44,6 +44,23 @@ class CognitiveState:
     memory_utilization: float
     decision_confidence: float
     meta_cognitive_depth: float
+    
+    def to_dict(self) -> Dict[str, Any]:
+        """Convert to dictionary for JSON serialization"""
+        return {
+            "timestamp": self.timestamp.isoformat(),
+            "intelligence_level": self.intelligence_level,
+            "self_awareness_score": self.self_awareness_score,
+            "cognitive_coherence": self.cognitive_coherence,
+            "learning_velocity": self.learning_velocity,
+            "adaptation_rate": self.adaptation_rate,
+            "creativity_index": self.creativity_index,
+            "system_stress": self.system_stress,
+            "processing_efficiency": self.processing_efficiency,
+            "memory_utilization": self.memory_utilization,
+            "decision_confidence": self.decision_confidence,
+            "meta_cognitive_depth": self.meta_cognitive_depth
+        }
 
 
 @dataclass
@@ -57,6 +74,19 @@ class SelfInsight:
     source_systems: List[str]
     actionable_recommendations: List[str]
     verification_status: str = "pending"
+    
+    def to_dict(self) -> Dict[str, Any]:
+        """Convert to dictionary for JSON serialization"""
+        return {
+            "timestamp": self.timestamp.isoformat(),
+            "insight_type": self.insight_type,
+            "description": self.description,
+            "confidence": self.confidence,
+            "impact_score": self.impact_score,
+            "source_systems": self.source_systems,
+            "actionable_recommendations": self.actionable_recommendations,
+            "verification_status": self.verification_status
+        }
 
 
 @dataclass
@@ -69,6 +99,18 @@ class CognitiveEvolutionEvent:
     triggers: List[str]
     consequences: List[str]
     significance_score: float
+    
+    def to_dict(self) -> Dict[str, Any]:
+        """Convert to dictionary for JSON serialization"""
+        return {
+            "timestamp": self.timestamp.isoformat(),
+            "event_type": self.event_type,
+            "description": self.description,
+            "cognitive_delta": self.cognitive_delta,
+            "triggers": self.triggers,
+            "consequences": self.consequences,
+            "significance_score": self.significance_score
+        }
 
 
 class SelfAwarenessCore:
@@ -254,7 +296,7 @@ class SelfAwarenessCore:
         result = {
             "introspection_timestamp": datetime.now().isoformat(),
             "focus_area": focus_area,
-            "current_cognitive_state": self.current_cognitive_state.__dict__ if self.current_cognitive_state else None,
+            "current_cognitive_state": self.current_cognitive_state.to_dict() if self.current_cognitive_state else None,
             "self_analysis": introspection_result,
             "cognitive_maps": self.cognitive_maps,
             "new_insights": insights,
@@ -412,7 +454,7 @@ Analyze yourself across these dimensions:
         return {
             "meta_intelligence_report": meta_report,
             "performance_analysis": performance_data,
-            "recent_evolution_events": [event.__dict__ for event in recent_events],
+            "recent_evolution_events": [event.to_dict() for event in recent_events],
             "cognitive_trajectory": cognitive_trajectory,
             "current_capabilities": self._enumerate_current_capabilities(),
             "system_health": self._assess_system_health(),
@@ -585,11 +627,11 @@ I aspire to {', '.join(future_potential.get('aspirational_goals', [])[:2])}.
                 "cognitive_coherence": self.current_cognitive_state.cognitive_coherence if self.current_cognitive_state else 0.0,
                 "self_knowledge_confidence": self._calculate_self_knowledge_confidence()
             },
-            "current_cognitive_state": self.current_cognitive_state.__dict__ if self.current_cognitive_state else None,
+            "current_cognitive_state": self.current_cognitive_state.to_dict() if self.current_cognitive_state else None,
             "cognitive_trajectory": self._get_cognitive_trajectory_summary(),
             "cognitive_maps": self.cognitive_maps,
-            "recent_insights": [insight.__dict__ for insight in self.self_insights[-5:]],
-            "evolution_events": [event.__dict__ for event in self.evolution_events[-5:]],
+            "recent_insights": [insight.to_dict() for insight in self.self_insights[-5:]],
+            "evolution_events": [event.to_dict() for event in self.evolution_events[-5:]],
             "self_narrative": {
                 "identity": self.identity_narrative,
                 "capabilities": self.capability_narrative,

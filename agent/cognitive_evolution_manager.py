@@ -37,6 +37,17 @@ class EvolutionEvent:
     impact_score: float
     affected_components: List[str]
     metadata: Dict[str, Any]
+    
+    def to_dict(self) -> Dict[str, Any]:
+        """Convert to dictionary for JSON serialization"""
+        return {
+            "timestamp": self.timestamp.isoformat(),
+            "event_type": self.event_type,
+            "description": self.description,
+            "impact_score": self.impact_score,
+            "affected_components": self.affected_components,
+            "metadata": self.metadata
+        }
 
 
 class CognitiveEvolutionManager:

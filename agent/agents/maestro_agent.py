@@ -7,6 +7,9 @@ import json
 import csv
 from pathlib import Path
 
+from agent.utils.llm_client import call_llm_api
+from agent.utils.json_parser import parse_json_response
+
 class StrategyCache:
     """
     LRU cache with TTL for strategy decisions.
@@ -68,9 +71,9 @@ class MaestroAgent:
         performance_data: Tracks performance of different strategies
         strategy_weights: Dynamic weights for strategy selection
     """
-    def __init__(self, config: Dict[str, Any], logger: logging.Logger):
+    def __init__(self, model_config: Dict[str, str], config: Dict[str, Any], logger: logging.Logger):
+        self.model_config = model_config
         self.config = config
-        self.model_config = config.get("models", {}).get("maestro_default", {})
         self.logger = logger
         self.created_strategies = {}  # Track dynamically created strategies
         self.strategy_cache = StrategyCache()
@@ -314,26 +317,108 @@ class MaestroAgent:
         Returns:
             List of strategy results
         """
+        attempt_logs = []
+        
+        # Check cache first (only if no failure context)
         if not failed_strategy_context:
             cached_strategy = self.strategy_cache.get(action_plan_data, memory_summary or "")
             if cached_strategy:
                 self.logger.info(f"MaestroAgent: Cache hit! Using cached strategy: {cached_strategy}")
                 return [{"model": "cache", "parsed_json": {"strategy_key": cached_strategy}, "success": True}]
         
+        # First, try rule-based classification
         rule_based_strategy = self._classify_strategy_by_rules(action_plan_data)
-        if rule_based_strategy:
+        if rule_based_strategy and rule_based_strategy != "DISCARD":
             self.logger.info(f"MaestroAgent: Strategy '{rule_based_strategy}' chosen by rule-based classifier.")
             self.strategy_cache.put(action_plan_data, memory_summary or "", rule_based_strategy)
             return [{"model": "rule_based_classifier", "parsed_json": {"strategy_key": rule_based_strategy}, "success": True}]
             
-        # Use weighted strategy selection
-        selected_strategy = self._generate_weighted_strategy(action_plan_data)
-        strategy_key = selected_strategy["strategy_type"]
+        # If no rules match, fall back to LLM
+        self.logger.info("MaestroAgent: No rule matched. Falling back to LLM for strategy decision.")
         
-        self.logger.info(f"MaestroAgent: Selected strategy '{strategy_key}' based on weighted selection")
+        failure_context_str = ""
+        if failed_strategy_context:
+            self.logger.info(f"MaestroAgent: Re-evaluating strategy due to previous failure: {failed_strategy_context}")
+            failure_context_str = f"""
+[PREVIOUS ATTEMPT FAILED]
+The last strategy attempted ('{failed_strategy_context.get('strategy')}') failed with the reason: '{failed_strategy_context.get('reason')}'.
+Details: {failed_strategy_context.get('details')}
+Your task is to choose a DIFFERENT and potentially SAFER strategy to achieve the objective.
+"""
+
+        available_strategies = self.config.get("validation_strategies", {})
+        available_keys = ", ".join(available_strategies.keys())
+        engineer_summary_json = json.dumps(action_plan_data, ensure_ascii=False, indent=2)
+
+        memory_context_str = ""
+        if memory_summary and memory_summary.strip() and memory_summary.lower() != "no relevant history available.":
+            memory_context_str = f"""
+[HISTÓRICO RECENTE (OBJETIVOS E ESTRATÉGIAS USADAS)]
+{memory_summary}
+Considere esse histórico em sua decisão. Evite repetir estratégias que falharam recentemente para objetivos semelhantes.
+"""
+
+        self.logger.info(f"MaestroAgent: Gerando plano de patches com os modelos: {self.model_config}...")
+
+        prompt = f"""
+[IDENTITY]
+You are the Maestro of the Hephaestus agent. Your task is to analyze the Engineer's proposal (patch plan) and recent history to decide the best course of action.
+
+[CONTEXT AND HISTORY]
+{failure_context_str}
+{memory_context_str}
+
+[ENGINEER'S PROPOSAL (PATCH PLAN)]
+{engineer_summary_json}
+
+[YOUR DECISION]
+Based on the proposal and history:
+1. If the solution seems reasonable and does not require new capabilities, choose the most appropriate validation strategy.
+2. If the solution requires new capabilities that Hephaestus needs to develop, respond with `CAPACITATION_REQUIRED`.
+3. If you need to search for more information, respond with `WEB_SEARCH_REQUIRED`.
+
+Available Validation Strategies: {available_keys}
+Additional Options: CAPACITATION_REQUIRED, WEB_SEARCH_REQUIRED
+
+[REQUIRED OUTPUT FORMAT]
+Respond ONLY with a JSON object containing the "strategy_key" and the value being ONE of the available strategies OR one of the additional options.
+Example: {{"strategy_key": "SYNTAX_AND_PYTEST"}}
+Example: {{"strategy_key": "CAPACITATION_REQUIRED"}}
+"""
+
+        # Try primary model
+        self.logger.info("Calling primary model: " + self.model_config.get("primary", "unknown"))
+        response, error = call_llm_api(self.model_config, prompt, 0.3, self.logger)
+        
+        if error:
+            self.logger.error(f"Primary model failed: {error}")
+            # Try fallback model
+            fallback_config = self.model_config.copy()
+            fallback_config["primary"] = self.model_config.get("fallback", "mistralai/mistral-7b-instruct:free")
+            response, error = call_llm_api(fallback_config, prompt, 0.3, self.logger)
+            
+            if error:
+                self.logger.error(f"Fallback model also failed: {error}")
+                return [{"model": "error", "raw_response": f"Both models failed: {error}", "parsed_json": {"strategy_key": "DISCARD"}, "success": False}]
+
+        if not response:
+            return [{"model": "error", "raw_response": "Empty response from LLM", "parsed_json": {"strategy_key": "DISCARD"}, "success": False}]
+
+        # Parse JSON response
+        parsed_json, parse_error = parse_json_response(response, self.logger)
+        
+        if parse_error:
+            return [{"model": "error", "raw_response": f"Erro ao fazer parse do JSON: {parse_error}", "parsed_json": {"strategy_key": "DISCARD"}, "success": False}]
+        
+        if not parsed_json or "strategy_key" not in parsed_json:
+            return [{"model": "error", "raw_response": "JSON com formato inválido ou faltando 'strategy_key'", "parsed_json": {"strategy_key": "DISCARD"}, "success": False}]
+        
+        strategy_key = parsed_json["strategy_key"]
+        
+        # Cache the successful strategy
         self.strategy_cache.put(action_plan_data, memory_summary or "", strategy_key)
         
-        return [{"model": "weighted_selection", "parsed_json": {"strategy_key": strategy_key}, "success": True}]
+        return [{"model": "llm", "raw_response": response, "parsed_json": parsed_json, "success": True}]
 
     def integrate_error_analyzer(self, error_analyzer: Any) -> None:
         """
