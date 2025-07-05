@@ -1,62 +1,69 @@
 import pytest
-from unittest.mock import MagicMock, patch
+from unittest.mock import Mock, patch
 from agent.hephaestus_agent import HephaestusAgent
 
-class TestHephaestusAgent:
-    @pytest.fixture
-    def mock_agent(self):
-        """Fixture for creating a mock HephaestusAgent instance."""
-        mock_config = {
-            "models": {
-                "architect_default": "gpt-4",
-                "meta_intelligence": "gpt-4"
-            },
-            "memory_file_path": "HEPHAESTUS_MEMORY.json"
-        }
-        mock_logger = MagicMock()
-        return HephaestusAgent(mock_logger, mock_config)
+@pytest.fixture
+def mock_hephaestus_agent():
+    """Fixture providing a mock HephaestusAgent instance."""
+    mock_logger = Mock()
+    mock_config = {
+        "models": {"architect_default": "gpt-4"},
+        "validation_strategies": {},
+        "memory_file_path": "test_memory.json"
+    }
+    return HephaestusAgent(
+        logger_instance=mock_logger,
+        config=mock_config,
+        continuous_mode=False
+    )
 
-    def test_execute_cycle(self, mock_agent):
-        """Test the execute_cycle method."""
-        # TODO: Implement test cases for execute_cycle
-        # Should test:
-        # - Normal execution flow
-        # - Error handling
-        # - State management
-        pass
+# TODO: Implement test cases for execute_cycle
+# This is the core execution flow that needs thorough testing
+def test_execute_cycle(mock_hephaestus_agent):
+    """Test the main execution cycle of the agent."""
+    # TODO: Implement test cases
+    # Should test:
+    # - Normal execution flow
+    # - Error handling
+    # - State management
+    # - Validation strategy application
+    pass
 
-    def test_process_feedback(self, mock_agent):
-        """Test the process_feedback method."""
-        # TODO: Implement test cases for process_feedback
-        # Should test:
-        # - Feedback processing logic
-        # - State updates based on feedback
-        # - Error cases
-        pass
+# TODO: Implement test cases for process_feedback
+def test_process_feedback(mock_hephaestus_agent):
+    """Test how the agent processes feedback from operations."""
+    # TODO: Implement test cases
+    # Should test:
+    # - Feedback handling
+    # - Error processing
+    # - Memory updates
+    pass
 
-    def test_run_continuous(self, mock_agent):
-        """Test the run_continuous method."""
-        # TODO: Implement test cases for run_continuous
-        # Should test:
-        # - Continuous execution
-        # - Keyboard interrupt handling
-        # - Meta-intelligence activation
-        pass
+# TODO: Implement test cases for meta-intelligence functions
+def test_meta_intelligence(mock_hephaestus_agent):
+    """Test meta-intelligence related functions."""
+    # TODO: Implement test cases
+    # Should test:
+    # - start_meta_intelligence()
+    # - stop_meta_intelligence()
+    # - get_meta_intelligence_status()
+    pass
 
-    def test_meta_intelligence_lifecycle(self, mock_agent):
-        """Test meta-intelligence activation and deactivation."""
-        # TODO: Implement test cases for meta-intelligence lifecycle
-        # Should test:
-        # - start_meta_intelligence()
-        # - stop_meta_intelligence()
-        # - get_meta_intelligence_status()
-        pass
+# TODO: Implement test cases for hot reload functionality
+def test_hot_reload(mock_hephaestus_agent):
+    """Test hot reload related functions."""
+    # TODO: Implement test cases
+    # Should test:
+    # - enable_real_time_evolution()
+    # - disable_real_time_evolution()
+    # - self_modify_code()
+    pass
 
-    def test_validation_strategy_execution(self, mock_agent):
-        """Test validation strategy execution."""
-        # TODO: Implement test cases for validation strategy execution
-        # Should test:
-        # - Strategy selection
-        # - Sandbox execution
-        # - Validation steps
-        pass
+# TODO: Implement test cases for async evolution
+def test_async_evolution(mock_hephaestus_agent):
+    """Test async evolution functionality."""
+    # TODO: Implement test cases
+    # Should test:
+    # - run_async_evolution_cycle()
+    # - enable_turbo_evolution_mode()
+    pass
