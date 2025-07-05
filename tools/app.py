@@ -273,43 +273,53 @@ async def shutdown_event():
         logger.error(f"❌ Error during shutdown: {e}")
 
 def periodic_log_analysis_task():
-    """A background task that periodically queues a log analysis objective."""
-    logger.info("📊 Periodic Log Analysis Task started.")
+    """A background task that periodically queues system monitoring tasks."""
+    logger.info("📊 Periodic System Monitoring Task started.")
     analysis_interval_seconds = 300 # 5 minutes
+
+    # Initial delay
+    time.sleep(30)
 
     while True:
         try:
-            logger.info(f"Log Analyzer is sleeping for {analysis_interval_seconds} seconds.")
+            logger.info(f"Monitoring task sleeping for {analysis_interval_seconds} seconds.")
             time.sleep(analysis_interval_seconds)
 
             if hephaestus_agent_instance and queue_manager:
+                # --- Queue Log Analysis Task ---
                 logger.info("Queuing periodic log analysis task...")
-                log_analysis_task = AgentTask(
-                    agent_type=AgentType.LOG_ANALYSIS,
-                    task_id=f"log_analysis_{int(time.time())}",
-                    objective="Periodically analyze system logs for errors and improvement opportunities.",
-                    context={
-                        "log_file_path": "logs/app.log",
-                        "lines_to_analyze": 300
-                    }
-                )
-                
-                # We need to put the *task object* on the queue for the orchestrator
-                # This part of the architecture might need a refactor,
-                # for now, we put the objective string from it.
-                objective_to_queue = {
-                    "objective": log_analysis_task.objective,
-                    "is_log_analysis_task": True, # Flag to identify this special task
-                    "task_details": {
-                        "agent_type": "log_analysis",
-                        "context": log_analysis_task.context
-                    }
+                log_analysis_objective = {
+                    "objective": "Periodically analyze system logs for errors and improvement opportunities.",
+                    "is_log_analysis_task": True,
                 }
-                queue_manager.put_objective(objective_to_queue)
+                queue_manager.put_objective(log_analysis_objective)
                 logger.info("Log analysis task queued successfully.")
+                
+                time.sleep(10)
+
+                # --- Queue Debt Hunter Task ---
+                logger.info("Queuing periodic debt hunter task...")
+                debt_hunter_objective = {
+                    "objective": "Proactively hunt for and prioritize technical debt.",
+                    "is_debt_hunter_task": True,
+                }
+                queue_manager.put_objective(debt_hunter_objective)
+                logger.info("Debt hunter task queued successfully.")
+
+                time.sleep(10)
+
+                # --- Queue Model Sommelier Task ---
+                logger.info("Queuing periodic model sommelier task...")
+                model_sommelier_objective = {
+                    "objective": "Proactively analyze agent performance and optimize model configurations.",
+                    "is_model_sommelier_task": True,
+                }
+                queue_manager.put_objective(model_sommelier_objective)
+                logger.info("Model sommelier task queued successfully.")
+
 
         except Exception as e:
-            logger.error(f"❌ Error in periodic log analysis task: {e}", exc_info=True)
+            logger.error(f"❌ Error in periodic monitoring task: {e}", exc_info=True)
             # Wait a bit longer after an error before retrying
             time.sleep(60)
 

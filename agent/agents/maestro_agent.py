@@ -1,4 +1,4 @@
-from typing import Dict, Optional, Tuple, List
+from typing import Dict, Optional, Tuple, List, Any
 from datetime import datetime, timedelta
 from collections import OrderedDict
 import logging
@@ -49,9 +49,13 @@ class MaestroAgent:
         logger: Logger instance for logging
         performance_data: Tracks performance of different strategies
     """
-    def __init__(self):
+    def __init__(self, config: Dict[str, Any], logger: logging.Logger):
+        self.config = config
+        # The agent is responsible for getting its own model config from the main config
+        self.model_config = config.get("models", {}).get("maestro_default", {})
+        self.logger = logger
+        self.created_strategies = {}  # Track dynamically created strategies
         self.strategy_cache = StrategyCache()
-        self.logger = logging.getLogger(__name__)
         self.performance_data = {}
 
     def select_strategy(self, context: Dict) -> Dict:
@@ -158,3 +162,58 @@ class MaestroAgent:
             return 0.0
             
         return stats["success_count"] / stats["total_executions"]
+
+    def _classify_strategy_by_rules(self, action_plan_data: Dict[str, Any]) -> Optional[str]:
+        patches = action_plan_data.get("patches_to_apply", [])
+        if not patches:
+            return "DISCARD"
+
+        if any("tests/" in p.get("file_path", "") and p.get("operation") in ["REPLACE", "INSERT"] and p.get("block_to_replace") is None for p in patches):
+            self.logger.info("Rule-based classification: Detected new test file creation.")
+            return "CREATE_NEW_TEST_FILE_STRATEGY"
+        
+        if any("config/" in p.get("file_path", "") for p in patches):
+            self.logger.info("Rule-based classification: Detected config file modification.")
+            return "CONFIG_UPDATE_STRATEGY"
+
+        if all(p.get("file_path", "").endswith(".md") for p in patches):
+            self.logger.info("Rule-based classification: Detected documentation-only change.")
+            return "DOC_UPDATE_STRATEGY"
+            
+        return None
+
+    def choose_strategy(self, action_plan_data: Dict[str, Any], memory_summary: Optional[str] = None, failed_strategy_context: Optional[Dict[str, str]] = None) -> List[Dict[str, Any]]:
+        if not failed_strategy_context:
+            cached_strategy = self.strategy_cache.get(action_plan_data, memory_summary or "")
+            if cached_strategy:
+                self.logger.info(f"MaestroAgent: Cache hit! Using cached strategy: {cached_strategy}")
+                return [{"model": "cache", "parsed_json": {"strategy_key": cached_strategy}, "success": True}]
+        
+        rule_based_strategy = self._classify_strategy_by_rules(action_plan_data)
+        if rule_based_strategy:
+            self.logger.info(f"MaestroAgent: Strategy '{rule_based_strategy}' chosen by rule-based classifier.")
+            self.strategy_cache.put(action_plan_data, memory_summary or "", rule_based_strategy)
+            return [{"model": "rule_based_classifier", "parsed_json": {"strategy_key": rule_based_strategy}, "success": True}]
+            
+        self.logger.info("MaestroAgent: No rule matched. Falling back to LLM for strategy decision.")
+        
+        # (A lógica completa de chamada do LLM e parsing da resposta segue aqui)
+        # Por simplicidade na restauração, vamos usar uma lógica de fallback mais simples por enquanto
+        # para garantir que o método exista e funcione.
+
+        available_strategies = self.config.get("validation_strategies", {})
+        
+        # Fallback simples: se tiver testes, use uma estratégia com pytest. Senão, use uma mais simples.
+        has_test_files = any("tests/" in p.get("file_path", "") for p in action_plan_data.get("patches_to_apply", []))
+        
+        if has_test_files and "CREATE_NEW_TEST_FILE_STRATEGY" in available_strategies:
+             chosen_strategy = "CREATE_NEW_TEST_FILE_STRATEGY"
+        elif "sandbox_validation_no_tests" in available_strategies:
+            chosen_strategy = "sandbox_validation_no_tests"
+        else:
+            chosen_strategy = "NO_OP_STRATEGY"
+
+        self.logger.info(f"MaestroAgent: Using simple fallback logic, chose strategy: {chosen_strategy}")
+        return [{"model": "simple_fallback", "parsed_json": {"strategy_key": chosen_strategy}, "success": True}]
+
+    # O resto dos métodos como analyze_strategy_need, create_new_strategy, etc. podem ser adicionados aqui depois.

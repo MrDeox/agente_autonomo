@@ -498,7 +498,7 @@ def _create_results_summary(results: list, search_type: str) -> str:
         return f"Encontradas {len(results)} possíveis soluções. A mais relevante sugere: {top_result.get('snippet', 'Ver detalhes')[:150]}..."
     
     elif search_type == "documentation":
-        return f"Encontrada documentação em {len(results)} fontes. Recomenda-se começar por: {top_result.get('title', 'Primeiro resultado')}"
+        return f"Documentação encontrada para '{context.get('library', 'library')}'. O resultado principal é: {top_result.get('title', 'N/A')}."
     
     elif search_type == "tutorial":
         return f"Encontrados {len(results)} tutoriais. Sugestão principal: {top_result.get('title', 'Primeiro resultado')}"
@@ -507,11 +507,11 @@ def _create_results_summary(results: list, search_type: str) -> str:
         return f"Informações encontradas sobre a biblioteca em {len(results)} fontes."
     
     else:
-        return f"Encontrados {len(results)} resultados relevantes."
+        return f"Busca concluída com {len(results)} resultados. O mais relevante é '{top_result.get('title', 'N/A')}'."
 
 
 def _create_recommendations(results: list, search_type: str, context: dict) -> list:
-    """Cria recomendações baseadas nos resultados."""
+    """Cria recomendações acionáveis a partir dos resultados."""
     if not results:
         return ["Refinar a consulta de busca com termos mais específicos."]
     
@@ -541,3 +541,31 @@ def _create_recommendations(results: list, search_type: str, context: dict) -> l
     recommendations.append("Comparar múltiplas fontes antes de implementar soluções.")
     
     return recommendations
+
+
+def list_available_models() -> Tuple[bool, list[str]]:
+    """
+    Fetches the list of available models from the OpenRouter API and filters for free ones.
+
+    Returns:
+        A tuple containing:
+        - bool: True if the API call was successful, False otherwise.
+        - list[str]: A list of model ID strings that are free to use.
+    """
+    try:
+        response = requests.get("https://openrouter.ai/api/v1/models")
+        response.raise_for_status()
+        models_data = response.json().get("data", [])
+        
+        free_models = [
+            model["id"] for model in models_data 
+            if ":free" in model.get("id", "")
+        ]
+        
+        return True, free_models
+    except requests.RequestException as e:
+        print(f"Error fetching models from OpenRouter: {e}")
+        return False, []
+    except Exception as e:
+        print(f"An unexpected error occurred while listing models: {e}")
+        return False, []

@@ -13,6 +13,8 @@ from datetime import datetime
 
 from agent.agents import ArchitectAgent, MaestroAgent, CodeReviewAgent
 from agent.agents.log_analysis_agent import LogAnalysisAgent
+from agent.agents.model_sommelier_agent import ModelSommelierAgent
+from agent.tool_executor import list_available_models
 
 
 class AgentType(Enum):
@@ -20,6 +22,7 @@ class AgentType(Enum):
     MAESTRO = "maestro"
     CODE_REVIEW = "code_review"
     LOG_ANALYSIS = "log_analysis"
+    MODEL_SOMMELIER = "model_sommelier"
 
 
 @dataclass
@@ -81,16 +84,12 @@ class AsyncAgentOrchestrator:
     def _initialize_agent_pools(self):
         """Inicializa pools de agentes com as assinaturas de construtor corretas."""
         try:
-            # ArchitectAgent and CodeReviewAgent accept model_config
             self.agent_pools[AgentType.ARCHITECT] = ArchitectAgent(
                 model_config=self.config.get("models", {}).get("architect_default", "gpt-4"),
                 logger=self.logger.getChild("ArchitectAgent")
             )
             
-            # CORRECTED: MaestroAgent expects model_config, config, and logger
-            maestro_model_config = self.config.get("models", {}).get("maestro_default", "gpt-4")
             self.agent_pools[AgentType.MAESTRO] = MaestroAgent(
-                model_config=maestro_model_config,
                 config=self.config,
                 logger=self.logger.getChild("MaestroAgent")
             )
@@ -100,11 +99,16 @@ class AsyncAgentOrchestrator:
                 logger=self.logger.getChild("CodeReviewAgent")
             )
             
-            # LogAnalysisAgent also accepts model_config
             log_analyzer_model_config = self.config.get("models", {}).get("log_analyzer_default", self.config.get("models", {}).get("architect_default"))
             self.agent_pools[AgentType.LOG_ANALYSIS] = LogAnalysisAgent(
                 model_config=log_analyzer_model_config,
                 logger=self.logger.getChild("LogAnalysisAgent")
+            )
+
+            self.agent_pools[AgentType.MODEL_SOMMELIER] = ModelSommelierAgent(
+                model_config=self.config.get("models", {}).get("sommelier_default", self.config.get("models", {}).get("architect_default")),
+                config=self.config,
+                logger=self.logger.getChild("ModelSommelierAgent")
             )
             
             self.logger.info("✅ Agent pools initialized successfully")
@@ -243,6 +247,22 @@ class AsyncAgentOrchestrator:
                     agent.analyze_logs,
                     task.context.get('log_file_path', 'logs/app.log'),
                     task.context.get('lines_to_analyze', 200)
+                )
+                return await loop.run_in_executor(None, future.result)
+        
+        elif task.agent_type == AgentType.MODEL_SOMMELIER:
+            with concurrent.futures.ThreadPoolExecutor() as executor:
+                # This agent has dependencies on other tools/data
+                agent_perf_summary = task.context.get('agent_performance_summary', {})
+                success, available_models = list_available_models()
+                if not success:
+                    self.logger.error("Could not retrieve available models for Model Sommelier.")
+                    available_models = [] # Proceed with an empty list
+
+                future = executor.submit(
+                    agent.propose_model_optimization,
+                    agent_performance_summary=agent_perf_summary,
+                    available_models=available_models
                 )
                 return await loop.run_in_executor(None, future.result)
         

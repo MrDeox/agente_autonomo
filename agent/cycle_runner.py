@@ -14,8 +14,9 @@ from agent.brain import (
     generate_capacitation_objective,
     generate_commit_message,
 )
-from agent.tool_executor import run_pytest, check_file_existence, run_git_command
-from agent.agents import ErrorAnalysisAgent, PromptOptimizer
+from agent.tool_executor import run_pytest, check_file_existence, run_git_command, list_available_models
+from agent.agents import ErrorAnalysisAgent, PromptOptimizer, ModelSommelierAgent
+from agent.agents.debt_hunter_agent import DebtHunterAgent
 from agent.validation_steps import get_validation_step
 
 if TYPE_CHECKING:
@@ -108,6 +109,14 @@ class CycleRunner:
         if isinstance(current_objective, dict) and current_objective.get("is_log_analysis_task"):
             self.agent.logger.info("Handling special task: Log Analysis.")
             self._run_log_analysis_task(current_objective)
+            return
+        if current_objective.get("is_debt_hunter_task"):
+            self.agent.logger.info("Handling special task: Debt Hunter.")
+            self._run_debt_hunter_task()
+            return
+        if current_objective.get("is_model_sommelier_task"):
+            self.agent.logger.info("Handling special task: Model Sommelier.")
+            self._run_model_sommelier_task()
             return
 
         self.agent._reset_cycle_state()
@@ -372,6 +381,41 @@ class CycleRunner:
             self.agent.objective_stack.append(objective) # Re-add original objective
             self.agent.objective_stack.append(correction_prompt)
             self.agent.logger.info(f"New correction objective added to stack: '{correction_prompt[:100]}...'")
+
+    def _run_model_sommelier_task(self):
+        """Runs the model sommelier agent to propose a model optimization."""
+        model_config = self.agent.config.get("models", {}).get("sommelier_default", self.agent.config.get("models", {}).get("architect_default"))
+        
+        sommelier = ModelSommelierAgent(
+            model_config=model_config,
+            config=self.agent.config,
+            logger=self.agent.logger.getChild("ModelSommelierAgent")
+        )
+
+        # The Sommelier needs the performance summary
+        agent_perf_summary = self.agent.model_optimizer.get_agent_performance_summary()
+        
+        # And the list of available models
+        success, available_models = list_available_models()
+        if not success:
+            self.agent.logger.error("Could not retrieve available models for Model Sommelier.")
+            available_models = []
+
+        new_objective = sommelier.propose_model_optimization(
+            agent_performance_summary=agent_perf_summary,
+            available_models=available_models
+        )
+        
+        if new_objective:
+            self.agent.logger.info(f"Model Sommelier proposed a new objective: {new_objective}")
+            self.queue_manager.put_objective(new_objective)
+        else:
+            self.agent.logger.info("Model Sommelier did not propose any optimization in this cycle.")
+
+    def _run_debt_hunter_task(self):
+        """Runs the debt hunter agent to find and queue a new objective."""
+        model_config = self.agent.config.get("models", {}).get("debt_hunter_default", self.agent.config.get("models", {}).get("architect_default"))
+        # ... existing code ...
 
     def run(self) -> None:
         """Execute the main evolution loop for the given agent."""

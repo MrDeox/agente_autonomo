@@ -111,13 +111,11 @@ class HephaestusAgent:
         )
         self.logger.info(f"ArchitectAgent inicializado com a configuração: {self.config.get('models', {}).get('architect_default')}")
 
-        maestro_model_config = self.config.get("models", {}).get("maestro_default")
         self.maestro = MaestroAgent(
-            model_config=maestro_model_config,
             config=self.config,
             logger=self.logger.getChild("MaestroAgent")
         )
-        self.logger.info(f"MaestroAgent inicializado com a configuração: {maestro_model_config}")
+        self.logger.info(f"MaestroAgent inicializado com a configuração: {self.config.get('models', {}).get('maestro_default')}")
 
         code_review_model_config = self.config.get("models", {}).get("code_reviewer", self.config.get("models", {}).get("architect_default")) # Fallback to architect model
         self.code_reviewer = CodeReviewAgent(

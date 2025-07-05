@@ -84,6 +84,7 @@ agente_autonomo/
             error_detector_agent.py
             code_review_agent.py
             maestro_agent.py
+            model_sommelier_agent.py
             prompt_optimizer.py
             debt_hunter_agent.py
             error_analyzer.py
@@ -579,7 +580,9 @@ agente_autonomo/
 - **Função:** `_create_results_summary(results: list, search_type: str)`
   - *Cria um resumo dos resultados encontrados.*
 - **Função:** `_create_recommendations(results: list, search_type: str, context: dict)`
-  - *Cria recomendações baseadas nos resultados.*
+  - *Cria recomendações acionáveis a partir dos resultados.*
+- **Função:** `list_available_models()`
+  - *Fetches the list of available models from the OpenRouter API and filters for free ones.*
 
 ### Arquivo: `agent/project_scanner.py`
 - **Função:** `_extract_elements(code_string: str)`
@@ -696,6 +699,10 @@ agente_autonomo/
   - *LRU cache with TTL for strategy decisions.*
 - **Classe:** `MaestroAgent`
   - *Orchestrates strategy selection and execution for the Hephaestus system.*
+
+### Arquivo: `agent/agents/model_sommelier_agent.py`
+- **Classe:** `ModelSommelierAgent`
+  - *An agent that analyzes the performance of other agents and proposes*
 
 ### Arquivo: `agent/agents/prompt_optimizer.py`
 - **Classe:** `PromptOptimizer`

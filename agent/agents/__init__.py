@@ -2,22 +2,30 @@
 
 from .architect_agent import ArchitectAgent
 from .maestro_agent import MaestroAgent
+from .code_review_agent import CodeReviewAgent
 from .error_analyzer import ErrorAnalysisAgent
-from .error_correction import ErrorCorrectionAgent
 from .performance_analyzer import PerformanceAnalysisAgent
+from .prompt_optimizer import PromptOptimizer
 from .self_reflection_agent import SelfReflectionAgent
 from .capability_gap_detector import CapabilityGapDetector
-from .prompt_optimizer import PromptOptimizer
-from .code_review_agent import CodeReviewAgent
+from .error_detector_agent import ErrorDetectorAgent
+from .error_correction import ErrorCorrectionAgent
+from .log_analysis_agent import LogAnalysisAgent
+from .debt_hunter_agent import DebtHunterAgent
+from .model_sommelier_agent import ModelSommelierAgent
 
 __all__ = [
     "ArchitectAgent",
     "MaestroAgent",
+    "CodeReviewAgent",
     "ErrorAnalysisAgent",
-    "ErrorCorrectionAgent",
     "PerformanceAnalysisAgent",
+    "PromptOptimizer",
     "SelfReflectionAgent",
     "CapabilityGapDetector",
-    "PromptOptimizer",
-    "CodeReviewAgent",
+    "ErrorDetectorAgent",
+    "ErrorCorrectionAgent",
+    "LogAnalysisAgent",
+    "DebtHunterAgent",
+    "ModelSommelierAgent",
 ]

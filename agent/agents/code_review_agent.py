@@ -163,10 +163,43 @@ Your response MUST be a valid JSON object. There are only two valid formats for 
             self.logger.error(f"CodeReviewAgent: Failed to parse review response: {error or 'Invalid format'}")
             return False, f"Failed to parse review response: {raw_response}"
 
-        review_passed = parsed.get("review_passed", False)
-        feedback = parsed.get("feedback", "").strip()
+        # --- Smart Parsing Logic ---
+        review_passed = False
+        # Check for boolean `review_passed` key
+        if isinstance(parsed.get("review_passed"), bool):
+            review_passed = parsed["review_passed"]
+        # Also check for string `review_status` key
+        elif isinstance(parsed.get("review_status"), str):
+            if parsed["review_status"].upper() == "PASS" or parsed["review_status"].upper() == "PASSED":
+                review_passed = True
+        
+        feedback = ""
+        # Try to get feedback from multiple possible keys
+        if parsed.get("feedback"):
+            feedback = parsed.get("feedback", "")
+        elif parsed.get("comments"):
+            # Format comments object/dict into a string
+            comments_data = parsed.get("comments")
+            if isinstance(comments_data, dict):
+                feedback_lines = []
+                for key, value in comments_data.items():
+                    if isinstance(value, list):
+                        feedback_lines.append(f"- {key.replace('_', ' ').title()}:\\n  - " + "\\n  - ".join(value))
+                    else:
+                        feedback_lines.append(f"- {key.replace('_', ' ').title()}: {value}")
+                feedback = "\\n".join(feedback_lines)
+            else:
+                feedback = str(comments_data)
+        elif parsed.get("suggestions"):
+            suggestions = parsed.get("suggestions")
+            if isinstance(suggestions, list):
+                feedback = "Suggestions:\\n- " + "\\n- ".join(suggestions)
+            else:
+                feedback = str(suggestions)
 
-        # Add validation logic
+        feedback = feedback.strip()
+
+        # Final validation logic
         if not review_passed and (not feedback or feedback.upper() == "OK"):
             error_message = f"CodeReviewAgent: LLM failed review but provided no actionable feedback. Response: {raw_response}"
             self.logger.error(error_message)
@@ -174,7 +207,7 @@ Your response MUST be a valid JSON object. There are only two valid formats for 
 
         if review_passed:
             self.logger.info("CodeReviewAgent: Review PASSED.")
+            return True, "OK"
         else:
             self.logger.warning(f"CodeReviewAgent: Review FAILED. Feedback: {feedback}")
-
-        return review_passed, feedback 
+            return False, feedback 
