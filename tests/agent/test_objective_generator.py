@@ -1,66 +1,60 @@
 import pytest
-from unittest.mock import MagicMock, patch
+from unittest.mock import Mock, patch
 from agent.objective_generator import generate_next_objective, generate_capacitation_objective
 from agent.memory import Memory
 from agent.model_optimizer import ModelOptimizer
+import logging
 
-class TestObjectiveGenerator:
-    @pytest.fixture
-    def mock_model_config(self):
-        return {"model": "test-model", "api_key": "test-key"}
-    
-    @pytest.fixture
-    def mock_logger(self):
-        return MagicMock()
-    
-    @pytest.fixture
-    def mock_memory(self):
-        return MagicMock(spec=Memory)
-    
-    @pytest.fixture
-    def mock_model_optimizer(self):
-        return MagicMock(spec=ModelOptimizer)
-    
-    def test_generate_next_objective_basic(self, mock_model_config, mock_logger):
-        """Test basic functionality of generate_next_objective."""
-        current_manifest = "Test manifest content"
-        project_root_dir = "/test/path"
-        
-        # TODO: Add proper mocking and assertions
-        result = generate_next_objective(
-            model_config=mock_model_config,
-            current_manifest=current_manifest,
-            logger=mock_logger,
-            project_root_dir=project_root_dir
-        )
-        
-        assert isinstance(result, str)
-    
-    def test_generate_next_objective_with_memory(self, mock_model_config, mock_logger, mock_memory):
-        """Test generate_next_objective with memory context."""
-        # TODO: Implement test with memory context
+@pytest.fixture
+def mock_logger():
+    return Mock(spec=logging.Logger)
+
+@pytest.fixture
+def mock_memory():
+    return Mock(spec=Memory)
+
+@pytest.fixture
+def mock_model_optimizer():
+    return Mock(spec=ModelOptimizer)
+
+class TestGenerateNextObjective:
+    def test_generate_with_empty_inputs(self, mock_logger):
+        """Test generation with empty manifest and no analysis."""
+        # TODO: Implement test cases
         pass
-    
-    def test_generate_next_objective_with_model_optimizer(self, mock_model_config, mock_logger, mock_model_optimizer):
-        """Test generate_next_objective with performance analysis."""
-        # TODO: Implement test with model optimizer
+
+    def test_generate_with_standard_inputs(self, mock_logger, mock_memory, mock_model_optimizer):
+        """Test generation with standard inputs."""
+        # TODO: Implement test cases
         pass
-    
-    def test_generate_capacitation_objective_basic(self, mock_model_config, mock_logger):
-        """Test basic functionality of generate_capacitation_objective."""
-        engineer_analysis = "Test engineer analysis"
-        
-        # TODO: Add proper mocking and assertions
-        result = generate_capacitation_objective(
-            model_config=mock_model_config,
-            engineer_analysis=engineer_analysis,
-            logger=mock_logger
-        )
-        
-        assert isinstance(result, str)
-        assert result.startswith("[CAPACITATION TASK]")
-    
-    def test_generate_capacitation_objective_with_memory(self, mock_model_config, mock_logger):
-        """Test generate_capacitation_objective with memory context."""
-        # TODO: Implement test with memory context
+
+    def test_generate_with_meta_analysis_case(self, mock_logger, mock_memory, mock_model_optimizer):
+        """Test generation when handling a meta-analysis case."""
+        # TODO: Implement test cases
+        pass
+
+    def test_generate_with_code_analysis_errors(self, mock_logger):
+        """Test error handling during code analysis."""
+        # TODO: Implement test cases
+        pass
+
+    def test_generate_with_performance_analysis_errors(self, mock_logger):
+        """Test error handling during performance analysis."""
+        # TODO: Implement test cases
+        pass
+
+class TestGenerateCapacitationObjective:
+    def test_generate_with_empty_analysis(self, mock_logger):
+        """Test generation with empty engineer analysis."""
+        # TODO: Implement test cases
+        pass
+
+    def test_generate_with_valid_analysis(self, mock_logger):
+        """Test generation with valid engineer analysis."""
+        # TODO: Implement test cases
+        pass
+
+    def test_generate_with_memory_context(self, mock_logger, mock_memory):
+        """Test generation with memory context provided."""
+        # TODO: Implement test cases
         pass

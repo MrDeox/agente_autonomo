@@ -48,8 +48,10 @@ agente_autonomo/
         commit_message_generator.py
         arthur_interface_generator.py
         code_metrics.py
+        tactical_generator.py
         knowledge_integration.py
         model_optimizer.py
+        strategic_planner.py
         hephaestus_agent.py
         hephaestus_config.json
         git_utils.py
@@ -433,6 +435,10 @@ agente_autonomo/
 - **Função:** `detect_code_duplication(code_string: str, min_lines: int=4, strip_comments_and_blanks: bool=True)`
   - *Detects duplicated code blocks in the given Python code string.*
 
+### Arquivo: `agent/tactical_generator.py`
+- **Classe:** `TacticalGenerator`
+  - *Handles concrete objective formulation based on strategic direction.*
+
 ### Arquivo: `agent/knowledge_integration.py`
 - **Classe:** `KnowledgePattern`
   - *Represents a recognized pattern in knowledge.*
@@ -448,6 +454,10 @@ agente_autonomo/
   - *Advanced system for model self-optimization through performance data collection*
 - **Função:** `get_model_optimizer(model_config: Dict[str, str], logger: logging.Logger)`
   - *Factory function to get a singleton instance of the ModelOptimizer.*
+
+### Arquivo: `agent/strategic_planner.py`
+- **Classe:** `StrategicPlanner`
+  - *Handles strategic roadmap alignment and high-level objective planning.*
 
 ### Arquivo: `agent/hephaestus_agent.py`
 - **Classe:** `HephaestusAgent`
