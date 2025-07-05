@@ -902,7 +902,7 @@ agente_autonomo/
 - **Classe:** `StrategyCache`
   - *LRU cache with TTL for strategy decisions.*
 - **Classe:** `MaestroAgent`
-  - *Orchestrates strategy selection and execution for the Hephaestus system.*
+  - *Orchestrates strategy selection and execution for the Hephaestus system with weighted strategy selection.*
 
 ### Arquivo: `agent/agents/dependency_fixer_agent.py`
 - **Classe:** `DependencyFixerAgent`
