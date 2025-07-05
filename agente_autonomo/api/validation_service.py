@@ -9,6 +9,12 @@ import logging
 
 logger = logging.getLogger("ValidationService")
 
+class SelfReflectionRequest(BaseModel):
+    """Pydantic model for deep_self_reflection endpoint request"""
+    introspection_depth: float = 0.5
+    include_meta_awareness: bool = True
+    include_cognitive_state: bool = True
+
 class SelfReflectionResponse(BaseModel):
     """Pydantic model for deep_self_reflection endpoint response"""
     meta_awareness: float
@@ -16,6 +22,12 @@ class SelfReflectionResponse(BaseModel):
     self_narrative: Dict[str, str]
     current_cognitive_state: Dict[str, float]
     introspection_depth: float
+
+class AwarenessReportRequest(BaseModel):
+    """Pydantic model for self_awareness_report endpoint request"""
+    include_metrics: bool = True
+    include_trajectory: bool = True
+    include_insights: bool = True
 
 class AwarenessReportResponse(BaseModel):
     """Pydantic model for self_awareness_report endpoint response"""
@@ -29,6 +41,16 @@ class ValidationService:
     """Service for validating and recovering from invalid responses"""
     
     @staticmethod
+    def validate_self_reflection_request(data: Dict[str, Any]) -> bool:
+        """Validate deep_self_reflection request structure"""
+        try:
+            SelfReflectionRequest(**data)
+            return True
+        except ValidationError as e:
+            logger.error(f"Self reflection request validation failed: {e}")
+            return False
+    
+    @staticmethod
     def validate_self_reflection_response(data: Dict[str, Any]) -> bool:
         """Validate deep_self_reflection response structure"""
         try:
@@ -36,6 +58,16 @@ class ValidationService:
             return True
         except ValidationError as e:
             logger.error(f"Self reflection validation failed: {e}")
+            return False
+    
+    @staticmethod
+    def validate_awareness_report_request(data: Dict[str, Any]) -> bool:
+        """Validate self_awareness_report request structure"""
+        try:
+            AwarenessReportRequest(**data)
+            return True
+        except ValidationError as e:
+            logger.error(f"Awareness report request validation failed: {e}")
             return False
     
     @staticmethod
