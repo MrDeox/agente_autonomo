@@ -95,10 +95,14 @@ def call_openrouter_api(model: str, prompt: str, temperature: float, max_tokens:
         logger.error(error_details)
         return None, error_details
 
-def call_llm_with_fallback(model_config: Dict[str, Any], prompt: str, temperature: float, logger: logging.Logger) -> Tuple[Optional[str], Optional[str]]:
+def call_llm_with_fallback(model_config: dict, prompt: str, temperature: float, logger: logging.Logger) -> Tuple[Optional[str], Optional[str]]:
     """
     Orchestrates LLM calls with a primary and fallback model.
     """
+    # Permitir que model_config seja string ou dict
+    if isinstance(model_config, str):
+        model_config = {"primary": model_config}
+
     primary_model = model_config.get("primary")
     fallback_model = model_config.get("fallback")
     max_tokens = model_config.get("max_tokens")

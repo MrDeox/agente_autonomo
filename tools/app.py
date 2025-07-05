@@ -589,6 +589,159 @@ async def get_orchestration_status(auth_user: dict = Depends(get_auth_user)):
         logger.error(f"Error getting orchestration status: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
+# === SWARM COMMUNICATION ENDPOINTS === #
+
+@app.get("/swarm/status", tags=["Swarm Communication"])
+async def get_swarm_status(auth_user: dict = Depends(get_auth_user)):
+    """Get swarm communication and coordination status"""
+    try:
+        if hephaestus_agent_instance:
+            status = hephaestus_agent_instance.get_swarm_communication_status()
+            return {
+                "status": "success",
+                "swarm_status": status,
+                "timestamp": datetime.now().isoformat(),
+                "message": "🐝 Swarm status retrieved successfully"
+            }
+        else:
+            raise HTTPException(status_code=500, detail="Agent not initialized")
+    except Exception as e:
+        logger.error(f"Error getting swarm status: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.post("/swarm/start-conversation", tags=["Swarm Communication"])
+async def start_swarm_conversation(request: dict, auth_user: dict = Depends(get_auth_user)):
+    """Start a conversation between agents"""
+    try:
+        if not hephaestus_agent_instance:
+            raise HTTPException(status_code=500, detail="Agent not initialized")
+        
+        initiator = request.get("initiator")
+        participants = request.get("participants", [])
+        topic = request.get("topic")
+        initial_message = request.get("initial_message")
+        
+        if not all([initiator, participants, topic, initial_message]):
+            raise HTTPException(status_code=400, detail="Missing required fields")
+        
+        conversation_id = await hephaestus_agent_instance.inter_agent_communication.start_conversation(
+            initiator, participants, topic, initial_message
+        )
+        
+        return {
+            "status": "success",
+            "conversation_id": conversation_id,
+            "message": f"💬 Conversation started: {topic}",
+            "participants": participants
+        }
+    except Exception as e:
+        logger.error(f"Error starting swarm conversation: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.post("/swarm/coordinate-task", tags=["Swarm Communication"])
+async def coordinate_swarm_task(request: dict, auth_user: dict = Depends(get_auth_user)):
+    """Coordinate a complex task using swarm intelligence"""
+    try:
+        if not hephaestus_agent_instance:
+            raise HTTPException(status_code=500, detail="Agent not initialized")
+        
+        task_description = request.get("task_description")
+        required_capabilities = request.get("required_capabilities", [])
+        
+        if not task_description:
+            raise HTTPException(status_code=400, detail="Task description required")
+        
+        result = await hephaestus_agent_instance.inter_agent_communication.coordinate_complex_task(
+            task_description, required_capabilities
+        )
+        
+        return {
+            "status": "success",
+            "coordination_result": result,
+            "message": f"🎯 Task coordinated: {task_description}"
+        }
+    except Exception as e:
+        logger.error(f"Error coordinating swarm task: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.post("/swarm/resolve-conflict", tags=["Swarm Communication"])
+async def resolve_swarm_conflict(request: dict, auth_user: dict = Depends(get_auth_user)):
+    """Resolve conflicts between agents using negotiation"""
+    try:
+        if not hephaestus_agent_instance:
+            raise HTTPException(status_code=500, detail="Agent not initialized")
+        
+        problem = request.get("problem")
+        conflicting_agents = request.get("conflicting_agents", [])
+        
+        if not all([problem, conflicting_agents]):
+            raise HTTPException(status_code=400, detail="Problem and conflicting agents required")
+        
+        result = await hephaestus_agent_instance.inter_agent_communication.negotiate_solution(
+            problem, conflicting_agents
+        )
+        
+        return {
+            "status": "success",
+            "negotiation_result": result,
+            "message": f"⚖️ Conflict resolution initiated: {problem}"
+        }
+    except Exception as e:
+        logger.error(f"Error resolving swarm conflict: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.post("/swarm/collective-problem-solving", tags=["Swarm Communication"])
+async def start_collective_problem_solving(request: dict, auth_user: dict = Depends(get_auth_user)):
+    """Start collective problem solving session"""
+    try:
+        if not hephaestus_agent_instance:
+            raise HTTPException(status_code=500, detail="Agent not initialized")
+        
+        problem = request.get("problem")
+        agent_perspectives = request.get("agent_perspectives", {})
+        
+        if not problem:
+            raise HTTPException(status_code=400, detail="Problem description required")
+        
+        result = await hephaestus_agent_instance.inter_agent_communication.collective_problem_solving(
+            problem, agent_perspectives
+        )
+        
+        return {
+            "status": "success",
+            "problem_solving_result": result,
+            "message": f"🧠 Collective problem solving started: {problem}"
+        }
+    except Exception as e:
+        logger.error(f"Error starting collective problem solving: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.post("/swarm/knowledge-sharing", tags=["Swarm Communication"])
+async def start_knowledge_sharing(request: dict, auth_user: dict = Depends(get_auth_user)):
+    """Start knowledge sharing session between agents"""
+    try:
+        if not hephaestus_agent_instance:
+            raise HTTPException(status_code=500, detail="Agent not initialized")
+        
+        topic = request.get("topic")
+        knowledge_providers = request.get("knowledge_providers", [])
+        
+        if not all([topic, knowledge_providers]):
+            raise HTTPException(status_code=400, detail="Topic and knowledge providers required")
+        
+        result = await hephaestus_agent_instance.inter_agent_communication.knowledge_sharing_session(
+            topic, knowledge_providers
+        )
+        
+        return {
+            "status": "success",
+            "knowledge_sharing_result": result,
+            "message": f"📚 Knowledge sharing started: {topic}"
+        }
+    except Exception as e:
+        logger.error(f"Error starting knowledge sharing: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
 # === META-INTELLIGENCE ENDPOINTS === #
 
 @app.post("/meta-intelligence/deep-reflection", tags=["Meta-Intelligence"])

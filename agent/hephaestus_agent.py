@@ -33,6 +33,8 @@ from agent.advanced_knowledge_system import AdvancedKnowledgeSystem, get_knowled
 from agent.root_cause_analyzer import RootCauseAnalyzer, get_root_cause_analyzer
 from agent.self_awareness_core import SelfAwarenessCore, get_self_awareness_core
 from agent.utils.infrastructure_manager import InfrastructureManager, get_infrastructure_manager
+from agent.inter_agent_communication import get_inter_agent_communication
+from agent.agents.swarm_coordinator_agent import SwarmCoordinatorAgent
 from .hot_reload_manager import HotReloadManager, SelfEvolutionEngine
 
 # Configuração do Logging
@@ -102,6 +104,17 @@ class HephaestusAgent:
         # Inicializar orquestrador assíncrono
         self.async_orchestrator = AsyncAgentOrchestrator(self.config, self.logger)
         
+        # Inicializar sistema de comunicação inter-agente
+        self.inter_agent_communication = get_inter_agent_communication(self.config, self.logger)
+        
+        # Inicializar SwarmCoordinatorAgent
+        self.swarm_coordinator = SwarmCoordinatorAgent(
+            model_config=self.config.get("models", {}).get("architect_default", "gpt-4"),
+            config=self.config,
+            logger=self.logger
+        )
+        self.swarm_coordinator.set_communication_system(self.inter_agent_communication)
+        
         # Estado de meta-inteligência
         self.meta_intelligence_active = False
 
@@ -140,6 +153,9 @@ class HephaestusAgent:
             logger=self.logger.getChild("BugHunterAgent")
         )
         self.logger.info("BugHunterAgent inicializado para detecção e correção automática de bugs")
+
+        # Registrar agentes no sistema de comunicação
+        self._register_agents_for_communication()
 
         self.evolution_log_file = "logs/evolution_log.csv"
         self._initialize_evolution_log()
@@ -807,6 +823,55 @@ class HephaestusAgent:
                 "performance_optimization"
             ]
         }
+    
+    def _register_agents_for_communication(self):
+        """Registra todos os agentes no sistema de comunicação inter-agente"""
+        try:
+            # Registrar agentes principais
+            self.inter_agent_communication.register_agent(
+                "architect", self.architect, 
+                ["code_analysis", "architecture_design", "problem_solving"]
+            )
+            
+            self.inter_agent_communication.register_agent(
+                "maestro", self.maestro,
+                ["strategy_selection", "orchestration", "decision_making"]
+            )
+            
+            self.inter_agent_communication.register_agent(
+                "code_reviewer", self.code_reviewer,
+                ["code_review", "quality_assessment", "best_practices"]
+            )
+            
+            self.inter_agent_communication.register_agent(
+                "bug_hunter", self.bug_hunter,
+                ["bug_detection", "error_analysis", "automatic_fixing"]
+            )
+            
+            self.inter_agent_communication.register_agent(
+                "swarm_coordinator", self.swarm_coordinator,
+                ["coordination", "mediation", "conflict_resolution", "collaboration_optimization"]
+            )
+            
+            self.logger.info("✅ All agents registered for inter-agent communication")
+            
+        except Exception as e:
+            self.logger.error(f"❌ Error registering agents for communication: {e}")
+    
+    def get_swarm_communication_status(self) -> Dict[str, Any]:
+        """Retorna status do sistema de comunicação do enxame"""
+        try:
+            return {
+                "communication_status": self.inter_agent_communication.get_communication_status(),
+                "swarm_status": self.swarm_coordinator.get_swarm_status(),
+                "swarm_metrics": self.swarm_coordinator.get_swarm_metrics().__dict__,
+                "active_conversations": len(self.inter_agent_communication.conversations),
+                "active_collaborations": len(self.inter_agent_communication.collaboration_sessions),
+                "system_status": "operational"
+            }
+        except Exception as e:
+            self.logger.error(f"Error getting swarm communication status: {e}")
+            return {"error": str(e)}
 
     def stop_meta_intelligence(self):
         """Stop the meta-intelligence system"""

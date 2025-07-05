@@ -71,6 +71,7 @@ agente_autonomo/
         cognitive_evolution_manager.py
         prompt_builder.py
         tool_executor.py
+        inter_agent_communication.py
         learning_strategist.py
         project_scanner.py
         queue_manager.py
@@ -104,6 +105,7 @@ agente_autonomo/
             code_review_agent.py
             maestro_agent.py
             model_sommelier_agent.py
+            swarm_coordinator_agent.py
             prompt_optimizer.py
             integrator_agent.py
             debt_hunter_agent.py
@@ -131,6 +133,8 @@ agente_autonomo/
             main.yaml
     agente_autonomo/
         hephaestus_mcp_server.py
+        api/
+            error_resilience.py
         server/
             report_service.py
             reflection_service.py
@@ -322,6 +326,18 @@ agente_autonomo/
   - *Start async evolution with parallel multi-agent orchestration*
 - **Função:** `get_orchestration_status(auth_user: dict=Depends(get_auth_user))`
   - *Get detailed async orchestration status*
+- **Função:** `get_swarm_status(auth_user: dict=Depends(get_auth_user))`
+  - *Get swarm communication and coordination status*
+- **Função:** `start_swarm_conversation(request: dict, auth_user: dict=Depends(get_auth_user))`
+  - *Start a conversation between agents*
+- **Função:** `coordinate_swarm_task(request: dict, auth_user: dict=Depends(get_auth_user))`
+  - *Coordinate a complex task using swarm intelligence*
+- **Função:** `resolve_swarm_conflict(request: dict, auth_user: dict=Depends(get_auth_user))`
+  - *Resolve conflicts between agents using negotiation*
+- **Função:** `start_collective_problem_solving(request: dict, auth_user: dict=Depends(get_auth_user))`
+  - *Start collective problem solving session*
+- **Função:** `start_knowledge_sharing(request: dict, auth_user: dict=Depends(get_auth_user))`
+  - *Start knowledge sharing session between agents*
 - **Função:** `perform_deep_reflection(request: DeepReflectionRequest, auth_user: dict=Depends(get_auth_user))`
   - *Perform deep self-reflection and introspection*
 - **Função:** `get_comprehensive_meta_intelligence_status(auth_user: dict=Depends(get_auth_user))`
@@ -672,6 +688,22 @@ agente_autonomo/
 - **Função:** `list_available_models()`
   - *Fetches the list of available models from the OpenRouter API and filters for free ones.*
 
+### Arquivo: `agent/inter_agent_communication.py`
+- **Classe:** `MessageType(Enum)`
+  - *Tipos de mensagens entre agentes*
+- **Classe:** `AgentRole(Enum)`
+  - *Papéis dos agentes na comunicação*
+- **Classe:** `AgentMessage`
+  - *Mensagem entre agentes*
+- **Classe:** `Conversation`
+  - *Conversa entre múltiplos agentes*
+- **Classe:** `CollaborationSession`
+  - *Sessão de colaboração para tarefas complexas*
+- **Classe:** `InterAgentCommunication`
+  - *Sistema de comunicação inter-agente*
+- **Função:** `get_inter_agent_communication(config: Dict[str, Any], logger: logging.Logger)`
+  - *Retorna instância global do sistema de comunicação inter-agente*
+
 ### Arquivo: `agent/learning_strategist.py`
 - **Classe:** `LearningStrategist`
   - *Adapts learning strategies based on capability gaps and performance data.*
@@ -828,6 +860,14 @@ agente_autonomo/
 - **Classe:** `ModelSommelierAgent`
   - *An agent that analyzes the performance of other agents and proposes*
 
+### Arquivo: `agent/agents/swarm_coordinator_agent.py`
+- **Classe:** `SwarmObjective`
+  - *Objetivo do enxame*
+- **Classe:** `SwarmMetrics`
+  - *Métricas do enxame*
+- **Classe:** `SwarmCoordinatorAgent`
+  - *Agente coordenador de enxame inteligente*
+
 ### Arquivo: `agent/agents/prompt_optimizer.py`
 - **Classe:** `PromptOptimizer`
   - *Analyzes prompt performance and automatically optimizes prompts*
@@ -866,7 +906,7 @@ agente_autonomo/
   - *Calls the Google Gemini API.*
 - **Função:** `call_openrouter_api(model: str, prompt: str, temperature: float, max_tokens: Optional[int], logger: logging.Logger)`
   - *Calls a generic OpenAI-compatible API (like OpenRouter).*
-- **Função:** `call_llm_with_fallback(model_config: Dict[str, Any], prompt: str, temperature: float, logger: logging.Logger)`
+- **Função:** `call_llm_with_fallback(model_config: dict, prompt: str, temperature: float, logger: logging.Logger)`
   - *Orchestrates LLM calls with a primary and fallback model.*
 
 ### Arquivo: `agent/utils/llm_optimizer.py`
@@ -908,6 +948,14 @@ agente_autonomo/
   - *Sistema de melhorias contínuas*
 
 ### Arquivo: `agente_autonomo/hephaestus_mcp_server.py`
+
+### Arquivo: `agente_autonomo/api/error_resilience.py`
+- **Classe:** `SelfReflectionRequest(BaseModel)`
+  - *Pydantic model for self-reflection requests*
+- **Classe:** `SelfAwarenessResponse(BaseModel)`
+  - *Standardized response format for self-awareness endpoints*
+- **Classe:** `ErrorResilience`
+  - *Core error resilience functionality*
 
 ### Arquivo: `agente_autonomo/server/report_service.py`
 - **Classe:** `ReportService`
