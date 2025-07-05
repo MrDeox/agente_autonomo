@@ -15,6 +15,8 @@ import inspect
 import ast
 import types
 
+from agent.state import AgentState
+
 try:
     from watchdog.observers import Observer
     from watchdog.events import FileSystemEventHandler
@@ -26,7 +28,8 @@ except ImportError:
 class HotReloadManager:
     """Sistema de hot reload para evolução em tempo real"""
     
-    def __init__(self, logger: logging.Logger, base_path: str = None):
+    def __init__(self, agent_state: AgentState, logger: logging.Logger, base_path: str = None):
+        self.agent_state = agent_state
         self.logger = logger
         self.base_path = base_path or os.path.dirname(os.path.abspath(__file__))
         self.observers = []
@@ -277,51 +280,36 @@ class HotReloadManager:
 
 
 if WATCHDOG_AVAILABLE:
-    class AgentFileHandler(FileSystemEventHandler):
-        """Handler para arquivos do diretório agent"""
-        
+    class BaseFileChangeHandler(FileSystemEventHandler):
         def __init__(self, hot_reload_manager: HotReloadManager):
             self.hot_reload_manager = hot_reload_manager
             self.logger = hot_reload_manager.logger
-        
+            self.agent_state = hot_reload_manager.agent_state
+
         def on_modified(self, event):
-            if event.is_directory:
+            if event.is_directory or not event.src_path.endswith('.py'):
                 return
             
-            if event.src_path.endswith('.py'):
-                self.logger.info(f"📝 Agent file modified: {event.src_path}")
-                
-                # Aguardar um pouco para o arquivo ser completamente escrito
-                time.sleep(0.5)
-                
-                # Recarregar módulo
+            # The core logic: check if the agent is modifying itself.
+            if self.agent_state.is_self_modifying:
+                self.logger.info(f"🧬 Agent self-modification detected for {event.src_path}. Triggering dynamic reload.")
+                time.sleep(0.5) # Give file time to be fully written
                 self.hot_reload_manager.reload_module(event.src_path)
+            else:
+                self.logger.info(f"🔧 Manual file change detected for {event.src_path}. Allowing uvicorn to handle reload.")
+                # By doing nothing, we let the default uvicorn reloader take over.
+                pass
 
+    class AgentFileHandler(BaseFileChangeHandler):
+        """Handler for files in the agent directory."""
+        pass # Logic is handled by the base class
 
-    class ToolsFileHandler(FileSystemEventHandler):
-        """Handler para arquivos do diretório tools"""
-        
-        def __init__(self, hot_reload_manager: HotReloadManager):
-            self.hot_reload_manager = hot_reload_manager
-            self.logger = hot_reload_manager.logger
-        
-        def on_modified(self, event):
-            if event.is_directory:
-                return
-            
-            if event.src_path.endswith('.py'):
-                self.logger.info(f"🔧 Tools file modified: {event.src_path}")
-                
-                # API precisa ser tratada diferentemente
-                if 'app.py' in event.src_path:
-                    self.logger.info("🌐 API file modified - Auto-reload will be handled by uvicorn")
-                else:
-                    time.sleep(0.5)
-                    self.hot_reload_manager.reload_module(event.src_path)
-
+    class ToolsFileHandler(BaseFileChangeHandler):
+        """Handler for files in the tools directory."""
+        pass # Logic is handled by the base class
 
     class ConfigFileHandler(FileSystemEventHandler):
-        """Handler para arquivos de configuração"""
+        """Handler para arquivos de configuração (não aciona reload de código)."""
         
         def __init__(self, hot_reload_manager: HotReloadManager):
             self.hot_reload_manager = hot_reload_manager
@@ -333,10 +321,8 @@ if WATCHDOG_AVAILABLE:
             
             if event.src_path.endswith(('.yaml', '.yml', '.json')):
                 self.logger.info(f"⚙️ Config file modified: {event.src_path}")
-                
-                # Notificar sobre mudança de config
-                # Aqui poderia ter um callback específico para recarregar configurações
-                self.logger.info("📄 Configuration change detected - system will adapt")
+                self.logger.info("📄 Configuration change detected. Manual restart may be needed to apply some changes.")
+                # For now, just logs. A more advanced version could trigger specific config reload callbacks.
 
 
 class SelfEvolutionEngine:

@@ -140,7 +140,7 @@ class HephaestusAgent:
         self.logger.info("🧬 Self-awareness core monitoring cognitive state")
 
         # Hot Reload Manager - Auto-atualização em tempo real
-        self.hot_reload_manager = HotReloadManager(self.logger)
+        self.hot_reload_manager = HotReloadManager(self.state, self.logger)
         self.self_evolution_engine = SelfEvolutionEngine(self.hot_reload_manager)
         self.real_time_evolution_enabled = False
         
