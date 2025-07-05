@@ -28,6 +28,8 @@ class AgentState:
 
     file_content_context: str = "" # Novo campo para contexto de arquivo
 
+    is_self_modifying: bool = False # NEW: Tracks if a cycle is actively modifying code
+
     def get_patches_to_apply(self) -> List[Dict[str, Any]]:
         """Helper para obter a lista de patches do action_plan_data de forma segura."""
         if self.action_plan_data and "patches_to_apply" in self.action_plan_data:
@@ -42,6 +44,7 @@ class AgentState:
 
     def reset_for_new_cycle(self, current_objective: Optional[str] = None):
         """Reseta o estado para um novo ciclo, mantendo o objetivo atual se fornecido."""
+        self.is_self_modifying = False # Reset at the beginning of a new cycle
         self.current_objective = current_objective
         self.manifesto_content = ""
         self.action_plan_data = None
