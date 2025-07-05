@@ -2,6 +2,7 @@ from typing import Dict, Optional, Tuple, List, Any
 from datetime import datetime, timedelta
 from collections import OrderedDict
 import logging
+import hashlib
 
 class StrategyCache:
     """
@@ -16,8 +17,10 @@ class StrategyCache:
         self.max_size = max_size
         self.ttl = timedelta(seconds=ttl)
 
-    def get(self, key: str) -> Optional[Dict]:
+    def get(self, action_plan_data: Dict[str, Any], memory_summary: str = "") -> Optional[str]:
         """Retrieve a strategy from cache if it exists and isn't expired."""
+        key = self._generate_key(action_plan_data, memory_summary)
+        
         if key not in self.cache:
             return None
             
@@ -32,6 +35,24 @@ class StrategyCache:
 
     def set(self, key: str, strategy: Dict) -> None:
         """Store a strategy in the cache."""
+        if key in self.cache:
+            self.cache.move_to_end(key)
+        else:
+            if len(self.cache) >= self.max_size:
+                self.cache.popitem(last=False)
+        self.cache[key] = (strategy, datetime.now())
+
+    def _generate_key(self, action_plan_data: Dict[str, Any], memory_summary: str = "") -> str:
+        """Generates a cache key from the context dictionary."""
+        # TODO: Implement robust key generation
+        context_str = str(sorted(action_plan_data.items())) + memory_summary
+        return hashlib.md5(context_str.encode()).hexdigest()
+
+    def put(self, action_plan_data: Dict[str, Any], memory_summary: str, strategy: str):
+        """Adiciona estratégia ao cache"""
+        key = self._generate_key(action_plan_data, memory_summary)
+        
+        # Remove item mais antigo se necessário
         if key in self.cache:
             self.cache.move_to_end(key)
         else:
@@ -71,7 +92,7 @@ class MaestroAgent:
         cache_key = self._generate_cache_key(context)
         
         # Check cache first
-        cached_strategy = self.strategy_cache.get(cache_key)
+        cached_strategy = self.strategy_cache.get(context, "")
         if cached_strategy:
             self.logger.debug(f"Using cached strategy for key: {cache_key}")
             return cached_strategy

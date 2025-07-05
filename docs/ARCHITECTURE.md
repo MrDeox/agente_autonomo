@@ -73,6 +73,8 @@ agente_autonomo/
             patch_applicator.py
             syntax_validator.py
             pytest_new_file_validator.py
+        config/
+            technical_debt_config.yaml
         agents/
             capability_gap_detector.py
             __init__.py
@@ -259,7 +261,7 @@ agente_autonomo/
 - **Função:** `shutdown_event()`
   - *Cleanup on shutdown*
 - **Função:** `periodic_log_analysis_task()`
-  - *A background task that periodically queues a log analysis objective.*
+  - *A background task that periodically queues system monitoring tasks.*
 - **Função:** `worker_thread()`
   - *Starts the agent's main execution loop.*
 - **Função:** `process_objective(objective_data: Any)`
@@ -709,6 +711,8 @@ agente_autonomo/
   - *Analyzes prompt performance and automatically optimizes prompts*
 
 ### Arquivo: `agent/agents/debt_hunter_agent.py`
+- **Classe:** `DebtType(Enum)`
+- **Classe:** `TechnicalDebtItem`
 - **Classe:** `DebtHunterAgent`
   - *An autonomous agent that proactively hunts for technical debt and proposes*
 

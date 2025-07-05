@@ -4,7 +4,7 @@ import csv
 import json
 import time
 from datetime import datetime
-from typing import TYPE_CHECKING, Optional
+from typing import TYPE_CHECKING, Optional, Any
 from pathlib import Path
 import asyncio
 
@@ -103,24 +103,29 @@ class CycleRunner:
             return False
         return True
 
-    def _run_single_cycle(self, current_objective: str):
+    def _run_single_cycle(self, current_objective: Any):
         """Executes the full logic for a single evolutionary cycle."""
-        # Handle special task types that don't need the full cycle
-        if isinstance(current_objective, dict) and current_objective.get("is_log_analysis_task"):
-            self.agent.logger.info("Handling special task: Log Analysis.")
-            self._run_log_analysis_task(current_objective)
-            return
-        if current_objective.get("is_debt_hunter_task"):
-            self.agent.logger.info("Handling special task: Debt Hunter.")
-            self._run_debt_hunter_task()
-            return
-        if current_objective.get("is_model_sommelier_task"):
-            self.agent.logger.info("Handling special task: Model Sommelier.")
-            self._run_model_sommelier_task()
-            return
+        
+        # Handle special task types that are passed as dictionaries
+        if isinstance(current_objective, dict):
+            if current_objective.get("is_log_analysis_task"):
+                self.agent.logger.info("Handling special task: Log Analysis.")
+                self._run_log_analysis_task(current_objective)
+                return
+            if current_objective.get("is_debt_hunter_task"):
+                self.agent.logger.info("Handling special task: Debt Hunter.")
+                self._run_debt_hunter_task()
+                return
+            if current_objective.get("is_model_sommelier_task"):
+                self.agent.logger.info("Handling special task: Model Sommelier.")
+                self._run_model_sommelier_task()
+                return
+        
+        # Standard objectives are strings
+        objective_str = str(current_objective)
 
         self.agent._reset_cycle_state()
-        self.agent.state.current_objective = current_objective
+        self.agent.state.current_objective = objective_str
 
         if not self._execute_phase_and_handle_failure(self.agent._generate_manifest, "MANIFEST_GENERATION_FAILED", "Could not generate project manifest."):
             return
@@ -134,18 +139,18 @@ class CycleRunner:
         if not self._execute_phase_and_handle_failure(self.agent._run_code_review_phase, "CODE_REVIEW_FAILED", "CodeReviewAgent rejected the plan and architect failed to create a new one."):
             return
 
-        is_correction_objective = any(current_objective.startswith(p) for p in ["[AUTOMATIC CORRECTION TASK]", "[CORRECTION TASK", "[REVISED OBJECTIVE", "[MODIFIED OBJECTIVE"])
+        is_correction_objective = any(objective_str.startswith(p) for p in ["[AUTOMATIC CORRECTION TASK]", "[CORRECTION TASK", "[REVISED OBJECTIVE", "[MODIFIED OBJECTIVE"])
         if is_correction_objective:
             self.agent.logger.info(f"Correction objective detected. Using AUTO_CORRECTION_STRATEGY.")
             self.agent.state.strategy_key = "AUTO_CORRECTION_STRATEGY"
             if "AUTO_CORRECTION_STRATEGY" not in self.agent.config.get("validation_strategies", {}):
-                 self.agent.memory.add_failed_objective(current_objective, "CONFIG_ERROR", "AUTO_CORRECTION_STRATEGY missing.")
+                 self.agent.memory.add_failed_objective(objective_str, "CONFIG_ERROR", "AUTO_CORRECTION_STRATEGY missing.")
                  return
         else:
             if not self._execute_phase_and_handle_failure(self.agent._run_maestro_phase, "MAESTRO_PHASE_FAILED", "MaestroAgent could not decide on a strategy."):
                 return
 
-        self._run_validation_and_application(current_objective)
+        self._run_validation_and_application(objective_str)
 
     def _run_log_analysis_task(self, task_data: dict):
         """Runs a log analysis task using the orchestrator."""
