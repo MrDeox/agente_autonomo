@@ -980,8 +980,12 @@ agente_autonomo/
   - *Mechanisms for recovering from failures*
 
 ### Arquivo: `agente_autonomo/api/validation_service.py`
+- **Classe:** `SelfReflectionRequest(BaseModel)`
+  - *Pydantic model for deep_self_reflection endpoint request*
 - **Classe:** `SelfReflectionResponse(BaseModel)`
   - *Pydantic model for deep_self_reflection endpoint response*
+- **Classe:** `AwarenessReportRequest(BaseModel)`
+  - *Pydantic model for self_awareness_report endpoint request*
 - **Classe:** `AwarenessReportResponse(BaseModel)`
   - *Pydantic model for self_awareness_report endpoint response*
 - **Classe:** `ValidationService`

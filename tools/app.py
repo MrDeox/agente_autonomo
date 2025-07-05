@@ -21,6 +21,7 @@ from agent.hephaestus_agent import HephaestusAgent
 from agent.config_loader import load_config
 from agent.arthur_interface_generator import ArthurInterfaceGenerator
 from agent.agents.error_detector_agent import ErrorDetectorAgent
+from agent.agents.dependency_fixer_agent import DependencyFixerAgent
 from agent.cycle_runner import CycleRunner
 from agent.async_orchestrator import AgentType, AgentTask
 
@@ -119,6 +120,7 @@ hephaestus_agent_instance = None
 hephaestus_worker_thread = None
 interface_generator = None
 error_detector_agent = None
+dependency_fixer_agent = None
 log_analyzer_thread = None
 
 # === PYDANTIC MODELS === #
@@ -239,6 +241,9 @@ async def startup_event():
         model_config = config.get("models", {}).get("architect_default", {})
         error_detector_agent = ErrorDetectorAgent(model_config, logger)
         error_detector_agent.start_monitoring()
+        
+        # Initialize Dependency Fixer Agent
+        dependency_fixer_agent = DependencyFixerAgent(config)
         
         # Start meta-intelligence
         hephaestus_agent_instance.start_meta_intelligence()
@@ -1709,6 +1714,57 @@ async def start_night_evolution(auth_user: dict = Depends(get_auth_user)):
     except Exception as e:
         logger.error(f"Error starting night evolution: {e}")
         raise HTTPException(status_code=500, detail=str(e))
+
+@app.post("/dependency-fixer/analyze", tags=["Dependency Fixer"])
+async def analyze_dependencies(
+    error_logs: str = Body(..., description="Error logs to analyze for import issues"),
+    auth_user: dict = Depends(get_auth_user)
+):
+    """Analyze and fix import/dependency issues"""
+    try:
+        global dependency_fixer_agent
+        
+        if not dependency_fixer_agent:
+            raise HTTPException(status_code=503, detail="Dependency Fixer Agent not initialized")
+        
+        # Run dependency analysis
+        result = dependency_fixer_agent.run_analysis(error_logs)
+        
+        return {
+            "status": "success",
+            "message": f"Found {result['issues_found']} issues, applied {result['fixes_applied']} fixes",
+            "analysis_result": result,
+            "timestamp": datetime.now().isoformat()
+        }
+        
+    except Exception as e:
+        logger.error(f"❌ Error in dependency analysis: {e}")
+        raise HTTPException(status_code=500, detail=f"Failed to analyze dependencies: {str(e)}")
+
+@app.get("/dependency-fixer/status", tags=["Dependency Fixer"])
+async def get_dependency_fixer_status(auth_user: dict = Depends(get_auth_user)):
+    """Get Dependency Fixer Agent status"""
+    try:
+        global dependency_fixer_agent
+        
+        if not dependency_fixer_agent:
+            raise HTTPException(status_code=503, detail="Dependency Fixer Agent not initialized")
+        
+        return {
+            "status": "active",
+            "agent_type": "DependencyFixerAgent",
+            "capabilities": [
+                "import_error_detection",
+                "missing_class_fixing", 
+                "missing_module_creation",
+                "automatic_code_generation"
+            ],
+            "timestamp": datetime.now().isoformat()
+        }
+        
+    except Exception as e:
+        logger.error(f"❌ Error getting dependency fixer status: {e}")
+        raise HTTPException(status_code=500, detail=f"Failed to get status: {str(e)}")
 
 if __name__ == "__main__":
     uvicorn.run(
