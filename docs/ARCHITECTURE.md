@@ -9,6 +9,7 @@ agente_autonomo/
     README.md
     mcp_server.log
     PROPOSTA_SERVIDOR_MCP.md
+    PLANO_ACAO_IMPLEMENTACAO.md
     RELATORIO_ATIVACAO_FUNCIONALIDADES.md
     CURSOR_MCP_GUIA_FINAL.md
     REVISAO_PROJETO_HEPHAESTUS.md
@@ -29,6 +30,8 @@ agente_autonomo/
     hephaestus_config.json
     GUIA_MCP_CURSOR.md
     CHECKLIST_MCP_HEPHAESTUS.md
+    RESUMO_ANALISE_MELHORIAS.md
+    RELATORIO_TECNICO_ESTRATEGICO.md
     demo_organizer_agent.py
     evolution_monitoring.txt
     demo_meta_intelligence.py
@@ -172,6 +175,7 @@ agente_autonomo/
         dashboard.html
     reports/
         model_performance.db
+        coverage_activation_report_20250705_120445.json
         night_work/
             NIGHT_WORK_SUMMARY.md
             NIGHT_AGENT_README.md

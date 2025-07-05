@@ -42,7 +42,8 @@ class TestAgentBlueprint:
             prompt_template="Test template",
             cognitive_patterns={"pattern": "value"},
             integration_points=["point1"],
-            estimated_value=0.8
+            estimated_value=0.8,
+            creation_reason="Test creation reason"
         )
         assert blueprint.name == "TestAgent"
         assert "cap1" in blueprint.required_capabilities

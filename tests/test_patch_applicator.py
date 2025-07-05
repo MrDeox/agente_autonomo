@@ -295,7 +295,7 @@ def test_apply_patches_invalid_operation(test_files_dir: Path, caplog):
     }]
     apply_patches(patches, patch_logger, base_path=str(test_files_dir.parent))
     check_file_content(file_path, ["Conteúdo original."])
-    assert "Operação desconhecida 'UNKNOWN_OPERATION'" in caplog.text
+    assert "Operação desconhecida: UNKNOWN_OPERATION" in caplog.text
 
 def test_apply_patches_missing_filepath(test_files_dir: Path, caplog):
     patches = [{"operation": "INSERT", "content": "abc"}] # Sem file_path

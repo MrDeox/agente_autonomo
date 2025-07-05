@@ -60,7 +60,8 @@ Consider this history to avoid repeating failures, build on successes, and ident
             code_analysis_summary_str="Standard code analysis.",
             current_manifest="Standard manifest.",
             capabilities_content="Caps: Build Z.",
-            roadmap_content="Roadmap: Phase 1."
+            roadmap_content="Roadmap: Phase 1.",
+            dashboard_content="<html><body>Dashboard</body></html>"
         )
         self.assertIn("You are the 'Planejador Estratégico Avançado'", prompt)
         self.assertIn("[HISTÓRICO RECENTE DO PROJETO E DO AGENTE]\nStandard memory.", prompt)
@@ -79,7 +80,8 @@ Consider this history to avoid repeating failures, build on successes, and ident
             code_analysis_summary_str="Code sum",
             current_manifest="  ", # Empty manifest
             capabilities_content="Caps content",
-            roadmap_content="Roadmap content"
+            roadmap_content="Roadmap content",
+            dashboard_content="<html><body>Dashboard</body></html>"
         )
         self.assertIn("[CURRENT PROJECT MANIFEST (if existing)]\nN/A (Manifesto non-existent or empty)", prompt)
         self.assertIn("[CAPABILITIES DOCUMENT (CAPABILITIES.md)]\nCaps content", prompt)
