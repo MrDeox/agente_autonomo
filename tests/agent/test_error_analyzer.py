@@ -25,7 +25,7 @@ class TestErrorAnalysisAgent(unittest.TestCase):
             logger=self.logger
         )
 
-    @patch('agent.agents.error_analyzer.call_llm_api')
+    @patch('agent.utils.llm_client.call_llm_api')
     def test_analyze_error_success_syntax_error(self, mock_call_llm_api):
         mock_llm_response = {
             "classification": "SYNTAX_ERROR",
@@ -50,7 +50,7 @@ class TestErrorAnalysisAgent(unittest.TestCase):
         mock_call_llm_api.assert_called_once()
         # You could add more assertions here to check the prompt sent to the LLM if needed
 
-    @patch('agent.agents.error_analyzer.call_llm_api')
+    @patch('agent.utils.llm_client.call_llm_api')
     def test_analyze_error_success_test_failure(self, mock_call_llm_api):
         mock_llm_response = {
             "classification": "TEST_FAILURE",
@@ -74,7 +74,7 @@ class TestErrorAnalysisAgent(unittest.TestCase):
         self.assertIn("[CONTEXT_FLAG] TEST_FIX_IN_PROGRESS", result["suggested_prompt"])
         mock_call_llm_api.assert_called_once()
 
-    @patch('agent.agents.error_analyzer.call_llm_api')
+    @patch('agent.utils.llm_client.call_llm_api')
     def test_analyze_error_llm_api_error(self, mock_call_llm_api):
         mock_call_llm_api.return_value = (None, "LLM API Error: Connection timed out")
 
@@ -92,7 +92,7 @@ class TestErrorAnalysisAgent(unittest.TestCase):
         self.assertIn("LLM call failed during error analysis", result["details"])
         mock_call_llm_api.assert_called_once()
 
-    @patch('agent.agents.error_analyzer.call_llm_api')
+    @patch('agent.utils.llm_client.call_llm_api')
     def test_analyze_error_llm_empty_response(self, mock_call_llm_api):
         mock_call_llm_api.return_value = ("", None) # Empty string response
 
@@ -110,7 +110,7 @@ class TestErrorAnalysisAgent(unittest.TestCase):
         self.assertIn("Empty response from LLM", result["details"])
         mock_call_llm_api.assert_called_once()
 
-    @patch('agent.agents.error_analyzer.call_llm_api')
+    @patch('agent.utils.llm_client.call_llm_api')
     def test_analyze_error_llm_malformed_json_response(self, mock_call_llm_api):
         malformed_json_string = '{"classification": "SYNTAX_ERROR", "suggestion_type": "REGENERATE_PATCHES"' # Missing closing brace and other fields
         mock_call_llm_api.return_value = (malformed_json_string, None)
@@ -140,7 +140,7 @@ class TestErrorAnalysisAgent(unittest.TestCase):
 
         mock_call_llm_api.assert_called_once()
 
-    @patch('agent.agents.error_analyzer.call_llm_api')
+    @patch('agent.utils.llm_client.call_llm_api')
     def test_analyze_error_llm_json_missing_keys(self, mock_call_llm_api):
         json_missing_keys = '{"classification": "LOGIC_ERROR", "details": "Some logic issue found."}' # Missing suggestion_type and suggested_prompt
         mock_call_llm_api.return_value = (json_missing_keys, None)
@@ -164,7 +164,7 @@ class TestErrorAnalysisAgent(unittest.TestCase):
     def test_prompt_construction(self):
         # More of an integration test for the prompt string itself, but can be useful
         # This test does not mock call_llm_api as we are testing the prompt string
-        with patch('agent.agents.error_analyzer.call_llm_api') as mock_llm_call:
+        with patch('agent.utils.llm_client.call_llm_api') as mock_llm_call:
             # To prevent actual call and check args
             mock_llm_call.return_value = (json.dumps({
                 "classification": "TEST_FAILURE", "suggestion_type": "REGENERATE_PATCHES",

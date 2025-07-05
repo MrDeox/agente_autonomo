@@ -64,7 +64,7 @@ def test_review_patches_with_valid_syntax_but_needs_llm_review(code_review_agent
     }]
     
     # Mock da chamada LLM para que não seja feita uma chamada de API real
-    mock_llm_call = mocker.patch('agent.agents.code_review_agent.optimized_llm_call')
+    mock_llm_call = mocker.patch('agent.utils.llm_client.call_llm_api')
     mock_llm_call.return_value = ('{"review_passed": true, "feedback": "OK"}', {"error": None})
 
     review_passed, feedback = code_review_agent.review_patches(patches)
@@ -85,7 +85,7 @@ def test_review_patches_ignores_non_python_files_for_syntax_check(code_review_ag
     }]
     # Como o conteúdo é não trivial, ele irá para a revisão LLM.
     # Nós zombamos da revisão LLM para isolar o teste da verificação de sintaxe.
-    with patch('agent.agents.code_review_agent.optimized_llm_call', return_value=('{"review_passed": true, "feedback": "OK"}', {"error": None})):
+    with patch('agent.utils.llm_client.call_llm_api', return_value=('{"review_passed": true, "feedback": "OK"}', {"error": None})):
         review_passed, feedback = code_review_agent.review_patches(patches)
         
     assert review_passed is True

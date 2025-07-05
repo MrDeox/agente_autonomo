@@ -6,7 +6,15 @@ class TestMaestroAgent:
     @pytest.fixture
     def maestro(self):
         """Fixture providing a MaestroAgent instance with mocked dependencies."""
-        return MaestroAgent()
+        model_config = {"primary": "test_model"}
+        logger = MagicMock()
+        config = {
+            "validation_strategies": {
+                "TEST_STRATEGY": {"steps": ["test"]},
+                "NO_OP_STRATEGY": {"steps": []}
+            }
+        }
+        return MaestroAgent(model_config, config, logger)
 
     def test_strategy_selection_high_complexity_case1(self, maestro):
         """Test high complexity strategy selection case 1."""

@@ -31,8 +31,8 @@ class TestBrainFunctions(unittest.TestCase):
             # Add other config keys if generate_next_objective starts using them
         }
 
-    @patch('agent.brain.call_llm_api')
-    @patch('agent.brain.analyze_code_metrics')
+    @patch('agent.utils.llm_client.call_llm_api')
+    @patch('agent.project_scanner.analyze_code_metrics')
     def test_generate_next_objective_uses_config_thresholds(self, mock_analyze_code_metrics, mock_call_llm_api):
         # --- Test with default thresholds from self.default_config ---
         mock_analyze_code_metrics.return_value = {"summary": {"large_files": [("file.py", 300)]}} # Mock return for analyze_code_metrics
@@ -110,8 +110,8 @@ class TestBrainFunctions(unittest.TestCase):
         mock_call_llm_api.assert_called_once()
 
 
-    @patch('agent.brain.call_llm_api')
-    @patch('agent.brain.analyze_code_metrics')
+    @patch('agent.utils.llm_client.call_llm_api')
+    @patch('agent.project_scanner.analyze_code_metrics')
     def test_generate_next_objective_llm_call_success(self, mock_analyze_code_metrics, mock_call_llm_api):
         mock_analyze_code_metrics.return_value = {"summary": {}}
         mock_call_llm_api.return_value = ("Test objective", None)
@@ -133,8 +133,8 @@ class TestBrainFunctions(unittest.TestCase):
         self.assertEqual(called_kwargs_llm["temperature"], 0.3)
         self.assertEqual(called_kwargs_llm["logger"], self.logger)
 
-    @patch('agent.brain.call_llm_api') # This mock is for the call inside generate_next_objective
-    @patch('agent.brain.analyze_code_metrics') # Also mock this as it's called before the error path for LLM
+    @patch('agent.utils.llm_client.call_llm_api') # This mock is for the call inside generate_next_objective
+    @patch('agent.project_scanner.analyze_code_metrics') # Also mock this as it's called before the error path for LLM
     def test_generate_next_objective_llm_call_error(self, mock_analyze_code_metrics, mock_call_llm_api):
         mock_call_llm_api.return_value = (None, "LLM Error")
 
@@ -147,7 +147,7 @@ class TestBrainFunctions(unittest.TestCase):
         self.assertEqual(objective, "Analisar o estado atual do projeto e propor uma melhoria incremental")
         mock_call_llm_api.assert_called_once()
 
-    @patch('agent.brain.call_llm_api')
+    @patch('agent.utils.llm_client.call_llm_api')
     def test_generate_capacitation_objective_success(self, mock_call_llm_api):
         mock_call_llm_api.return_value = ("Capacitation objective", None)
         engineer_analysis = "Need new tool X"
@@ -165,7 +165,7 @@ class TestBrainFunctions(unittest.TestCase):
         self.assertEqual(called_kwargs["temperature"], 0.3)          # temperature is in kwargs
         self.assertEqual(called_kwargs["logger"], self.logger)
 
-    @patch('agent.brain.call_llm_api')
+    @patch('agent.utils.llm_client.call_llm_api')
     def test_generate_capacitation_objective_error(self, mock_call_llm_api):
         mock_call_llm_api.return_value = (None, "LLM Error")
         engineer_analysis = "Need new tool X"
@@ -237,8 +237,8 @@ class TestBrainFunctions(unittest.TestCase):
         expected_trunc_summary = "the entire authentication module to use new security protocol..."
         self.assertEqual(commit_message_trunc, f"refactor: {expected_trunc_summary}")
 
-@patch('agent.brain.call_llm_api')
-@patch('agent.brain.analyze_code_metrics')
+@patch('agent.utils.llm_client.call_llm_api')
+@patch('agent.project_scanner.analyze_code_metrics')
 @patch('agent.brain.PerformanceAnalysisAgent.analyze_performance')
 @patch('builtins.open')
 def test_generate_next_objective_flow(

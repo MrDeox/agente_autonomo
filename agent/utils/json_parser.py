@@ -6,6 +6,8 @@ from typing import Optional, Dict, Any, Tuple
 
 def _fix_common_json_errors(json_string: str, logger: logging.Logger) -> str:
     """Tenta corrigir erros comuns de JSON gerado por LLM."""
+    corrected_string = json_string
+    
     # Corrige barras invertidas que não são de escape (causa comum de erro)
     # Ex: "path": "C:\Users\..." se torna "path": "C:\\Users\\..."
     # Usando uma função para a substituição para logar as correções
@@ -17,15 +19,40 @@ def _fix_common_json_errors(json_string: str, logger: logging.Logger) -> str:
         logger.warning(f"JSON parser: Found potentially unescaped backslash. Correcting '{val}' to '\\{val[1:]}'.")
         return f'\\\\{val[1:]}'
 
-    # Regex para encontrar uma barra invertida seguida por um caractere que não é uma sequência de escape válida
-    corrected_string = re.sub(r'\\(?![/"\\bfnrt])', escape_backslashes, json_string)
+    # Regex para encontrar barras invertidas não escapadas
+    corrected_string = re.sub(r'\\[^"\\/bfnrt]', escape_backslashes, corrected_string)
     
-    # Tenta corrigir strings não terminadas (caso simples)
-    if 'Unterminated string' in corrected_string:
-        # Lógica simples: encontrar a última aspa de abertura e adicionar uma no final se necessário
-        # Isso é arriscado e pode ser melhorado
-        pass
+    # Corrige aspas faltantes em chaves e valores
+    # Padrão: {chave: valor} -> {"chave": "valor"}
+    def add_quotes_to_keys_and_values(match):
+        key = match.group(1)
+        value = match.group(2)
         
+        # Verifica se a chave já tem aspas
+        if not (key.startswith('"') and key.endswith('"')):
+            key = f'"{key}"'
+        
+        # Verifica se o valor já tem aspas (e não é um número, boolean, null)
+        if not (value.startswith('"') and value.endswith('"')):
+            # Se não é um número, boolean, null, ou array/object, adiciona aspas
+            if not (value.lower() in ['true', 'false', 'null'] or 
+                   value.replace('.', '').replace('-', '').isdigit() or
+                   value.startswith('[') or value.startswith('{')):
+                value = f'"{value}"'
+        
+        return f'{key}: {value}'
+    
+    # Regex para encontrar pares chave:valor sem aspas
+    # Captura chaves e valores que não estão entre aspas
+    corrected_string = re.sub(r'([a-zA-Z_][a-zA-Z0-9_]*)\s*:\s*([^,}\]]+)', add_quotes_to_keys_and_values, corrected_string)
+    
+    # Corrige aspas simples para aspas duplas
+    corrected_string = corrected_string.replace("'", '"')
+    
+    # Remove espaços extras antes de vírgulas e chaves
+    corrected_string = re.sub(r'\s+([,}\]])', r'\1', corrected_string)
+    
+    logger.info(f"JSON parser: Applied fixes to JSON string")
     return corrected_string
 
 def parse_json_response(raw_str: str, logger: logging.Logger) -> Tuple[Optional[Dict[str, Any]], Optional[str]]:

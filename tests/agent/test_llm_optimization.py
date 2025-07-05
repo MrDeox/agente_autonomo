@@ -53,7 +53,7 @@ class TestCodeReviewOptimization(unittest.TestCase):
         
         self.assertTrue(self.agent.needs_review(mixed_patches))
     
-    @patch('agent.agents.code_review_agent.call_llm_api')
+    @patch('agent.utils.llm_client.call_llm_api')
     def test_review_patches_skip_trivial(self, mock_llm):
         """Testa que revisão é pulada para patches triviais"""
         trivial_patches = [{"content": "import os", "operation": "INSERT"}]
@@ -143,8 +143,9 @@ class TestMaestroAgentWithCache(unittest.TestCase):
         }
         self.agent = MaestroAgent(self.model_config, self.config, self.logger)
     
-    @patch('agent.agents.maestro_agent.call_llm_api')
-    def test_maestro_uses_cache(self, mock_llm):
+    @patch('agent.utils.llm_client.call_llm_api')
+    @patch('agent.llm_performance_booster.optimized_llm_call')
+    def test_maestro_uses_cache(self, mock_llm, mock_optimized):
         """Testa que Maestro usa cache quando disponível"""
         action_plan = {"patches_to_apply": [{"file_path": "test.py"}]}
         

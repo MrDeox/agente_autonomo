@@ -25,6 +25,7 @@ agente_autonomo/
     README_MCP_HEPHAESTUS.md
     poetry.lock
     CORRECOES_CRITICAS_IMPLEMENTADAS.md
+    PROGRESSO_CORRECOES.md
     main.py
     API_REST_DOCUMENTATION.md
     hephaestus_config.json
@@ -643,7 +644,7 @@ agente_autonomo/
 - **Classe:** `AnalysisProcessor`
 
 ### Arquivo: `agent/brain.py`
-- **Função:** `generate_next_objective(model_config: Dict[str, str], current_manifest: str, current_objective: Optional[str]=None)`
+- **Função:** `generate_next_objective(model_config: Dict[str, str], current_manifest: str, current_objective: Optional[str]=None, logger: Optional[logging.Logger]=None, project_root_dir: str='.', memory: Optional[Any]=None, model_optimizer: Optional[Any]=None)`
   - *Generates the next evolutionary objective using code analysis and performance data.*
 
 ### Arquivo: `agent/__init__.py`

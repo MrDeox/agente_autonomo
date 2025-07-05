@@ -2248,7 +2248,7 @@ async def get_prevention_report(auth_user: dict = Depends(get_auth_user)):
 
 if __name__ == "__main__":
     uvicorn.run(
-        app, 
+        "tools.app:app", 
         host="0.0.0.0", 
         port=8000,
         reload=True,

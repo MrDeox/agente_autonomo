@@ -91,7 +91,7 @@ def test_rank_modifications(mock_controller):
     assert mod1 in ranked
     assert mod2 in ranked
 
-@patch('agent.meta_cognitive_controller.call_llm_api')
+@patch('agent.utils.llm_client.call_llm_api')
 def test__get_llm_modification_proposals(mock_call_llm, mock_controller):
     """Test LLM modification proposal generation."""
     # TODO: Implement test cases
