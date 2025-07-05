@@ -30,9 +30,11 @@ agente_autonomo/
     demo_organizer_agent.py
     evolution_monitoring.txt
     demo_meta_intelligence.py
+    ANALISE_PIPELINE_HEPHAESTUS.md
     REVISAO_COMPLETA_BUGS_MELHORIAS.md
     GUIA_CONFIGURACAO_CURSOR.md
     start_mcp_server.sh
+    MONITORAMENTO_HEPHAESTUS.md
     CORRECOES_IMEDIATAS.md
     setup_mcp.py
     ERROR_DETECTOR_DOCUMENTATION.md
@@ -79,6 +81,7 @@ agente_autonomo/
         queue_manager.py
         state.py
         strategy_optimizer.py
+        optimized_pipeline.py
         config_loader.py
         advanced_knowledge_system.py
         validation_steps/
@@ -169,8 +172,11 @@ agente_autonomo/
             night_report_20250704_004455.json
     logs/
         uvicorn.log
+        uvicorn_optimized.log
+        monitor_hephaestus.log
         night_evolution_20250705.log
         evolution_log.csv
+        hephaestus_alerts.json
         hephaestus_evolution_20250705_014830.log
         hephaestus_evolution_20250705_014743.log
     generated_interfaces/
@@ -328,7 +334,7 @@ agente_autonomo/
 - **Função:** `health_check()`
   - *Enhanced health check with comprehensive system status*
 - **Função:** `get_status()`
-  - *Get detailed system status including all subsystems*
+  - *Get detailed system status including all subsystems and current cycle/goal info*
 - **Função:** `submit_objective(request: ObjectiveRequest, auth_user: dict=Depends(get_auth_user))`
   - *Submit a new objective to the agent with priority and metadata*
 - **Função:** `get_queue_status(auth_user: dict=Depends(get_auth_user))`
@@ -785,6 +791,18 @@ agente_autonomo/
 - **Classe:** `StrategyOptimizer`
   - *Core strategy optimization engine.*
 
+### Arquivo: `agent/optimized_pipeline.py`
+- **Classe:** `PipelineStage`
+  - *Represents a stage in the optimized pipeline*
+- **Classe:** `PipelineResult`
+  - *Result of a pipeline execution*
+- **Classe:** `PipelineCache`
+  - *Intelligent cache for pipeline operations*
+- **Classe:** `OptimizedPipeline`
+  - *Optimized pipeline with parallel processing and intelligent caching*
+- **Classe:** `PipelineMetrics`
+  - *Advanced metrics tracking for pipeline performance*
+
 ### Arquivo: `agent/config_loader.py`
 - **Função:** `load_config()`
   - *Load configuration using Hydra.*
@@ -902,7 +920,7 @@ agente_autonomo/
 - **Classe:** `StrategyCache`
   - *LRU cache with TTL for strategy decisions.*
 - **Classe:** `MaestroAgent`
-  - *Orchestrates strategy selection and execution for the Hephaestus system with weighted strategy selection.*
+  - *Orchestrates strategy selection and execution for the Hephaestus system with weighted strategy selection and fallback.*
 
 ### Arquivo: `agent/agents/dependency_fixer_agent.py`
 - **Classe:** `DependencyFixerAgent`

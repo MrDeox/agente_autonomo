@@ -49,7 +49,8 @@ class HephaestusAgent:
                  config: dict, # Now receives config as a parameter
                  continuous_mode: bool = False,
                  objective_stack_depth_for_testing: Optional[int] = None,
-                 queue_manager: Optional[QueueManager] = None):
+                 queue_manager: Optional[QueueManager] = None,
+                 use_optimized_pipeline: bool = True):
         """
         Inicializa o agente com configuração.
 
@@ -182,6 +183,18 @@ class HephaestusAgent:
         self._register_hot_reload_callbacks()
         
         self.logger.info("🔄 Hot Reload capabilities initialized!")
+        
+        # Initialize optimized pipeline
+        self.use_optimized_pipeline = use_optimized_pipeline
+        self.optimized_pipeline = None
+        if self.use_optimized_pipeline:
+            try:
+                from agent.optimized_pipeline import OptimizedPipeline
+                self.optimized_pipeline = OptimizedPipeline(config, self.logger)
+                self.logger.info("🚀 Optimized pipeline enabled")
+            except ImportError as e:
+                self.logger.warning(f"Could not import optimized pipeline: {e}")
+                self.use_optimized_pipeline = False
 
     def _initialize_evolution_log(self):
         """Verifica e inicializa o arquivo de log de evolução com cabeçalho, se necessário."""

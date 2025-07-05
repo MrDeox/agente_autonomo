@@ -18,7 +18,7 @@ class StrategyCache:
         self.cache.set(key, value)
 
 class MaestroAgent:
-    """Orchestrates strategy selection and execution for the Hephaestus system with weighted strategy selection."""
+    """Orchestrates strategy selection and execution for the Hephaestus system with weighted strategy selection and fallback."""
     
     def __init__(self, model_config: Dict[str, str], logger, config: Optional[Dict[str, Any]] = None):
         self.model_config = model_config
@@ -26,6 +26,11 @@ class MaestroAgent:
         self.config = config or {}
         self.strategy_cache = StrategyCache()
         self.strategy_weights = defaultdict(float)
+        self.fallback_models = [
+            "deepseek/deepseek-chat-v3-0324:free",
+            "mistralai/mistral-7b-instruct:free",
+            "anthropic/claude-3-haiku:free"
+        ]
         self._load_strategy_weights()
 
     def _load_strategy_weights(self):
@@ -90,33 +95,157 @@ class MaestroAgent:
             "fallback": 0.15
         }
 
-    def choose_strategy(self, action_plan_data: Dict[str, Any], memory_summary: str = "", failed_strategy_context: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
-        """Choose the best strategy for executing the current objective."""
-        try:
-            # Analyze context and select strategy
-            context = {
-                "action_plan": action_plan_data,
-                "memory": memory_summary,
-                "failed_context": failed_strategy_context
+    def choose_strategy(self, action_plan_data: Dict[str, Any], memory_summary: str = "", failed_strategy_context: Optional[Dict[str, Any]] = None) -> List[Dict[str, Any]]:
+        """Choose the best strategy for executing the current objective with fallback and retry logic."""
+        logs = []
+        
+        # Try primary model first
+        primary_result = self._try_with_model(self.model_config, action_plan_data, memory_summary, failed_strategy_context)
+        logs.append(primary_result)
+        
+        # If primary fails, try fallback models
+        if not primary_result.get("success"):
+            for fallback_model in self.fallback_models:
+                if fallback_model != self.model_config.get("model"):
+                    self.logger.info(f"Trying fallback model: {fallback_model}")
+                    fallback_config = self.model_config.copy()
+                    fallback_config["model"] = fallback_model
+                    
+                    fallback_result = self._try_with_model(fallback_config, action_plan_data, memory_summary, failed_strategy_context)
+                    logs.append(fallback_result)
+                    
+                    if fallback_result.get("success"):
+                        self.logger.info(f"Fallback model {fallback_model} succeeded")
+                        break
+        
+        # If all models fail, use automatic fallback strategy
+        if not any(log.get("success") for log in logs):
+            self.logger.warning("All models failed, using automatic fallback strategy")
+            fallback_log = {
+                "success": True,
+                "model": "automatic_fallback",
+                "parsed_json": {
+                    "strategy_key": "NO_OP_STRATEGY",
+                    "reasoning": "Automatic fallback due to model failures",
+                    "confidence": 0.5
+                },
+                "raw_response": "Automatic fallback strategy selected",
+                "execution_time": 0.1
             }
+            logs.append(fallback_log)
+        
+        return logs
+
+    def _try_with_model(self, model_config: Dict[str, str], action_plan_data: Dict[str, Any], memory_summary: str, failed_strategy_context: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
+        """Try to get strategy decision with a specific model."""
+        start_time = datetime.now()
+        
+        try:
+            # Build prompt for strategy selection
+            prompt = self._build_strategy_prompt(action_plan_data, memory_summary, failed_strategy_context)
             
-            strategy = self.select_strategy(context)
+            # Call LLM with retry logic
+            response, error = call_llm_with_fallback(
+                model_config=model_config,
+                prompt=prompt,
+                temperature=0.7,
+                logger=self.logger
+            )
             
-            # Execute the strategy
-            result = self.execute_strategy(strategy, context)
+            if error or response is None:
+                raise Exception(f"LLM call failed: {error or 'No response received'}")
             
+            # Parse response
+            parsed_json = self._parse_strategy_response(response)
+            
+            execution_time = (datetime.now() - start_time).total_seconds()
+            
+            model_name = model_config.get("model", "unknown") if isinstance(model_config, dict) else str(model_config)
             return {
                 "success": True,
-                "strategy": strategy,
-                "result": result,
-                "weights": dict(self.strategy_weights)
+                "model": model_name,
+                "parsed_json": parsed_json,
+                "raw_response": response,
+                "execution_time": execution_time
             }
             
         except Exception as e:
-            self.logger.error(f"Strategy selection failed: {str(e)}")
+            execution_time = (datetime.now() - start_time).total_seconds()
+            model_name = model_config.get('model', 'unknown') if isinstance(model_config, dict) else str(model_config)
+            self.logger.error(f"Model {model_name} failed: {str(e)}")
+            
             return {
                 "success": False,
-                "strategy": "fallback",
+                "model": model_name,
                 "error": str(e),
-                "weights": dict(self.strategy_weights)
+                "raw_response": "",
+                "execution_time": execution_time
+            }
+
+    def _build_strategy_prompt(self, action_plan_data: Dict[str, Any], memory_summary: str, failed_strategy_context: Optional[Dict[str, Any]] = None) -> str:
+        """Build a comprehensive prompt for strategy selection."""
+        
+        # Get available strategies from config
+        available_strategies = list(self.config.get("validation_strategies", {}).keys())
+        available_strategies.append("CAPACITATION_REQUIRED")
+        
+        prompt = f"""You are the MaestroAgent, responsible for choosing the best strategy to execute an objective.
+
+AVAILABLE STRATEGIES:
+{chr(10).join(f"- {strategy}" for strategy in available_strategies)}
+
+ACTION PLAN DATA:
+{json.dumps(action_plan_data, indent=2)}
+
+MEMORY SUMMARY:
+{memory_summary[:1000]}...
+
+{f"FAILED STRATEGY CONTEXT: {json.dumps(failed_strategy_context, indent=2)}" if failed_strategy_context else ""}
+
+TASK: Analyze the action plan and choose the most appropriate strategy. Consider:
+1. The complexity and risk of the changes
+2. Whether validation is needed
+3. Whether the changes should be applied immediately or tested first
+4. Any previous failures that might inform the decision
+
+RESPONSE FORMAT (JSON only):
+{{
+    "strategy_key": "CHOSEN_STRATEGY_NAME",
+    "reasoning": "Brief explanation of why this strategy was chosen",
+    "confidence": 0.85
+}}
+
+Choose the strategy and respond with valid JSON:"""
+
+        return prompt
+
+    def _parse_strategy_response(self, response: str) -> Dict[str, Any]:
+        """Parse the LLM response into a structured strategy decision."""
+        try:
+            # Try to extract JSON from response
+            response_clean = response.strip()
+            
+            # Find JSON in the response
+            start_idx = response_clean.find('{')
+            end_idx = response_clean.rfind('}') + 1
+            
+            if start_idx != -1 and end_idx > start_idx:
+                json_str = response_clean[start_idx:end_idx]
+                parsed = json.loads(json_str)
+                
+                # Validate required fields
+                if "strategy_key" not in parsed:
+                    raise ValueError("Missing strategy_key in response")
+                
+                return parsed
+            else:
+                raise ValueError("No JSON found in response")
+                
+        except Exception as e:
+            self.logger.error(f"Failed to parse strategy response: {str(e)}")
+            # Return fallback strategy
+            return {
+                "strategy_key": "NO_OP_STRATEGY",
+                "reasoning": f"Fallback due to parsing error: {str(e)}",
+                "confidence": 0.3
             }

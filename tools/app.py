@@ -466,14 +466,43 @@ async def health_check():
 
 @app.get("/status", tags=["Core Operations"])
 async def get_status():
-    """Get detailed system status including all subsystems"""
+    """Get detailed system status including all subsystems and current cycle/goal info"""
     meta_intelligence_status = {}
+    current_cycle_info = {}
+    pipeline_metrics = {}
     if hephaestus_agent_instance:
         try:
             meta_intelligence_status = hephaestus_agent_instance.evolution_manager.get_evolution_report()
         except Exception as e:
             meta_intelligence_status = {"error": str(e)}
-    
+        # --- NOVO: Info detalhada do ciclo/objetivo atual ---
+        try:
+            state = hephaestus_agent_instance.state
+            current_cycle_info = {
+                "current_objective": state.current_objective,
+                "current_phase": getattr(state, "current_phase", None),
+                "strategy_key": state.strategy_key,
+                "validation_result": state.validation_result,
+                "is_self_modifying": state.is_self_modifying,
+                "action_plan_summary": (state.action_plan_data or {}).get("analysis", None),
+                "patches_to_apply": len(state.get_patches_to_apply()),
+                "applied_files_report": state.applied_files_report,
+            }
+        except Exception as e:
+            current_cycle_info = {"error": f"Failed to extract current cycle info: {e}"}
+        
+        # --- NOVO: Métricas do pipeline otimizado ---
+        try:
+            if hasattr(hephaestus_agent_instance, 'optimized_pipeline') and hephaestus_agent_instance.optimized_pipeline:
+                pipeline_metrics = {
+                    "enabled": True,
+                    "metrics": hephaestus_agent_instance.optimized_pipeline.get_pipeline_metrics(),
+                    "cache_stats": hephaestus_agent_instance.optimized_pipeline.get_cache_stats()
+                }
+            else:
+                pipeline_metrics = {"enabled": False}
+        except Exception as e:
+            pipeline_metrics = {"error": str(e)}
     return {
         "status": "running",
         "timestamp": datetime.now().isoformat(),
@@ -482,7 +511,9 @@ async def get_status():
             "worker_active": hephaestus_worker_thread.is_alive() if hephaestus_worker_thread else False,
             "evolution_active": hephaestus_agent_instance.meta_intelligence_active if hephaestus_agent_instance else False
         },
+        "current_cycle": current_cycle_info,
         "meta_intelligence": meta_intelligence_status,
+        "pipeline_metrics": pipeline_metrics,
         "performance_metrics": {
             "rate_limit_storage_size": len(rate_limit_storage),
             "active_connections": "dynamic",

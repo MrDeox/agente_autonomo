@@ -138,6 +138,50 @@ class CycleRunner:
         if not self._execute_phase_and_handle_failure(self.agent._gather_information_phase, "INFORMATION_GATHERING_FAILED", "Could not read file context for the objective."):
             return
 
+        # Use optimized pipeline if available
+        if hasattr(self.agent, 'use_optimized_pipeline') and self.agent.use_optimized_pipeline and self.agent.optimized_pipeline:
+            try:
+                self.agent.logger.info("🚀 Using optimized pipeline for cycle execution")
+                
+                # Prepare context for optimized pipeline
+                context = {
+                    "manifest": self.agent.state.manifesto_content or "",
+                    "file_content": getattr(self.agent.state, 'file_content_context', ''),
+                    "memory_summary": self.agent.memory.get_full_history_for_prompt(),
+                    "patches": self.agent.state.get_patches_to_apply() if hasattr(self.agent.state, 'get_patches_to_apply') else []
+                }
+                
+                # Execute optimized pipeline
+                import asyncio
+                loop = asyncio.new_event_loop()
+                asyncio.set_event_loop(loop)
+                
+                try:
+                    pipeline_result = loop.run_until_complete(
+                        self.agent.optimized_pipeline.execute_pipeline(objective_str, context)
+                    )
+                    
+                    if pipeline_result.success:
+                        self.agent.state.validation_result = (True, "OPTIMIZED_PIPELINE_SUCCESS", "Pipeline completed successfully")
+                        self._handle_cycle_success("OPTIMIZED_PIPELINE_COMPLETED", f"Pipeline completed in {pipeline_result.total_time:.2f}s")
+                    else:
+                        error_msg = "; ".join(pipeline_result.errors)
+                        self.agent.state.validation_result = (False, "OPTIMIZED_PIPELINE_FAILED", error_msg)
+                        self._handle_cycle_failure(objective_str, "OPTIMIZED_PIPELINE_FAILED", error_msg)
+                        
+                finally:
+                    loop.close()
+                    
+                return
+                
+            except Exception as e:
+                self.agent.logger.warning(f"Optimized pipeline failed, falling back to standard pipeline: {e}")
+                # Fall back to standard pipeline
+                pass
+
+        # Standard pipeline (fallback)
+        self.agent.logger.info("🔄 Using standard pipeline for cycle execution")
+        
         if not self._execute_phase_and_handle_failure(self.agent._run_architect_phase, "ARCHITECT_PHASE_FAILED", "ArchitectAgent could not generate a plan."):
             return
 
