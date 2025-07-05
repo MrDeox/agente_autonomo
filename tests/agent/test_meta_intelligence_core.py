@@ -1,88 +1,63 @@
+"""
+Tests for meta_intelligence_core.py
+"""
 import pytest
 from unittest.mock import Mock, patch
-from agent.meta_intelligence_core import (
-    PromptGene,
-    AgentBlueprint,
-    CognitiveArchitecture,
-    PromptEvolutionEngine,
-    AgentGenesisFactory,
-    MetaIntelligenceCore,
-    get_meta_intelligence
-)
-from agent.agents.maestro_agent import MaestroAgent
-from agent.agents.error_analyzer import ErrorAnalysisAgent
+
+from agent.meta_intelligence_core import MetaIntelligenceCore, PromptGene, AgentBlueprint
+from agent.utils.llm_client import call_llm_api
 
 class TestPromptGene:
-    def test_prompt_gene_creation(self):
-        # TODO: Test gene creation and properties
+    def test_prompt_gene_initialization(self):
+        """Test PromptGene dataclass initialization"""
+        # TODO: Implement test cases
         pass
 
-    def test_prompt_gene_mutation(self):
-        # TODO: Test mutation logic
+    def test_generate_gene_id(self):
+        """Test gene ID generation"""
+        # TODO: Implement test cases
         pass
 
 class TestAgentBlueprint:
-    def test_blueprint_creation(self):
-        # TODO: Test blueprint creation
-        pass
-
-    def test_blueprint_validation(self):
-        # TODO: Test validation logic
-        pass
-
-class TestCognitiveArchitecture:
-    def test_architecture_creation(self):
-        # TODO: Test architecture setup
-        pass
-
-    def test_architecture_evaluation(self):
-        # TODO: Test evaluation methods
-        pass
-
-class TestPromptEvolutionEngine:
-    @patch('agent.llm_performance_booster.LLMPerformanceBooster')
-    def test_evolution_cycle(self, mock_booster):
-        # TODO: Test full evolution cycle
-        pass
-
-    def test_fitness_calculation(self):
-        # TODO: Test fitness scoring
-        pass
-
-class TestAgentGenesisFactory:
-    def test_agent_creation(self):
-        # TODO: Test agent creation flow
-        pass
-
-    def test_capability_gap_detection(self):
-        # TODO: Test gap detection
+    def test_agent_blueprint_initialization(self):
+        """Test AgentBlueprint dataclass initialization"""
+        # TODO: Implement test cases
         pass
 
 class TestMetaIntelligenceCore:
-    @patch('agent.agents.maestro_agent.MaestroAgent')
-    @patch('agent.agents.error_analyzer.ErrorAnalysisAgent')
-    def test_strategy_optimization(self, mock_maestro, mock_error_analyzer):
-        # TODO: Test strategy optimization path
+    @pytest.fixture
+    def mock_meta_intelligence(self):
+        """Fixture for MetaIntelligenceCore with mocked dependencies"""
+        mock_config = {"model": "test-model", "api_key": "test-key"}
+        mock_logger = Mock()
+        return MetaIntelligenceCore(mock_config, mock_logger)
+
+    def test_initialization(self, mock_meta_intelligence):
+        """Test MetaIntelligenceCore initialization"""
+        # TODO: Implement test cases
         pass
 
-    def test_knowledge_integration(self):
-        # TODO: Test knowledge integration
+    def test_meta_cognitive_cycle(self, mock_meta_intelligence):
+        """Test the main meta-cognitive cycle"""
+        # TODO: Implement test cases for self_reflection_cycle functionality
         pass
 
-    def test_self_improvement_cycle(self):
-        # TODO: Test self-improvement cycle
+    def test_knowledge_integration(self, mock_meta_intelligence):
+        """Test knowledge integration functionality"""
+        # TODO: Implement test cases for knowledge_integration functionality
         pass
 
-class TestIntegration:
-    def test_maestro_compatibility(self):
-        # TODO: Test backward compatibility with MaestroAgent
+    def test_perform_self_assessment(self, mock_meta_intelligence):
+        """Test self-assessment functionality"""
+        # TODO: Implement test cases
         pass
 
-    def test_error_analyzer_compatibility(self):
-        # TODO: Test backward compatibility with ErrorAnalysisAgent
+    def test_generate_meta_insights(self, mock_meta_intelligence):
+        """Test meta-insight generation"""
+        # TODO: Implement test cases
         pass
 
-class TestFactoryFunction:
-    def test_get_meta_intelligence(self):
-        # TODO: Test singleton behavior
+    def test_get_meta_intelligence_report(self, mock_meta_intelligence):
+        """Test report generation"""
+        # TODO: Implement test cases
         pass

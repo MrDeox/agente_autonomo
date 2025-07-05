@@ -55,6 +55,9 @@ fastapi-mcp = ">=0.1.0" # From requirements_mcp
 # Validation & Testing
 jsonschema = "^4.22.0"
 
+# New dependency
+scikit-learn = "^1.5.1"
+
 [tool.poetry.group.dev.dependencies]
 pytest = "^8.1.1"
 pytest-mock = ">=3.0.0"
