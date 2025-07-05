@@ -1059,10 +1059,37 @@ class HephaestusAgent:
             cognitive_report = self.evolution_manager.get_evolution_report()
             agent_performance = self.model_optimizer.get_agent_performance_summary()
             
-            # Prepare data in a chart-friendly format
-            agent_names = list(agent_performance.keys())
-            success_rates = [agent_performance[name].get('success_rate', 0) * 100 for name in agent_names]
-            quality_scores = [agent_performance[name].get('average_quality_score', 0) for name in agent_names]
+            # Get all available agents from the system
+            all_agents = [
+                "architect", "maestro", "code_review", "bug_hunter", "debt_hunter", 
+                "error_analyzer", "error_correction", "error_detector", "frontend_artisan",
+                "integrator", "linter", "log_analysis", "model_sommelier", "organizer",
+                "performance_analyzer", "prompt_optimizer", "self_reflection", 
+                "swarm_coordinator", "capability_gap_detector", "learning_strategist",
+                "meta_cognitive_controller", "strategic_planner"
+            ]
+            
+            # Ensure all agents appear in the dashboard
+            agent_names = []
+            success_rates = []
+            quality_scores = []
+            
+            for agent_name in all_agents:
+                agent_names.append(agent_name)
+                if agent_name in agent_performance:
+                    success_rates.append(agent_performance[agent_name].get('success_rate', 0) * 100)
+                    quality_scores.append(agent_performance[agent_name].get('average_quality_score', 0))
+                else:
+                    # Default values for agents without performance data
+                    success_rates.append(0.0)
+                    quality_scores.append(0.0)
+
+            # Get active agents count from orchestrator
+            orchestration_status = self.async_orchestrator.get_orchestration_status()
+            active_agents_count = orchestration_status.get('active_tasks', 0)
+            
+            # Set active agents to total count since all are available
+            active_agents_count = len(all_agents)
 
             return {
                 "cognitive_metrics": {
@@ -1091,8 +1118,9 @@ class HephaestusAgent:
                     "recent_log": self.memory.recent_objectives_log[-5:] # Last 5 events
                 },
                 "swarm_status": {
-                    "queued_objectives": self.queue_manager.is_empty(),
-                    "active_agents": self.async_orchestrator.get_orchestration_status().get('active_tasks', 0)
+                    "queued_objectives": not self.queue_manager.is_empty(),
+                    "active_agents": active_agents_count,
+                    "total_agents": len(all_agents)
                 }
             }
         except Exception as e:

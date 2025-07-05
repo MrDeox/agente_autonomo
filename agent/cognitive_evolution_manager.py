@@ -600,6 +600,55 @@ Focus on the philosophical and practical implications of an AI that can evolve i
         self.logger.debug(f"Capability growth rate calculated: {normalized_rate:.3f} ({len(recent_capabilities)} in last 7 days)")
         return normalized_rate
     
+    def run_evolution_cycle(self) -> Dict[str, Any]:
+        """Run a single evolution cycle and return results"""
+        try:
+            self.logger.info("🚀 Starting manual evolution cycle...")
+            
+            # Gather system state
+            system_state = self._gather_system_state()
+            
+            # Assess cognitive maturity
+            self._assess_cognitive_maturity(system_state)
+            
+            # Run meta-cognitive cycle
+            evolution_results = self.meta_intelligence.meta_cognitive_cycle(system_state)
+            
+            # Process evolution results
+            self._process_evolution_results(evolution_results)
+            
+            # Generate evolutionary insights
+            insights = self._generate_evolutionary_insights(system_state, evolution_results)
+            
+            # Update cognitive maturity
+            self._update_cognitive_maturity(evolution_results)
+            
+            # Record the evolution event
+            self._record_evolution_event(
+                "manual_cycle",
+                "Manual evolution cycle triggered via API",
+                0.8,
+                ["meta_intelligence", "cognitive_evolution"]
+            )
+            
+            self.logger.info("✅ Manual evolution cycle completed successfully")
+            
+            return {
+                "success": True,
+                "cognitive_maturity": self.cognitive_maturity,
+                "evolution_results": evolution_results,
+                "insights": insights,
+                "timestamp": datetime.now().isoformat()
+            }
+            
+        except Exception as e:
+            self.logger.error(f"Manual evolution cycle failed: {e}", exc_info=True)
+            return {
+                "success": False,
+                "error": str(e),
+                "timestamp": datetime.now().isoformat()
+            }
+    
     def _update_cognitive_maturity(self, results: Dict[str, Any]):
         """Update cognitive maturity based on evolution results"""
         intelligence_boost = results.get("intelligence_delta", 0)

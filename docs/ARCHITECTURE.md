@@ -92,6 +92,7 @@ agente_autonomo/
         config/
             technical_debt_config.yaml
         agents/
+            agent_expansion_coordinator.py
             capability_gap_detector.py
             linter_agent.py
             bug_hunter_agent.py
@@ -167,8 +168,11 @@ agente_autonomo/
             evolution_report_20250704_085755.json
             night_report_20250704_004455.json
     logs/
+        uvicorn.log
         night_evolution_20250705.log
         evolution_log.csv
+        hephaestus_evolution_20250705_014830.log
+        hephaestus_evolution_20250705_014743.log
     generated_interfaces/
         arthur_interface_1751661619.html
 
@@ -436,6 +440,22 @@ agente_autonomo/
   - *Analyze and fix import/dependency issues*
 - **Função:** `get_dependency_fixer_status(auth_user: dict=Depends(get_auth_user))`
   - *Get Dependency Fixer Agent status*
+- **Função:** `get_cycle_monitor_status(auth_user: dict=Depends(get_auth_user))`
+  - *Get cycle monitor status and system health*
+- **Função:** `force_cycle_cleanup(auth_user: dict=Depends(get_auth_user))`
+  - *Force immediate cleanup of all detected issues*
+- **Função:** `get_agent_expansion_status(auth_user: dict=Depends(get_auth_user))`
+  - *Get status of agent expansion coordination*
+- **Função:** `get_agent_utilization_analysis(auth_user: dict=Depends(get_auth_user))`
+  - *Get detailed analysis of agent utilization*
+- **Função:** `get_agent_activation_plan(auth_user: dict=Depends(get_auth_user))`
+  - *Get plan for activating underutilized agents*
+- **Função:** `get_agent_objectives(auth_user: dict=Depends(get_auth_user))`
+  - *Get objectives for underutilized agents*
+- **Função:** `activate_underutilized_agents(auth_user: dict=Depends(get_auth_user))`
+  - *Ativa agentes subutilizados com objetivos específicos*
+- **Função:** `activate_all_agents_in_main_cycle(auth_user: dict=Depends(get_auth_user))`
+  - *Ativa todos os agentes no ciclo principal automaticamente*
 
 ### Arquivo: `agent/async_orchestrator.py`
 - **Classe:** `AgentType(Enum)`
@@ -809,6 +829,10 @@ agente_autonomo/
 ### Arquivo: `agent/validation_steps/pytest_new_file_validator.py`
 - **Classe:** `PytestNewFileValidator(ValidationStep)`
   - *A validation step that runs pytest specifically on newly created test files.*
+
+### Arquivo: `agent/agents/agent_expansion_coordinator.py`
+- **Classe:** `AgentExpansionCoordinator`
+  - *Coordenador que expande o uso de todos os agentes disponíveis no sistema*
 
 ### Arquivo: `agent/agents/capability_gap_detector.py`
 - **Classe:** `CapabilityGapDetector`

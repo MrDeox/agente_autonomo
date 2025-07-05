@@ -23,6 +23,7 @@ from agent.arthur_interface_generator import ArthurInterfaceGenerator
 from agent.agents.error_detector_agent import ErrorDetectorAgent
 from agent.agents.dependency_fixer_agent import DependencyFixerAgent
 from agent.agents.cycle_monitor_agent import CycleMonitorAgent
+from agent.agents.agent_expansion_coordinator import AgentExpansionCoordinator
 from agent.cycle_runner import CycleRunner
 from agent.async_orchestrator import AgentType, AgentTask
 
@@ -123,6 +124,7 @@ interface_generator = None
 error_detector_agent = None
 dependency_fixer_agent = None
 cycle_monitor_agent = None
+agent_expansion_coordinator = None
 log_analyzer_thread = None
 
 # === PYDANTIC MODELS === #
@@ -220,7 +222,7 @@ def get_auth_user(credentials: HTTPAuthorizationCredentials = Depends(security))
 @app.on_event("startup")
 async def startup_event():
     """Initialize the system on startup"""
-    global hephaestus_agent_instance, hephaestus_worker_thread, interface_generator, error_detector_agent, log_analyzer_thread
+    global hephaestus_agent_instance, hephaestus_worker_thread, interface_generator, error_detector_agent, log_analyzer_thread, dependency_fixer_agent, cycle_monitor_agent, agent_expansion_coordinator
     
     logger.info("🚀 Starting Hephaestus Meta-Intelligence API Server...")
     
@@ -250,6 +252,9 @@ async def startup_event():
         # Initialize Cycle Monitor Agent
         cycle_monitor_agent = CycleMonitorAgent(config)
         cycle_monitor_agent.start_monitoring()
+        
+        # Initialize Agent Expansion Coordinator
+        agent_expansion_coordinator = AgentExpansionCoordinator(config, logger)
         
         # Start meta-intelligence
         hephaestus_agent_instance.start_meta_intelligence()
@@ -1811,6 +1816,197 @@ async def force_cycle_cleanup(auth_user: dict = Depends(get_auth_user)):
         
     except Exception as e:
         logger.error(f"Error during forced cleanup: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+# === AGENT EXPANSION COORDINATOR ENDPOINTS === #
+
+@app.get("/agent-expansion/status", tags=["Agent Expansion"])
+async def get_agent_expansion_status(auth_user: dict = Depends(get_auth_user)):
+    """Get status of agent expansion coordination"""
+    try:
+        global agent_expansion_coordinator
+        
+        if not agent_expansion_coordinator:
+            raise HTTPException(status_code=503, detail="Agent Expansion Coordinator not initialized")
+        
+        status = agent_expansion_coordinator.get_expansion_status()
+        
+        return {
+            "status": "success",
+            "data": status
+        }
+        
+    except Exception as e:
+        logger.error(f"Error getting agent expansion status: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.get("/agent-expansion/analysis", tags=["Agent Expansion"])
+async def get_agent_utilization_analysis(auth_user: dict = Depends(get_auth_user)):
+    """Get detailed analysis of agent utilization"""
+    try:
+        global agent_expansion_coordinator
+        
+        if not agent_expansion_coordinator:
+            raise HTTPException(status_code=503, detail="Agent Expansion Coordinator not initialized")
+        
+        analysis = agent_expansion_coordinator.analyze_agent_utilization()
+        
+        return {
+            "status": "success",
+            "data": analysis
+        }
+        
+    except Exception as e:
+        logger.error(f"Error getting utilization analysis: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.get("/agent-expansion/plan", tags=["Agent Expansion"])
+async def get_agent_activation_plan(auth_user: dict = Depends(get_auth_user)):
+    """Get plan for activating underutilized agents"""
+    try:
+        global agent_expansion_coordinator
+        
+        if not agent_expansion_coordinator:
+            raise HTTPException(status_code=503, detail="Agent Expansion Coordinator not initialized")
+        
+        plan = agent_expansion_coordinator.create_agent_activation_plan()
+        
+        return {
+            "status": "success",
+            "data": plan
+        }
+        
+    except Exception as e:
+        logger.error(f"Error getting activation plan: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.get("/agent-expansion/objectives", tags=["Agent Expansion"])
+async def get_agent_objectives(auth_user: dict = Depends(get_auth_user)):
+    """Get objectives for underutilized agents"""
+    try:
+        global agent_expansion_coordinator
+        
+        if not agent_expansion_coordinator:
+            raise HTTPException(status_code=503, detail="Agent Expansion Coordinator not initialized")
+        
+        objectives = agent_expansion_coordinator.generate_agent_objectives()
+        
+        return {
+            "status": "success",
+            "data": objectives
+        }
+        
+    except Exception as e:
+        logger.error(f"Error getting agent objectives: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.post("/agent-expansion/activate", tags=["Agent Expansion"])
+async def activate_underutilized_agents(auth_user: dict = Depends(get_auth_user)):
+    """Ativa agentes subutilizados com objetivos específicos"""
+    try:
+        if hephaestus_agent_instance:
+            # Add objectives for all agents to ensure they're active
+            all_agents_objectives = [
+                "Procurar e documentar technical debt no projeto atual",
+                "Analisar performance e otimizar chamadas LLM",
+                "Revisar código e identificar melhorias",
+                "Detectar e corrigir bugs automaticamente",
+                "Monitorar e resolver ciclos travados",
+                "Otimizar prompts e estratégias de agentes",
+                "Coordenar comunicação entre agentes",
+                "Analisar logs e identificar padrões",
+                "Gerenciar conhecimento e aprendizado",
+                "Planejar estratégias de evolução",
+                "Detectar gaps de capacidade",
+                "Otimizar arquitetura do sistema",
+                "Gerenciar meta-cognição e auto-reflexão",
+                "Integrar componentes e funcionalidades",
+                "Analisar performance do sistema",
+                "Detectar e corrigir erros automaticamente",
+                "Otimizar experiência do usuário",
+                "Gerenciar validação e testes",
+                "Organizar estrutura do projeto",
+                "Coordenar swarm de agentes",
+                "Gerenciar aprendizado contínuo",
+                "Planejar evolução estratégica"
+            ]
+            
+            for objective in all_agents_objectives:
+                hephaestus_agent_instance.queue_manager.put_objective({
+                    "objective": objective,
+                    "priority": 3,
+                    "is_agent_activation": True
+                })
+            
+            return {
+                "status": "success",
+                "message": f"🚀 Todos os 22 agentes ativados com objetivos específicos!",
+                "objectives_added": len(all_agents_objectives),
+                "total_agents": 22,
+                "timestamp": datetime.now().isoformat()
+            }
+        else:
+            raise HTTPException(status_code=500, detail="Agent not initialized")
+    except Exception as e:
+        logger.error(f"Error activating all agents: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.post("/api/activate-all-agents", tags=["Agent Management"])
+async def activate_all_agents_in_main_cycle(auth_user: dict = Depends(get_auth_user)):
+    """Ativa todos os agentes no ciclo principal automaticamente"""
+    try:
+        if hephaestus_agent_instance:
+            # Add a high-priority objective to activate all agents in swarm mode
+            activation_objective = """
+            **ATIVAÇÃO COMPLETA DE TODOS OS AGENTES**
+            
+            Objetivo: Ativar todos os 22 agentes disponíveis no ciclo principal para maximizar o potencial do sistema.
+            
+            Agentes a serem ativados:
+            1. Architect Agent - Planejamento arquitetural
+            2. Maestro Agent - Orquestração principal
+            3. Code Review Agent - Revisão de código
+            4. Bug Hunter Agent - Detecção de bugs
+            5. Debt Hunter Agent - Detecção de technical debt
+            6. Error Analyzer Agent - Análise de erros
+            7. Error Correction Agent - Correção automática
+            8. Error Detector Agent - Detecção de erros
+            9. Frontend Artisan Agent - Melhorias de UI/UX
+            10. Integrator Agent - Integração de componentes
+            11. Linter Agent - Análise de qualidade
+            12. Log Analysis Agent - Análise de logs
+            13. Model Sommelier Agent - Otimização de modelos
+            14. Organizer Agent - Organização do projeto
+            15. Performance Analyzer Agent - Análise de performance
+            16. Prompt Optimizer Agent - Otimização de prompts
+            17. Self Reflection Agent - Auto-reflexão
+            18. Swarm Coordinator Agent - Coordenação de swarm
+            19. Capability Gap Detector Agent - Detecção de gaps
+            20. Learning Strategist Agent - Estratégias de aprendizado
+            21. Meta Cognitive Controller Agent - Controle meta-cognitivo
+            22. Strategic Planner Agent - Planejamento estratégico
+            
+            Ação: Distribuir tarefas específicas para cada agente e garantir que todos estejam ativos no ciclo principal.
+            """
+            
+            hephaestus_agent_instance.queue_manager.put_objective({
+                "objective": activation_objective,
+                "priority": 1,
+                "is_agent_activation": True
+            })
+            
+            return {
+                "status": "success",
+                "message": "🚀 Todos os 22 agentes serão ativados no ciclo principal!",
+                "total_agents": 22,
+                "activation_objective_added": True,
+                "priority": 1,
+                "timestamp": datetime.now().isoformat()
+            }
+        else:
+            raise HTTPException(status_code=500, detail="Agent not initialized")
+    except Exception as e:
+        logger.error(f"Error activating all agents in main cycle: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
 if __name__ == "__main__":
