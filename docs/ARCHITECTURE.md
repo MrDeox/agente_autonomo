@@ -10,11 +10,13 @@ agente_autonomo/
     CURSOR_MCP_GUIA_FINAL.md
     REVISAO_PROJETO_HEPHAESTUS.md
     demo_self_awareness.py
+    demo_integrator_agent.py
     hephaestus_mcp_server.py
     META_INTELLIGENCE_UPGRADE_SUMMARY.md
     run_mcp.py
     mcp_server_example.py
     cli.py
+    INTEGRATOR_AGENT_SUMMARY.md
     HOT_RELOAD_DOCUMENTATION.md
     README_MCP_HEPHAESTUS.md
     poetry.lock
@@ -59,9 +61,11 @@ agente_autonomo/
         cycle_runner.py
         self_improvement_engine.py
         memory.py
+        capability_assessor.py
         cognitive_evolution_manager.py
         prompt_builder.py
         tool_executor.py
+        learning_strategist.py
         project_scanner.py
         queue_manager.py
         state.py
@@ -93,6 +97,7 @@ agente_autonomo/
             maestro_agent.py
             model_sommelier_agent.py
             prompt_optimizer.py
+            integrator_agent.py
             debt_hunter_agent.py
             error_analyzer.py
         utils/
@@ -154,6 +159,14 @@ agente_autonomo/
   - *Cria um resumo comparativo das melhorias*
 - **Função:** `main()`
   - *Função principal*
+
+### Arquivo: `demo_integrator_agent.py`
+- **Função:** `demo_integrator_agent()`
+  - *Demonstração completa das capacidades do IntegratorAgent*
+- **Função:** `demo_integration_patterns()`
+  - *Demonstração dos padrões de criatividade usados pelo IntegratorAgent*
+- **Função:** `demo_component_capabilities()`
+  - *Demonstração das capacidades dos componentes registrados*
 
 ### Arquivo: `hephaestus_mcp_server.py`
 - **Classe:** `HephaestusMCPServer`
@@ -553,6 +566,10 @@ agente_autonomo/
 - **Classe:** `Memory`
   - *Manages persistent memory for the Hephaestus agent, storing historical data*
 
+### Arquivo: `agent/capability_assessor.py`
+- **Classe:** `CapabilityAssessor`
+  - *Assesses capability gaps and recommends focus areas for improvement.*
+
 ### Arquivo: `agent/cognitive_evolution_manager.py`
 - **Classe:** `EvolutionEvent`
   - *Represents a significant evolutionary event in the system*
@@ -610,6 +627,10 @@ agente_autonomo/
   - *Cria recomendações acionáveis a partir dos resultados.*
 - **Função:** `list_available_models()`
   - *Fetches the list of available models from the OpenRouter API and filters for free ones.*
+
+### Arquivo: `agent/learning_strategist.py`
+- **Classe:** `LearningStrategist`
+  - *Adapts learning strategies based on capability gaps and performance data.*
 
 ### Arquivo: `agent/project_scanner.py`
 - **Função:** `_extract_elements(code_string: str)`
@@ -748,6 +769,14 @@ agente_autonomo/
 ### Arquivo: `agent/agents/prompt_optimizer.py`
 - **Classe:** `PromptOptimizer`
   - *Analyzes prompt performance and automatically optimizes prompts*
+
+### Arquivo: `agent/agents/integrator_agent.py`
+- **Classe:** `IntegrationIdea`
+  - *Representa uma ideia de integração criativa*
+- **Classe:** `ComponentCapability`
+  - *Representa as capacidades de um componente do sistema*
+- **Classe:** `IntegratorAgent`
+  - *Agente criativo que pensa em formas inovadoras de integrar componentes do sistema*
 
 ### Arquivo: `agent/agents/debt_hunter_agent.py`
 - **Classe:** `DebtType(Enum)`
