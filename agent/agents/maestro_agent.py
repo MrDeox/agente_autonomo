@@ -80,6 +80,7 @@ class MaestroAgent:
         self.strategy_cache = StrategyCache()
         self.performance_data = {}
         self.strategy_weights = {}
+        self.error_analyzer = None
         self._load_historical_performance()
 
     def _load_historical_performance(self) -> None:
@@ -123,8 +124,15 @@ class MaestroAgent:
         for strategy, data in self.performance_data.items():
             if data["total_executions"] > 0:
                 success_rate = data["success_count"] / data["total_executions"]
-                # Weight is success rate adjusted by execution count
-                self.strategy_weights[strategy] = success_rate * (1 + min(data["total_executions"]/100, 1))
+                # Weight is success rate adjusted by execution count and error analysis
+                weight = success_rate * (1 + min(data["total_executions"]/100, 1))
+                
+                # Apply error analysis adjustment if available
+                if self.error_analyzer:
+                    error_factor = self.error_analyzer.get_error_factor(strategy)
+                    weight *= (1 - error_factor)
+                
+                self.strategy_weights[strategy] = weight
             else:
                 self.strategy_weights[strategy] = 0.5  # Default weight for untested strategies
 
@@ -330,3 +338,13 @@ class MaestroAgent:
         self.strategy_cache.put(action_plan_data, memory_summary or "", strategy_key)
         
         return [{"model": "weighted_selection", "parsed_json": {"strategy_key": strategy_key}, "success": True}]
+
+    def integrate_error_analyzer(self, error_analyzer: Any) -> None:
+        """
+        Integrates the ErrorAnalysisAgent with the MaestroAgent.
+        
+        Args:
+            error_analyzer: Instance of ErrorAnalysisAgent
+        """
+        self.error_analyzer = error_analyzer
+        self.logger.info("Successfully integrated ErrorAnalysisAgent with MaestroAgent")
