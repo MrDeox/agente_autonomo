@@ -1,69 +1,52 @@
 import pytest
 from unittest.mock import MagicMock, patch
 from agent.hephaestus_agent import HephaestusAgent
-from agent.state import AgentState
 
-@pytest.fixture
-def mock_agent():
-    """Fixture to create a mock HephaestusAgent instance."""
-    mock_logger = MagicMock()
-    mock_config = {
-        "models": {"architect_default": "gpt-4"},
-        "validation_strategies": {},
-        "memory_file_path": "HEPHAESTUS_MEMORY.json"
-    }
-    return HephaestusAgent(mock_logger, mock_config)
+class TestHephaestusAgent:
+    @pytest.fixture
+    def mock_agent(self):
+        """Fixture that returns a mock HephaestusAgent instance."""
+        mock_config = {
+            "models": {
+                "architect_default": "gpt-4",
+                "meta_intelligence": "gpt-4"
+            },
+            "memory_file_path": "HEPHAESTUS_MEMORY.json",
+            "validation_strategies": {}
+        }
+        return HephaestusAgent(logger_instance=MagicMock(), config=mock_config)
 
-class TestExecuteStrategy:
-    """Test suite for execute_strategy functionality."""
-    
-    def test_execute_strategy_with_valid_input(self, mock_agent):
-        """Test execute_strategy with valid strategy input."""
-        # TODO: Implement test cases
-        pass
-    
-    def test_execute_strategy_with_invalid_input(self, mock_agent):
-        """Test execute_strategy with invalid strategy input."""
-        # TODO: Implement test cases
-        pass
-    
-    def test_execute_strategy_error_handling(self, mock_agent):
-        """Test execute_strategy error handling."""
+    def test_execute_strategy(self, mock_agent):
+        """Test the execute_strategy method."""
         # TODO: Implement test cases
         pass
 
-class TestValidateResults:
-    """Test suite for validate_results functionality."""
-    
-    def test_validate_results_success_case(self, mock_agent):
-        """Test validate_results with successful validation."""
-        # TODO: Implement test cases
-        pass
-    
-    def test_validate_results_failure_case(self, mock_agent):
-        """Test validate_results with failed validation."""
-        # TODO: Implement test cases
-        pass
-    
-    def test_validate_results_edge_cases(self, mock_agent):
-        """Test validate_results with edge case inputs."""
+    def test_process_feedback(self, mock_agent):
+        """Test the process_feedback method."""
         # TODO: Implement test cases
         pass
 
-class TestCoreFunctionality:
-    """Test suite for other core functionality."""
-    
-    def test_run_architect_phase(self, mock_agent):
-        """Test the architect phase execution."""
+    def test_run_continuous(self, mock_agent):
+        """Test the run_continuous method."""
         # TODO: Implement test cases
         pass
-    
-    def test_run_code_review_phase(self, mock_agent):
-        """Test the code review phase execution."""
+
+    def test_start_meta_intelligence(self, mock_agent):
+        """Test the start_meta_intelligence method."""
         # TODO: Implement test cases
         pass
-    
-    def test_run_maestro_phase(self, mock_agent):
-        """Test the maestro phase execution."""
+
+    def test_perform_deep_self_reflection(self, mock_agent):
+        """Test the perform_deep_self_reflection method."""
+        # TODO: Implement test cases
+        pass
+
+    def test_async_evolution_cycle(self, mock_agent):
+        """Test the run_async_evolution_cycle method."""
+        # TODO: Implement test cases
+        pass
+
+    def test_enable_turbo_evolution_mode(self, mock_agent):
+        """Test the enable_turbo_evolution_mode method."""
         # TODO: Implement test cases
         pass
