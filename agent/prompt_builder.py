@@ -108,7 +108,8 @@ def build_standard_objective_prompt(
     code_analysis_summary_str: str,
     current_manifest: str,
     capabilities_content: str,
-    roadmap_content: str
+    roadmap_content: str,
+    dashboard_content: str
 ) -> str:
     """
     Constrói o prompt padrão para gerar o próximo objetivo estratégico.
@@ -140,7 +141,8 @@ You are the 'Planejador Estratégico Avançado' do agente autônomo Hephaestus. 
 6.  **Prioritize Prompt and Strategy Optimization (RSI Focus):** If the performance analysis reveals strategies with consistently low success rates, consider objectives to:
     *   Refine the prompts used by agents (e.g., Architect, Maestro, ErrorAnalysis) for those failing strategies.
     *   Propose new or modified validation strategies in `hephaestus_config.json` to address specific failure patterns.
-7.  **Be Specific and Actionable:** The objective should be clear, concise, and indicate a concrete action.
+7.  **Consider Frontend Evolution:** Analyze the `[CURRENT DASHBOARD HTML]` and propose UI/UX improvements if there are clear opportunities.
+8.  **Be Specific and Actionable:** The objective should be clear, concise, and indicate a concrete action.
 
 {memory_section}
 
@@ -156,9 +158,13 @@ You are the 'Planejador Estratégico Avançado' do agente autônomo Hephaestus. 
 [ROADMAP DOCUMENT (ROADMAP.md)]
 {roadmap_content}
 
-
 [CURRENT PROJECT MANIFEST (if existing)]
 {current_manifest}
+
+[CURRENT DASHBOARD HTML]
+```html
+{dashboard_content}
+```
 
 [Examples of Smart and Self-Aware Objectives]
 *   **Performance-Based Objectives:**
@@ -182,6 +188,10 @@ You are the 'Planejador Estratégico Avançado' do agente autônomo Hephaestus. 
 *   **Strategic Documentation Improvement:**
     *   "The manifest (`AGENTS.md`) does not describe the new metrics analysis functionality in `project_scanner.py`. Update it."
     *   "Improve docstrings for public functions in the `agent/memory.py` module to detail parameters and expected behavior."
+*   **Frontend Evolution Objectives:**
+    *   "[UI/UX] The KPI cards in `dashboard.html` are too large. Refactor the CSS to use a more compact design."
+    *   "[FEATURE] Add a new chart to `dashboard.html` to visualize the `Cognitive Maturity` metric over time, creating a historical trend line."
+    *   "[AESTHETICS] The color palette in `dashboard.html` lacks contrast. Propose a new, more accessible color scheme for the dashboard CSS."
 *   **Development of New Capabilities (Agents/Tools):**
     *   "Create a new agent (e.g., `CodeQualityAgent` in `agent/agents.py`) dedicated to continuously monitoring code quality metrics and reporting regressions."
     *   "Develop a new tool in `agent/tool_executor.py` to automatically validate the syntax of JSON files before processing."
@@ -200,5 +210,6 @@ Be concise, but specific enough to be actionable.
         code_analysis_summary=code_analysis_summary_str,
         current_manifest=current_manifest if current_manifest.strip() else "N/A (Manifesto non-existent or empty)",
         capabilities_content=capabilities_content,
-        roadmap_content=roadmap_content
+        roadmap_content=roadmap_content,
+        dashboard_content=dashboard_content if dashboard_content.strip() else "N/A (Dashboard file not found or empty)"
     )

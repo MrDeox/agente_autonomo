@@ -84,6 +84,7 @@ agente_autonomo/
             self_reflection_agent.py
             log_analysis_agent.py
             architect_agent.py
+            frontend_artisan_agent.py
             performance_analyzer.py
             error_correction.py
             error_detector_agent.py
@@ -365,13 +366,15 @@ agente_autonomo/
 ### Arquivo: `agent/objective_generator.py`
 - **Função:** `generate_next_objective(model_config: Dict[str, str], current_manifest: str, logger: logging.Logger, project_root_dir: str, config: Optional[Dict[str, Any]]=None, memory: Optional[Memory]=None, model_optimizer: Optional[ModelOptimizer]=None, current_objective: Optional[str]=None)`
   - *Generates the next evolutionary objective using code analysis and performance data.*
-- **Função:** `generate_capacitation_objective(model_config: Dict[str, str], engineer_analysis: str, memory_summary: Optional[str]=None, logger: Optional[logging.Logger]=None)`
+- **Função:** `generate_capacitation_objective(model_config: Dict[str, str], engineer_analysis: str, logger: logging.Logger, memory_summary: Optional[str]=None)`
   - *Generates an objective to create necessary new capabilities.*
 
 ### Arquivo: `agent/analysis_processor.py`
 - **Classe:** `AnalysisProcessor`
 
 ### Arquivo: `agent/brain.py`
+- **Função:** `generate_next_objective(model_config: Dict[str, str], current_manifest: str, current_objective: Optional[str]=None)`
+  - *Generates the next evolutionary objective using code analysis and performance data.*
 
 ### Arquivo: `agent/__init__.py`
 
@@ -566,7 +569,7 @@ agente_autonomo/
   - *Constrói o prompt para gerar o objetivo inicial quando não há manifesto ou análise de código.*
 - **Função:** `build_meta_analysis_objective_prompt(current_objective: str, original_failed_objective: str, error_reason_for_meta: str, performance_summary_str: str, memory_context_section: str, capabilities_content: str, roadmap_content: str)`
   - *Constrói o prompt para gerar um objetivo estratégico após uma meta-análise de falha.*
-- **Função:** `build_standard_objective_prompt(memory_context_section: str, performance_summary_str: str, code_analysis_summary_str: str, current_manifest: str, capabilities_content: str, roadmap_content: str)`
+- **Função:** `build_standard_objective_prompt(memory_context_section: str, performance_summary_str: str, code_analysis_summary_str: str, current_manifest: str, capabilities_content: str, roadmap_content: str, dashboard_content: str)`
   - *Constrói o prompt padrão para gerar o próximo objetivo estratégico.*
 
 ### Arquivo: `agent/tool_executor.py`
@@ -705,6 +708,10 @@ agente_autonomo/
 
 ### Arquivo: `agent/agents/architect_agent.py`
 - **Classe:** `ArchitectAgent`
+
+### Arquivo: `agent/agents/frontend_artisan_agent.py`
+- **Classe:** `FrontendArtisanAgent`
+  - *An agent that specializes in analyzing and improving web frontends.*
 
 ### Arquivo: `agent/agents/performance_analyzer.py`
 - **Classe:** `PerformanceAnalysisAgent`

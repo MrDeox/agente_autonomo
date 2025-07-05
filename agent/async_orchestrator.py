@@ -14,6 +14,7 @@ from datetime import datetime
 from agent.agents import ArchitectAgent, MaestroAgent, CodeReviewAgent
 from agent.agents.log_analysis_agent import LogAnalysisAgent
 from agent.agents.model_sommelier_agent import ModelSommelierAgent
+from agent.agents.frontend_artisan_agent import FrontendArtisanAgent
 from agent.tool_executor import list_available_models
 
 
@@ -23,6 +24,7 @@ class AgentType(Enum):
     CODE_REVIEW = "code_review"
     LOG_ANALYSIS = "log_analysis"
     MODEL_SOMMELIER = "model_sommelier"
+    FRONTEND_ARTISAN = "frontend_artisan"
 
 
 @dataclass
@@ -109,6 +111,12 @@ class AsyncAgentOrchestrator:
                 model_config=self.config.get("models", {}).get("sommelier_default", self.config.get("models", {}).get("architect_default")),
                 config=self.config,
                 logger=self.logger.getChild("ModelSommelierAgent")
+            )
+
+            self.agent_pools[AgentType.FRONTEND_ARTISAN] = FrontendArtisanAgent(
+                model_config=self.config.get("models", {}).get("frontend_artisan_default", self.config.get("models", {}).get("architect_default")),
+                config=self.config,
+                logger=self.logger.getChild("FrontendArtisanAgent")
             )
             
             self.logger.info("✅ Agent pools initialized successfully")
@@ -263,6 +271,15 @@ class AsyncAgentOrchestrator:
                     agent.propose_model_optimization,
                     agent_performance_summary=agent_perf_summary,
                     available_models=available_models
+                )
+                return await loop.run_in_executor(None, future.result)
+        
+        elif task.agent_type == AgentType.FRONTEND_ARTISAN:
+            with concurrent.futures.ThreadPoolExecutor() as executor:
+                future = executor.submit(
+                    agent.propose_frontend_improvement,
+                    file_path=task.context.get('file_path'),
+                    file_content=task.context.get('file_content')
                 )
                 return await loop.run_in_executor(None, future.result)
         

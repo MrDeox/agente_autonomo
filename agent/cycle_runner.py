@@ -9,8 +9,8 @@ from pathlib import Path
 import asyncio
 
 from agent.project_scanner import update_project_manifest
+from agent.objective_generator import generate_next_objective
 from agent.brain import (
-    generate_next_objective,
     generate_capacitation_objective,
     generate_commit_message,
 )

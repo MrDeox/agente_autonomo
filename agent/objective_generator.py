@@ -57,6 +57,16 @@ def generate_next_objective(
         if logger: logger.error(f"Erro ao ler docs/ROADMAP.md: {e}")
         roadmap_content = f"Erro ao ler ROADMAP.md: {e}"
 
+    # Read dashboard content for context
+    dashboard_content = ""
+    try:
+        dashboard_path = "templates/dashboard.html"
+        with open(dashboard_path, "r", encoding="utf-8") as f:
+            dashboard_content = f.read()
+        if logger: logger.info(f"{dashboard_path} read successfully for context.")
+    except Exception as e:
+        if logger: logger.warning(f"Could not read {dashboard_path}: {e}")
+
     # 1. Analyze code metrics using thresholds from config
     code_analysis_summary_str = ""
     try:
@@ -160,7 +170,8 @@ def generate_next_objective(
                 code_analysis_summary_str=code_analysis_summary_str,
                 current_manifest=current_manifest,
                 capabilities_content=capabilities_content,
-                roadmap_content=roadmap_content
+                roadmap_content=roadmap_content,
+                dashboard_content=dashboard_content
             )
 
     if logger: logger.debug(f"Prompt for generate_next_objective:\n{prompt}")
@@ -191,8 +202,8 @@ def generate_next_objective(
 def generate_capacitation_objective(
     model_config: Dict[str, str],
     engineer_analysis: str,
+    logger: logging.Logger,
     memory_summary: Optional[str] = None,
-    logger: Optional[logging.Logger] = None # Changed type hint
 ) -> str:
     """Generates an objective to create necessary new capabilities."""
     memory_context_str = ""
