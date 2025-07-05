@@ -1,69 +1,55 @@
 import pytest
-from unittest.mock import Mock, patch
+from unittest.mock import MagicMock, patch
 from agent.hephaestus_agent import HephaestusAgent
+from agent.state import AgentState
+from agent.memory import Memory
 
-@pytest.fixture
-def mock_hephaestus_agent():
-    """Fixture providing a mock HephaestusAgent instance."""
-    mock_logger = Mock()
-    mock_config = {
-        "models": {"architect_default": "gpt-4"},
-        "validation_strategies": {},
-        "memory_file_path": "test_memory.json"
-    }
-    return HephaestusAgent(
-        logger_instance=mock_logger,
-        config=mock_config,
-        continuous_mode=False
-    )
+class TestHephaestusAgent:
+    @pytest.fixture
+    def mock_agent(self):
+        """Fixture providing a mock HephaestusAgent instance."""
+        mock_logger = MagicMock()
+        mock_config = {
+            "models": {"architect_default": "gpt-4"},
+            "memory_file_path": "HEPHAESTUS_MEMORY.json"
+        }
+        return HephaestusAgent(
+            logger_instance=mock_logger,
+            config=mock_config
+        )
 
-# TODO: Implement test cases for execute_cycle
-# This is the core execution flow that needs thorough testing
-def test_execute_cycle(mock_hephaestus_agent):
-    """Test the main execution cycle of the agent."""
-    # TODO: Implement test cases
-    # Should test:
-    # - Normal execution flow
-    # - Error handling
-    # - State management
-    # - Validation strategy application
-    pass
+    def test_execute_cycle_basic_flow(self, mock_agent):
+        """Test basic execution cycle flow."""
+        # TODO: Implement test cases for execute_cycle
+        # Should test:
+        # - Normal successful execution
+        # - Error handling
+        # - State transitions
+        pass
 
-# TODO: Implement test cases for process_feedback
-def test_process_feedback(mock_hephaestus_agent):
-    """Test how the agent processes feedback from operations."""
-    # TODO: Implement test cases
-    # Should test:
-    # - Feedback handling
-    # - Error processing
-    # - Memory updates
-    pass
+    def test_execute_cycle_with_failure(self, mock_agent):
+        """Test execute_cycle with simulated failure."""
+        # TODO: Implement failure scenario tests
+        # Should test:
+        # - Validation failures
+        # - Error recovery
+        # - Memory updates on failure
+        pass
 
-# TODO: Implement test cases for meta-intelligence functions
-def test_meta_intelligence(mock_hephaestus_agent):
-    """Test meta-intelligence related functions."""
-    # TODO: Implement test cases
-    # Should test:
-    # - start_meta_intelligence()
-    # - stop_meta_intelligence()
-    # - get_meta_intelligence_status()
-    pass
+    def test_process_feedback_loop(self, mock_agent):
+        """Test feedback loop processing."""
+        # TODO: Implement test cases for _process_feedback_loop
+        # Should test:
+        # - Feedback incorporation
+        # - State updates
+        # - Error cases
+        pass
 
-# TODO: Implement test cases for hot reload functionality
-def test_hot_reload(mock_hephaestus_agent):
-    """Test hot reload related functions."""
-    # TODO: Implement test cases
-    # Should test:
-    # - enable_real_time_evolution()
-    # - disable_real_time_evolution()
-    # - self_modify_code()
-    pass
-
-# TODO: Implement test cases for async evolution
-def test_async_evolution(mock_hephaestus_agent):
-    """Test async evolution functionality."""
-    # TODO: Implement test cases
-    # Should test:
-    # - run_async_evolution_cycle()
-    # - enable_turbo_evolution_mode()
-    pass
+    def test_process_feedback_loop_edge_cases(self, mock_agent):
+        """Test feedback loop with edge cases."""
+        # TODO: Implement edge case tests
+        # Should test:
+        # - Empty feedback
+        # - Invalid feedback formats
+        # - Extreme values
+        pass
