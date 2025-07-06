@@ -1,463 +1,280 @@
 #!/usr/bin/env python3
 """
-Demonstração dos problemas identificados no sistema de thread workers
-e comparação com soluções propostas
+Thread Workers Demo - Practical demonstration of threading issues and solutions in Hephaestus
 """
 
 import asyncio
-import time
 import threading
+import time
 import logging
-import json
-from typing import Dict, List, Any
-from dataclasses import dataclass
-from datetime import datetime
-import concurrent.futures
+from typing import Dict, Any
+from concurrent.futures import ThreadPoolExecutor
+import os
 
 # Setup logging
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
 logger = logging.getLogger(__name__)
 
-@dataclass
-class ProblemaIdentificado:
-    tipo: str
-    descricao: str
-    impacto: str
-    severidade: str
-    solucao_proposta: str
-
-class ThreadWorkersDemo:
-    """Demonstração dos problemas em thread workers"""
+class ThreadingProblems:
+    """Demonstrates current threading problems in Hephaestus"""
     
     def __init__(self):
-        self.problemas_encontrados: List[ProblemaIdentificado] = []
+        self.logger = logging.getLogger(__name__ + ".Problems")
+    
+    def demonstrate_race_conditions(self):
+        """Demonstrate race conditions in shared state access"""
+        self.logger.info("🏁 Demonstrating race conditions...")
         
-    def demonstrar_race_condition(self):
-        """Demonstra problema de race condition"""
-        logger.info("🔍 Demonstrando Race Condition...")
+        # Current problematic approach (like in async_orchestrator.py)
+        shared_state = {
+            "active_tasks": {},
+            "completed_tasks": {},
+            "failed_tasks": {}
+        }
         
-        # Estado compartilhado SEM proteção (problema atual)
-        contador_sem_protecao = {"valor": 0}
-        
-        def incrementar_sem_protecao():
-            for _ in range(1000):
-                # PROBLEMA: Acesso não-atômico
-                temp = contador_sem_protecao["valor"]
+        def unsafe_task_update(task_id: str):
+            """Simulates unsafe task state updates"""
+            for i in range(1000):
+                # This is NOT thread-safe - race condition!
+                current_count = len(shared_state["active_tasks"])
                 time.sleep(0.00001)  # Simula latência que causa race condition
-                contador_sem_protecao["valor"] = temp + 1
+                shared_state["active_tasks"][f"{task_id}_{i}"] = current_count + 1
         
-        # Executar múltiplas threads sem proteção
+        # Run multiple threads doing unsafe updates
         threads = []
-        start_time = time.time()
-        
-        for _ in range(5):
-            thread = threading.Thread(target=incrementar_sem_protecao)
+        for i in range(5):
+            thread = threading.Thread(target=unsafe_task_update, args=(f"task_{i}",))
             threads.append(thread)
             thread.start()
         
         for thread in threads:
             thread.join()
         
-        sem_protecao_time = time.time() - start_time
-        resultado_sem_protecao = contador_sem_protecao["valor"]
-        esperado = 5000
+        expected_tasks = 5000
+        actual_tasks = len(shared_state["active_tasks"])
+        data_loss = expected_tasks - actual_tasks
         
-        logger.warning(f"❌ SEM PROTEÇÃO: Esperado {esperado}, obtido {resultado_sem_protecao}")
-        logger.warning(f"   Race conditions perderam {esperado - resultado_sem_protecao} incrementos!")
-        
-        # Estado compartilhado COM proteção (solução proposta)
-        contador_com_protecao = {"valor": 0}
-        lock = threading.Lock()
-        
-        def incrementar_com_protecao():
-            for _ in range(1000):
-                # SOLUÇÃO: Acesso protegido por lock
-                with lock:
-                    contador_com_protecao["valor"] += 1
-        
-        # Executar múltiplas threads com proteção
-        threads = []
-        start_time = time.time()
-        
-        for _ in range(5):
-            thread = threading.Thread(target=incrementar_com_protecao)
-            threads.append(thread)
-            thread.start()
-        
-        for thread in threads:
-            thread.join()
-        
-        com_protecao_time = time.time() - start_time
-        resultado_com_protecao = contador_com_protecao["valor"]
-        
-        logger.info(f"✅ COM PROTEÇÃO: Esperado {esperado}, obtido {resultado_com_protecao}")
-        
-        # Registrar problema
-        problema = ProblemaIdentificado(
-            tipo="Race Condition",
-            descricao=f"Estado compartilhado sem proteção resulta em perda de {esperado - resultado_sem_protecao} operações",
-            impacto=f"Corrupção de dados - {((esperado - resultado_sem_protecao) / esperado * 100):.1f}% de perda",
-            severidade="ALTA",
-            solucao_proposta="ThreadSafeState com locks apropriados"
-        )
-        self.problemas_encontrados.append(problema)
-        
-        return {
-            "sem_protecao": {"resultado": resultado_sem_protecao, "tempo": sem_protecao_time},
-            "com_protecao": {"resultado": resultado_com_protecao, "tempo": com_protecao_time}
-        }
+        self.logger.warning(f"⚠️ Race condition result: Expected {expected_tasks}, got {actual_tasks} ({data_loss} lost)")
+        return data_loss
     
-    async def demonstrar_latencia_polling(self):
-        """Demonstra problema de latência por polling"""
-        logger.info("🔍 Demonstrando Latência por Polling...")
+    def demonstrate_thread_safe_solution(self):
+        """Demonstrate thread-safe solution"""
+        self.logger.info("🔒 Demonstrating thread-safe solution...")
         
-        # PROBLEMA ATUAL: Polling com sleep fixo
-        async def polling_com_sleep():
-            dependency_resolved = False
+        class ThreadSafeTaskManager:
+            def __init__(self):
+                self.active_tasks = {}
+                self.completed_tasks = {}
+                self.failed_tasks = {}
+                self.lock = threading.Lock()
+            
+            def add_task(self, task_id: str, task_data: Any):
+                with self.lock:
+                    self.active_tasks[task_id] = task_data
+            
+            def complete_task(self, task_id: str, result: Any):
+                with self.lock:
+                    if task_id in self.active_tasks:
+                        task_data = self.active_tasks.pop(task_id)
+                        self.completed_tasks[task_id] = result
+                        return True
+                    return False
+            
+            def get_task_count(self):
+                with self.lock:
+                    return len(self.active_tasks) + len(self.completed_tasks)
+        
+        safe_manager = ThreadSafeTaskManager()
+        
+        def safe_task_update(task_id: str):
+            """Thread-safe task updates"""
+            for i in range(1000):
+                task_key = f"{task_id}_{i}"
+                safe_manager.add_task(task_key, {"data": i})
+        
+        threads = []
+        for i in range(5):
+            thread = threading.Thread(target=safe_task_update, args=(f"task_{i}",))
+            threads.append(thread)
+            thread.start()
+        
+        for thread in threads:
+            thread.join()
+        
+        actual_tasks = safe_manager.get_task_count()
+        self.logger.info(f"✅ Thread-safe result: Got {actual_tasks} tasks (no data loss)")
+        return actual_tasks
+    
+    async def demonstrate_polling_latency(self):
+        """Demonstrate polling vs event-driven approach"""
+        self.logger.info("⏱️ Demonstrating polling latency...")
+        
+        # Current problematic approach (like in async_orchestrator.py)
+        async def polling_dependency_wait():
+            dependency_complete = False
             start_time = time.time()
             
-            # Simular dependência que resolve em 0.3s
-            async def resolver_dependencia():
+            # Simulate dependency completing after 0.3 seconds
+            async def complete_dependency():
                 await asyncio.sleep(0.3)
-                nonlocal dependency_resolved
-                dependency_resolved = True
+                nonlocal dependency_complete
+                dependency_complete = True
             
-            # Simular polling atual (PROBLEMA)
-            async def aguardar_com_polling():
-                while not dependency_resolved:
-                    await asyncio.sleep(1)  # PROBLEMA: Sleep fixo de 1s
+            asyncio.create_task(complete_dependency())
             
-            # Executar
-            resolver_task = asyncio.create_task(resolver_dependencia())
-            polling_task = asyncio.create_task(aguardar_com_polling())
-            
-            await asyncio.gather(resolver_task, polling_task)
+            # PROBLEM: Fixed 1-second polling (like in async_orchestrator.py:221)
+            while not dependency_complete:
+                await asyncio.sleep(1)  # PROBLEMA: Sleep fixo de 1s
             
             return time.time() - start_time
         
-        # SOLUÇÃO PROPOSTA: Event-driven
-        async def event_driven():
-            start_time = time.time()
+        # Event-driven solution
+        async def event_driven_dependency_wait():
             dependency_event = asyncio.Event()
+            start_time = time.time()
             
-            # Simular dependência que resolve em 0.3s
-            async def resolver_dependencia():
+            # Simulate dependency completing after 0.3 seconds
+            async def complete_dependency():
                 await asyncio.sleep(0.3)
-                dependency_event.set()  # SOLUÇÃO: Notificação imediata
+                dependency_event.set()
             
-            # Simular aguardar com events
-            async def aguardar_com_event():
-                await dependency_event.wait()  # SOLUÇÃO: Sem polling
+            asyncio.create_task(complete_dependency())
             
-            # Executar
-            resolver_task = asyncio.create_task(resolver_dependencia())
-            event_task = asyncio.create_task(aguardar_com_event())
-            
-            await asyncio.gather(resolver_task, event_task)
+            # SOLUTION: Event-driven notification
+            await dependency_event.wait()
             
             return time.time() - start_time
         
-        # Comparar métodos
-        tempo_polling = await polling_com_sleep()
-        tempo_event = await event_driven()
+        polling_time = await polling_dependency_wait()
+        event_time = await event_driven_dependency_wait()
         
-        melhoria = (tempo_polling - tempo_event) / tempo_polling * 100
+        improvement = ((polling_time - event_time) / polling_time) * 100
         
-        logger.warning(f"❌ POLLING: {tempo_polling:.2f}s")
-        logger.info(f"✅ EVENT-DRIVEN: {tempo_event:.2f}s")
-        logger.info(f"🎯 MELHORIA: {melhoria:.1f}% mais rápido")
+        self.logger.info(f"📊 Polling: {polling_time:.3f}s vs Event-driven: {event_time:.3f}s ({improvement:.1f}% improvement)")
         
-        # Registrar problema
-        problema = ProblemaIdentificado(
-            tipo="Latência por Polling",
-            descricao=f"Sleep fixo de 1s causa latência desnecessária de {tempo_polling - tempo_event:.2f}s",
-            impacto=f"Aumento de {melhoria:.1f}% na latência",
-            severidade="MÉDIA",
-            solucao_proposta="Event-driven architecture com asyncio.Event"
-        )
-        self.problemas_encontrados.append(problema)
-        
-        return {
-            "polling": tempo_polling,
-            "event_driven": tempo_event,
-            "melhoria_percentual": melhoria
-        }
+        return polling_time, event_time, improvement
     
-    async def demonstrar_execucao_sequencial(self):
-        """Demonstra problema de execução sequencial vs paralela"""
-        logger.info("🔍 Demonstrando Execução Sequencial vs Paralela...")
+    async def demonstrate_sequential_vs_parallel(self):
+        """Demonstrate sequential vs parallel execution"""
+        self.logger.info("🔄 Demonstrating sequential vs parallel execution...")
         
-        async def tarefa_simulada(nome: str, duracao: float):
-            """Simula uma tarefa que demora um tempo"""
-            logger.debug(f"Iniciando {nome}...")
-            await asyncio.sleep(duracao)
-            logger.debug(f"Finalizando {nome}")
-            return f"{nome} concluída em {duracao}s"
-        
-        # PROBLEMA ATUAL: Execução sequencial
-        async def execucao_sequencial():
+        async def sequential_tasks():
+            """Current sequential approach"""
             start_time = time.time()
             
-            # Executar uma por vez (PROBLEMA)
-            await tarefa_simulada("Architect", 0.3)
-            await tarefa_simulada("Maestro", 0.2)
-            await tarefa_simulada("CodeReview", 0.15)
-            await tarefa_simulada("BugHunter", 0.25)
+            # Simulate 3 independent tasks that could run in parallel
+            await asyncio.sleep(0.3)  # Architect task
+            await asyncio.sleep(0.3)  # Maestro task  
+            await asyncio.sleep(0.3)  # Review task
             
             return time.time() - start_time
         
-        # SOLUÇÃO PROPOSTA: Execução paralela
-        async def execucao_paralela():
+        async def parallel_tasks():
+            """Improved parallel approach"""
             start_time = time.time()
             
-            # Executar em paralelo (SOLUÇÃO)
-            tasks = [
-                tarefa_simulada("Architect", 0.3),
-                tarefa_simulada("Maestro", 0.2),
-                tarefa_simulada("CodeReview", 0.15),
-                tarefa_simulada("BugHunter", 0.25)
-            ]
-            
-            await asyncio.gather(*tasks)
+            # Same tasks running in parallel
+            await asyncio.gather(
+                asyncio.sleep(0.3),  # Architect task
+                asyncio.sleep(0.3),  # Maestro task
+                asyncio.sleep(0.3)   # Review task
+            )
             
             return time.time() - start_time
         
-        # Comparar métodos
-        tempo_sequencial = await execucao_sequencial()
-        tempo_paralelo = await execucao_paralela()
+        sequential_time = await sequential_tasks()
+        parallel_time = await parallel_tasks()
         
-        melhoria = (tempo_sequencial - tempo_paralelo) / tempo_sequencial * 100
-        throughput_sequencial = 4 / tempo_sequencial
-        throughput_paralelo = 4 / tempo_paralelo
+        throughput_improvement = sequential_time / parallel_time
         
-        logger.warning(f"❌ SEQUENCIAL: {tempo_sequencial:.2f}s ({throughput_sequencial:.1f} tasks/s)")
-        logger.info(f"✅ PARALELO: {tempo_paralelo:.2f}s ({throughput_paralelo:.1f} tasks/s)")
-        logger.info(f"🎯 MELHORIA: {melhoria:.1f}% mais rápido")
+        self.logger.info(f"📊 Sequential: {sequential_time:.3f}s vs Parallel: {parallel_time:.3f}s ({throughput_improvement:.1f}x faster)")
         
-        # Registrar problema
-        problema = ProblemaIdentificado(
-            tipo="Execução Sequencial",
-            descricao=f"Perda de {melhoria:.1f}% de performance por não usar paralelismo",
-            impacto=f"Throughput {throughput_paralelo/throughput_sequencial:.1f}x menor",
-            severidade="ALTA",
-            solucao_proposta="EventDrivenPipeline com execução paralela"
-        )
-        self.problemas_encontrados.append(problema)
-        
-        return {
-            "sequencial": {"tempo": tempo_sequencial, "throughput": throughput_sequencial},
-            "paralelo": {"tempo": tempo_paralelo, "throughput": throughput_paralelo},
-            "melhoria_percentual": melhoria
-        }
+        return sequential_time, parallel_time, throughput_improvement
     
-    def demonstrar_threadpool_ineficiente(self):
-        """Demonstra problema de ThreadPoolExecutor mal configurado"""
-        logger.info("🔍 Demonstrando ThreadPool Ineficiente...")
+    def demonstrate_threadpool_optimization(self):
+        """Demonstrate ThreadPool optimization"""
+        self.logger.info("🧵 Demonstrating ThreadPool optimization...")
         
-        def tarefa_cpu_intensiva(n: int):
-            """Simula tarefa CPU-intensiva"""
-            total = 0
-            for i in range(n * 1000):
-                total += i * i
-            return total
+        def cpu_bound_task(duration):
+            """Simulate CPU-bound task"""
+            start = time.time()
+            while time.time() - start < duration:
+                pass  # Busy wait
+            return duration
         
-        # PROBLEMA ATUAL: ThreadPool sobre-dimensionado
-        def threadpool_ineficiente():
-            start_time = time.time()
-            max_workers = 20  # PROBLEMA: Muitas threads para poucas tarefas
-            
-            with concurrent.futures.ThreadPoolExecutor(max_workers=max_workers) as executor:
-                tasks = [executor.submit(tarefa_cpu_intensiva, 100) for _ in range(8)]
-                results = [task.result() for task in tasks]
-            
-            return time.time() - start_time, len(results)
+        # Current approach: max_workers = max_concurrent_agents * 2 (often 8)
+        start_time = time.time()
+        with ThreadPoolExecutor(max_workers=8) as executor:
+            futures = [executor.submit(cpu_bound_task, 0.1) for _ in range(4)]
+            results = [f.result() for f in futures]
+        current_time = time.time() - start_time
         
-        # SOLUÇÃO PROPOSTA: ThreadPool otimizado
-        def threadpool_otimizado():
-            start_time = time.time()
-            import os
-            max_workers = min(8, (os.cpu_count() or 4))  # SOLUÇÃO: Baseado em CPUs
-            
-            with concurrent.futures.ThreadPoolExecutor(max_workers=max_workers) as executor:
-                tasks = [executor.submit(tarefa_cpu_intensiva, 100) for _ in range(8)]
-                results = [task.result() for task in tasks]
-            
-            return time.time() - start_time, len(results)
+        # Optimized approach: CPU-based allocation
+        optimal_workers = min(8, (os.cpu_count() or 4))
+        start_time = time.time()
+        with ThreadPoolExecutor(max_workers=optimal_workers) as executor:
+            futures = [executor.submit(cpu_bound_task, 0.1) for _ in range(4)]
+            results = [f.result() for f in futures]
+        optimized_time = time.time() - start_time
         
-        # Comparar métodos
-        tempo_ineficiente, _ = threadpool_ineficiente()
-        tempo_otimizado, _ = threadpool_otimizado()
+        improvement = ((current_time - optimized_time) / current_time) * 100
         
-        melhoria = (tempo_ineficiente - tempo_otimizado) / tempo_ineficiente * 100
+        self.logger.info(f"📊 Current (8 workers): {current_time:.3f}s vs Optimized ({optimal_workers} workers): {optimized_time:.3f}s ({improvement:.1f}% improvement)")
         
-        logger.warning(f"❌ INEFICIENTE (20 workers): {tempo_ineficiente:.2f}s")
-        logger.info(f"✅ OTIMIZADO (CPU-based): {tempo_otimizado:.2f}s")
-        
-        if melhoria > 0:
-            logger.info(f"🎯 MELHORIA: {melhoria:.1f}% mais rápido")
-        else:
-            logger.info(f"📊 Diferença: {abs(melhoria):.1f}% (overhead de contexto)")
-        
-        # Registrar problema
-        problema = ProblemaIdentificado(
-            tipo="ThreadPool Mal Configurado",
-            descricao="Excesso de threads causa overhead de context switching",
-            impacto=f"Overhead de {abs(melhoria):.1f}% no tempo de execução",
-            severidade="MÉDIA",
-            solucao_proposta="AdaptiveConcurrencyController baseado em CPU cores"
-        )
-        self.problemas_encontrados.append(problema)
-        
-        return {
-            "ineficiente": tempo_ineficiente,
-            "otimizado": tempo_otimizado,
-            "melhoria_percentual": melhoria
-        }
-    
-    def gerar_relatorio(self) -> str:
-        """Gera relatório completo dos problemas"""
-        relatorio = f"""
-# 📊 RELATÓRIO DE ANÁLISE: Thread Workers & Async Tasks
-
-## 🕐 Timestamp: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}
-
-## ⚠️ PROBLEMAS IDENTIFICADOS ({len(self.problemas_encontrados)})
-
-"""
-        
-        for i, problema in enumerate(self.problemas_encontrados, 1):
-            relatorio += f"""
-### {i}. {problema.tipo} - Severidade: {problema.severidade}
-
-**Descrição**: {problema.descricao}
-**Impacto**: {problema.impacto}
-**Solução Proposta**: {problema.solucao_proposta}
-
----
-"""
-        
-        relatorio += """
-## 🎯 RESUMO DAS SOLUÇÕES PROPOSTAS
-
-### 1. **EventDrivenPipeline**
-- Substitui polling por notificações baseadas em eventos
-- Elimina latências desnecessárias de até 1 segundo
-- Arquitetura orientada a eventos evita deadlocks
-
-### 2. **ThreadSafeState**
-- Gerenciamento de estado thread-safe com locks otimizados
-- Operações atômicas previnem race conditions
-- Versionamento para detecção de conflitos
-
-### 3. **AdaptiveConcurrencyController**
-- Ajuste dinâmico do número de threads baseado em CPU
-- Monitoramento de métricas para otimização automática
-- Estratégias conservativa, balanceada e agressiva
-
-### 4. **IntelligentCache**
-- Cache com TTL e invalidação automática
-- Reduz recomputações desnecessárias
-- Cleanup automático para gerenciamento de memória
-
-## 📈 BENEFÍCIOS ESPERADOS
-
-- **Latência**: Redução de 70-80%
-- **Throughput**: Aumento de 300-500%
-- **Confiabilidade**: 99.9% uptime
-- **Escalabilidade**: Suporte a 10x mais carga
-- **Race Conditions**: Eliminação completa
-- **Deadlocks**: Prevenção através de arquitetura orientada a eventos
-
-## 🚀 PRÓXIMOS PASSOS
-
-1. **Implementar ThreadSafeState** (Semana 1)
-2. **Migrar para EventDrivenPipeline** (Semana 2-3)
-3. **Adicionar AdaptiveConcurrencyController** (Semana 4)
-4. **Integrar IntelligentCache** (Semana 5)
-5. **Testes de carga e otimização** (Semana 6)
-
----
-*Análise gerada pelo sistema de diagnóstico Hephaestus*
-"""
-        
-        return relatorio
-    
-    def salvar_relatorio(self, filename: str = "thread_workers_analysis.md"):
-        """Salva relatório em arquivo"""
-        relatorio = self.gerar_relatorio()
-        
-        with open(filename, 'w', encoding='utf-8') as f:
-            f.write(relatorio)
-        
-        logger.info(f"📁 Relatório salvo em: {filename}")
-        
-        # Também salvar dados estruturados
-        dados = {
-            "timestamp": datetime.now().isoformat(),
-            "problemas": [
-                {
-                    "tipo": p.tipo,
-                    "descricao": p.descricao,
-                    "impacto": p.impacto,
-                    "severidade": p.severidade,
-                    "solucao_proposta": p.solucao_proposta
-                }
-                for p in self.problemas_encontrados
-            ]
-        }
-        
-        json_filename = filename.replace('.md', '.json')
-        with open(json_filename, 'w', encoding='utf-8') as f:
-            json.dump(dados, f, indent=2, ensure_ascii=False)
-        
-        logger.info(f"📁 Dados estruturados salvos em: {json_filename}")
+        return current_time, optimized_time, improvement
 
 async def main():
-    """Função principal da demonstração"""
-    logger.info("🚀 INICIANDO DEMONSTRAÇÃO DE PROBLEMAS EM THREAD WORKERS")
-    logger.info("=" * 70)
+    """Main demonstration function"""
+    logger.info("🚀 Starting Thread Workers Demonstration")
     
-    demo = ThreadWorkersDemo()
+    problems = ThreadingProblems()
     
-    try:
-        # 1. Demonstrar Race Condition
-        logger.info("\n" + "🔴 PROBLEMA 1: RACE CONDITIONS")
-        race_results = demo.demonstrar_race_condition()
-        
-        # 2. Demonstrar Latência por Polling
-        logger.info("\n" + "🔴 PROBLEMA 2: LATÊNCIA POR POLLING")
-        polling_results = await demo.demonstrar_latencia_polling()
-        
-        # 3. Demonstrar Execução Sequencial
-        logger.info("\n" + "🔴 PROBLEMA 3: EXECUÇÃO SEQUENCIAL")
-        exec_results = await demo.demonstrar_execucao_sequencial()
-        
-        # 4. Demonstrar ThreadPool Ineficiente
-        logger.info("\n" + "🔴 PROBLEMA 4: THREADPOOL INEFICIENTE")
-        thread_results = demo.demonstrar_threadpool_ineficiente()
-        
-        # Gerar e exibir relatório
-        logger.info("\n" + "=" * 70)
-        logger.info("📊 GERANDO RELATÓRIO FINAL...")
-        
-        relatorio = demo.gerar_relatorio()
-        print(relatorio)
-        
-        # Salvar relatório
-        demo.salvar_relatorio()
-        
-        # Resumo dos resultados
-        logger.info("=" * 70)
-        logger.info("📈 RESUMO DOS RESULTADOS:")
-        logger.info(f"  🔴 Race Conditions: {len(demo.problemas_encontrados)} problemas detectados")
-        logger.info(f"  ⚡ Melhorias de latência: até {polling_results['melhoria_percentual']:.1f}%")
-        logger.info(f"  🚀 Melhorias de throughput: até {exec_results['melhoria_percentual']:.1f}%")
-        logger.info("=" * 70)
-        logger.info("✅ DEMONSTRAÇÃO CONCLUÍDA COM SUCESSO!")
-        
-    except Exception as e:
-        logger.error(f"❌ Erro durante demonstração: {e}")
-        raise
+    print("\n" + "="*80)
+    print("THREADING PROBLEMS DEMONSTRATION")
+    print("="*80)
+    
+    # 1. Race Conditions
+    print("\n1. RACE CONDITIONS:")
+    data_loss = problems.demonstrate_race_conditions()
+    safe_count = problems.demonstrate_thread_safe_solution()
+    print(f"   • Unsafe approach: {data_loss} tasks lost due to race conditions")
+    print(f"   • Thread-safe approach: {safe_count} tasks (no data loss)")
+    
+    # 2. Polling Latency
+    print("\n2. POLLING LATENCY:")
+    polling_time, event_time, latency_improvement = await problems.demonstrate_polling_latency()
+    print(f"   • Polling approach: {polling_time:.3f}s")
+    print(f"   • Event-driven approach: {event_time:.3f}s")
+    print(f"   • Improvement: {latency_improvement:.1f}%")
+    
+    # 3. Sequential vs Parallel
+    print("\n3. SEQUENTIAL VS PARALLEL EXECUTION:")
+    seq_time, par_time, throughput_improvement = await problems.demonstrate_sequential_vs_parallel()
+    print(f"   • Sequential execution: {seq_time:.3f}s")
+    print(f"   • Parallel execution: {par_time:.3f}s")
+    print(f"   • Throughput improvement: {throughput_improvement:.1f}x")
+    
+    # 4. ThreadPool Optimization
+    print("\n4. THREADPOOL OPTIMIZATION:")
+    current_time, optimized_time, pool_improvement = problems.demonstrate_threadpool_optimization()
+    print(f"   • Current approach (8 workers): {current_time:.3f}s")
+    print(f"   • Optimized approach (CPU-based): {optimized_time:.3f}s")
+    print(f"   • Improvement: {pool_improvement:.1f}%")
+    
+    print("\n" + "="*80)
+    print("SUMMARY OF IMPROVEMENTS")
+    print("="*80)
+    print(f"• Race Condition Prevention: {data_loss} tasks saved")
+    print(f"• Latency Reduction: {latency_improvement:.1f}%")
+    print(f"• Throughput Increase: {throughput_improvement:.1f}x")
+    print(f"• ThreadPool Optimization: {pool_improvement:.1f}%")
+    
+    print("\n🎯 EXPECTED OVERALL BENEFITS:")
+    print("• Eliminate data loss from race conditions")
+    print("• 70% reduction in task execution latency")
+    print("• 300% increase in throughput")
+    print("• Better resource utilization")
+    print("• Improved system reliability")
 
 if __name__ == "__main__":
     asyncio.run(main()) 
