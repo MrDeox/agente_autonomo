@@ -12,6 +12,7 @@ import time
 from datetime import datetime
 import json
 import os
+from contextlib import asynccontextmanager
 
 from dotenv import load_dotenv
 load_dotenv() # Carrega as variáveis de ambiente do arquivo .env
@@ -27,6 +28,21 @@ from agent.agents.agent_expansion_coordinator import AgentExpansionCoordinator
 from agent.cycle_runner import CycleRunner
 from agent.async_orchestrator import AgentType, AgentTask
 
+# Enhanced Systems Integration
+try:
+    from agent.enhanced_systems_integration import (
+        enhanced_cache, 
+        enhanced_monitor, 
+        enhanced_validator, 
+        enhanced_interface,
+        initialize_enhanced_systems
+    )
+    ENHANCED_SYSTEMS_AVAILABLE = True
+    print("🚀 Enhanced systems loaded successfully!")
+except ImportError as e:
+    ENHANCED_SYSTEMS_AVAILABLE = False
+    print(f"⚠️ Enhanced systems not available: {e}")
+
 # Ensure templates directory exists
 if not os.path.exists("templates"):
     os.makedirs("templates")
@@ -37,6 +53,85 @@ logging.basicConfig(
     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
 )
 logger = logging.getLogger(__name__)
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    """Lifespan context manager for FastAPI startup and shutdown events."""
+    global hephaestus_agent_instance, hephaestus_worker_thread, interface_generator, error_detector_agent, log_analyzer_thread, dependency_fixer_agent, cycle_monitor_agent, agent_expansion_coordinator
+    
+    # Startup
+    logger.info("🚀 Starting Hephaestus Meta-Intelligence API Server...")
+    
+    try:
+        # Load configuration
+        config = load_config()
+        
+        # Check if hot reload is enabled
+        import sys
+        hot_reload_enabled = "--hot-reload" in sys.argv
+        if hot_reload_enabled:
+            logger.info("🔥 Hot reload detected - Disabling signal handlers for proper reload")
+        
+        # Initialize the HephaestusAgent
+        hephaestus_agent_instance = HephaestusAgent(
+            logger_instance=logger,
+            config=config,
+            continuous_mode=False,
+            queue_manager=queue_manager,
+            disable_signal_handlers=hot_reload_enabled
+        )
+        
+        # Initialize interface generator
+        interface_generator = ArthurInterfaceGenerator(config, logger)
+        
+        # Initialize Error Detector Agent
+        model_config = config.get("models", {}).get("architect_default", {})
+        error_detector_agent = ErrorDetectorAgent(model_config, logger)
+        error_detector_agent.start_monitoring()
+        
+        # Initialize Dependency Fixer Agent
+        dependency_fixer_agent = DependencyFixerAgent(config)
+        
+        # Initialize Cycle Monitor Agent
+        cycle_monitor_agent = CycleMonitorAgent(config)
+        cycle_monitor_agent.start_monitoring()
+        
+        # Initialize Agent Expansion Coordinator
+        agent_expansion_coordinator = AgentExpansionCoordinator(config, logger)
+        
+        # Start meta-intelligence
+        hephaestus_agent_instance.start_meta_intelligence()
+        
+        # Start the worker thread
+        hephaestus_worker_thread = threading.Thread(target=worker_thread, daemon=True)
+        hephaestus_worker_thread.start()
+
+        # Start the periodic log analysis thread
+        log_analyzer_thread = threading.Thread(target=periodic_log_analysis_task, daemon=True)
+        log_analyzer_thread.start()
+        
+        logger.info("✅ Hephaestus Meta-Intelligence API Server initialized successfully!")
+        logger.info("🌐 API Documentation available at: http://localhost:8000/docs")
+        
+    except Exception as e:
+        logger.error(f"❌ Failed to initialize system: {e}")
+        raise
+    
+    yield
+    
+    # Shutdown
+    logger.info("🔄 Shutting down Hephaestus Meta-Intelligence API Server...")
+    
+    try:
+        if hephaestus_agent_instance:
+            hephaestus_agent_instance.stop_meta_intelligence()
+        
+        # Note: Worker thread will stop automatically as it's a daemon thread
+        
+        logger.info("✅ Hephaestus system shutdown complete!")
+        
+    except Exception as e:
+        logger.error(f"❌ Error during shutdown: {e}")
 
 # FastAPI app configuration
 app = FastAPI(
@@ -69,6 +164,7 @@ app = FastAPI(
         "name": "MIT",
         "url": "https://opensource.org/licenses/MIT",
     },
+    lifespan=lifespan,
     openapi_tags=[
         {
             "name": "Core Operations",
@@ -101,20 +197,39 @@ app = FastAPI(
     ]
 )
 
-# CORS Middleware
+# Security configuration
+from agent.security import get_auth_manager, AuthLevel, TokenType
+
+# Load configuration for auth manager
+def load_config():
+    """Load configuration for the application"""
+    try:
+        from agent.config_loader import load_config as load_agent_config
+        return load_agent_config()
+    except Exception as e:
+        logger.error(f"Failed to load config: {e}")
+        return {"security": {"secret_key": "default_secret_key_32_chars_long"}}
+
+# Initialize authentication manager
+config = load_config()
+auth_manager = get_auth_manager(config, logger)
+
+# CORS Middleware - Secure configuration
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # In production, specify exact origins
+    allow_origins=[
+        "http://localhost:3000",  # Development frontend
+        "http://localhost:8000",  # API server
+        "https://localhost:8000", # HTTPS API server
+    ],
     allow_credentials=True,
-    allow_methods=["*"],
+    allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
     allow_headers=["*"],
+    expose_headers=["X-Process-Time", "X-Total-Count"],
 )
 
 # Security
-security = HTTPBearer()
-
-# Rate limiting storage (in production, use Redis)
-rate_limit_storage = {}
+security = HTTPBearer(auto_error=False)
 
 # Global instances
 queue_manager = QueueManager()
@@ -126,6 +241,24 @@ dependency_fixer_agent = None
 cycle_monitor_agent = None
 agent_expansion_coordinator = None
 log_analyzer_thread = None
+
+# === AUTHENTICATION MODELS === #
+
+class LoginRequest(BaseModel):
+    username: str = Field(..., description="Username for authentication")
+    password: str = Field(..., description="Password for authentication")
+
+class TokenResponse(BaseModel):
+    access_token: str
+    refresh_token: str
+    token_type: str = "bearer"
+    expires_in: int
+    user_id: str
+    username: str
+    auth_level: str
+
+class RefreshTokenRequest(BaseModel):
+    refresh_token: str = Field(..., description="Refresh token to get new access token")
 
 # === PYDANTIC MODELS === #
 
@@ -180,117 +313,78 @@ async def add_process_time_header(request: Request, call_next):
 
 @app.middleware("http")
 async def rate_limiting_middleware(request: Request, call_next):
-    # Simple rate limiting (in production, use proper rate limiting)
-    client_ip = request.client.host
-    current_time = time.time()
-    
-    if client_ip not in rate_limit_storage:
-        rate_limit_storage[client_ip] = []
-    
-    # Clean old requests (older than 1 minute)
-    rate_limit_storage[client_ip] = [
-        req_time for req_time in rate_limit_storage[client_ip] 
-        if current_time - req_time < 60
-    ]
-    
-    # Check rate limit (max 100 requests per minute)
-    if len(rate_limit_storage[client_ip]) >= 100:
-        return JSONResponse(
-            status_code=429,
-            content={"detail": "Rate limit exceeded. Max 100 requests per minute."}
-        )
-    
-    rate_limit_storage[client_ip].append(current_time)
-    response = await call_next(request)
-    return response
+    """Rate limiting middleware using auth manager"""
+    try:
+        client_ip = request.client.host if request.client else "unknown"
+        
+        # Check rate limiting using auth manager
+        if not auth_manager.check_rate_limit(client_ip):
+            return JSONResponse(
+                status_code=429,
+                content={"detail": "Rate limit exceeded. Max 60 requests per minute."}
+            )
+        
+        response = await call_next(request)
+        
+        # Add security headers
+        for header, value in auth_manager.get_security_headers().items():
+            response.headers[header] = value
+        
+        return response
+        
+    except Exception as e:
+        logger.error(f"Rate limiting middleware error: {e}")
+        response = await call_next(request)
+        return response
 
 # === DEPENDENCY INJECTION === #
 
 def get_auth_user(credentials: HTTPAuthorizationCredentials = Depends(security)):
-    # In production, validate JWT token here
-    # For now, just check if token is present
+    """Authenticate user with JWT token"""
     if not credentials:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Authentication required",
             headers={"WWW-Authenticate": "Bearer"},
         )
-    return {"user": "arthur", "authenticated": True}
+    
+    try:
+        # Verify JWT token
+        token_payload = auth_manager.verify_token(credentials.credentials)
+        if not token_payload:
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Invalid or expired token",
+                headers={"WWW-Authenticate": "Bearer"},
+            )
+        
+        # Check rate limiting
+        if not auth_manager.check_rate_limit(token_payload.user_id):
+            raise HTTPException(
+                status_code=status.HTTP_429_TOO_MANY_REQUESTS,
+                detail="Rate limit exceeded"
+            )
+        
+        return {
+            "user_id": token_payload.user_id,
+            "username": token_payload.username,
+            "auth_level": token_payload.auth_level,
+            "permissions": token_payload.permissions,
+            "authenticated": True
+        }
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Authentication error: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Authentication failed",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
 
 # === STARTUP/SHUTDOWN === #
 
-@app.on_event("startup")
-async def startup_event():
-    """Initialize the system on startup"""
-    global hephaestus_agent_instance, hephaestus_worker_thread, interface_generator, error_detector_agent, log_analyzer_thread, dependency_fixer_agent, cycle_monitor_agent, agent_expansion_coordinator
-    
-    logger.info("🚀 Starting Hephaestus Meta-Intelligence API Server...")
-    
-    try:
-        # Load configuration
-        config = load_config()
-        
-        # Initialize the HephaestusAgent
-        hephaestus_agent_instance = HephaestusAgent(
-            logger_instance=logger,
-            config=config,
-            continuous_mode=False,
-            queue_manager=queue_manager
-        )
-        
-        # Initialize interface generator
-        interface_generator = ArthurInterfaceGenerator(config, logger)
-        
-        # Initialize Error Detector Agent
-        model_config = config.get("models", {}).get("architect_default", {})
-        error_detector_agent = ErrorDetectorAgent(model_config, logger)
-        error_detector_agent.start_monitoring()
-        
-        # Initialize Dependency Fixer Agent
-        dependency_fixer_agent = DependencyFixerAgent(config)
-        
-        # Initialize Cycle Monitor Agent
-        cycle_monitor_agent = CycleMonitorAgent(config)
-        cycle_monitor_agent.start_monitoring()
-        
-        # Initialize Agent Expansion Coordinator
-        agent_expansion_coordinator = AgentExpansionCoordinator(config, logger)
-        
-        # Start meta-intelligence
-        hephaestus_agent_instance.start_meta_intelligence()
-        
-        # Start the worker thread
-        hephaestus_worker_thread = threading.Thread(target=worker_thread, daemon=True)
-        hephaestus_worker_thread.start()
-
-        # Start the periodic log analysis thread
-        log_analyzer_thread = threading.Thread(target=periodic_log_analysis_task, daemon=True)
-        log_analyzer_thread.start()
-        
-        logger.info("✅ Hephaestus Meta-Intelligence API Server initialized successfully!")
-        logger.info("🌐 API Documentation available at: http://localhost:8000/docs")
-        
-    except Exception as e:
-        logger.error(f"❌ Failed to initialize system: {e}")
-        raise
-
-@app.on_event("shutdown")
-async def shutdown_event():
-    """Cleanup on shutdown"""
-    global hephaestus_agent_instance, hephaestus_worker_thread, log_analyzer_thread
-    
-    logger.info("🔄 Shutting down Hephaestus Meta-Intelligence API Server...")
-    
-    try:
-        if hephaestus_agent_instance:
-            hephaestus_agent_instance.stop_meta_intelligence()
-        
-        # Note: Worker thread will stop automatically as it's a daemon thread
-        
-        logger.info("✅ Hephaestus system shutdown complete!")
-        
-    except Exception as e:
-        logger.error(f"❌ Error during shutdown: {e}")
 
 def periodic_log_analysis_task():
     """A background task that periodically queues system monitoring tasks."""
@@ -379,6 +473,118 @@ def process_objective(objective_data: Any):
     pass
 
 # === CORE OPERATIONS ENDPOINTS === #
+
+# === AUTHENTICATION ENDPOINTS === #
+
+@app.post("/auth/login", response_model=TokenResponse, tags=["Authentication"])
+async def login(request: LoginRequest):
+    """Authenticate user and return JWT tokens"""
+    try:
+        # Authenticate user
+        user_data = auth_manager.authenticate_user(request.username, request.password)
+        if not user_data:
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Invalid username or password"
+            )
+        
+        # Create tokens
+        access_token = auth_manager.create_access_token(
+            user_data["user_id"],
+            user_data["username"],
+            user_data["auth_level"],
+            user_data["permissions"]
+        )
+        
+        refresh_token = auth_manager.create_refresh_token(
+            user_data["user_id"],
+            user_data["username"]
+        )
+        
+        # Create session
+        session_id = auth_manager.create_session(
+            user_data["user_id"],
+            user_data["username"],
+            user_data["auth_level"],
+            user_data["permissions"]
+        )
+        
+        return TokenResponse(
+            access_token=access_token,
+            refresh_token=refresh_token,
+            expires_in=3600,  # 1 hour
+            user_id=user_data["user_id"],
+            username=user_data["username"],
+            auth_level=user_data["auth_level"].value
+        )
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Login error: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Authentication failed"
+        )
+
+@app.post("/auth/refresh", response_model=TokenResponse, tags=["Authentication"])
+async def refresh_token(request: RefreshTokenRequest):
+    """Refresh access token using refresh token"""
+    try:
+        # Verify refresh token
+        token_payload = auth_manager.verify_token(request.refresh_token)
+        if not token_payload or token_payload.token_type != TokenType.REFRESH:
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Invalid refresh token"
+            )
+        
+        # Create new access token
+        access_token = auth_manager.create_access_token(
+            token_payload.user_id,
+            token_payload.username,
+            token_payload.auth_level,
+            token_payload.permissions
+        )
+        
+        # Create new refresh token
+        refresh_token = auth_manager.create_refresh_token(
+            token_payload.user_id,
+            token_payload.username
+        )
+        
+        return TokenResponse(
+            access_token=access_token,
+            refresh_token=refresh_token,
+            expires_in=3600,
+            user_id=token_payload.user_id,
+            username=token_payload.username,
+            auth_level=token_payload.auth_level.value
+        )
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Token refresh error: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Token refresh failed"
+        )
+
+@app.post("/auth/logout", tags=["Authentication"])
+async def logout(auth_user: dict = Depends(get_auth_user)):
+    """Logout user and invalidate session"""
+    try:
+        # In production, you would invalidate the session here
+        # For now, just return success
+        return {"message": "Logged out successfully"}
+        
+    except Exception as e:
+        logger.error(f"Logout error: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Logout failed"
+        )
 
 @app.get("/", response_class=HTMLResponse, tags=["Core Operations"])
 async def root():
@@ -2118,11 +2324,22 @@ async def get_system_health():
         # Obter relatório de saúde do agente
         health_report = hephaestus_agent_instance.get_system_health_report()
         
-        return {
+        response = {
             "status": "success",
             "health": health_report,
             "timestamp": datetime.now().isoformat()
         }
+        
+        # Add enhanced systems status if available
+        if ENHANCED_SYSTEMS_AVAILABLE:
+            response["enhanced_systems"] = {
+                "cache": enhanced_cache.get_stats(),
+                "monitor": enhanced_monitor.get_metrics(),
+                "validator": "available",
+                "interface": "available"
+            }
+        
+        return response
     except Exception as e:
         return {
             "status": "error",
@@ -2246,11 +2463,195 @@ async def get_prevention_report(auth_user: dict = Depends(get_auth_user)):
         logger.error(f"Error getting prevention report: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
+# === ENHANCED SYSTEMS ENDPOINTS === #
+
+@app.get("/enhanced/cache/stats", tags=["Enhanced Systems"])
+async def get_enhanced_cache_stats(auth_user: dict = Depends(get_auth_user)):
+    """Get enhanced cache statistics"""
+    try:
+        if ENHANCED_SYSTEMS_AVAILABLE:
+            stats = enhanced_cache.get_stats()
+            return {
+                "status": "success",
+                "cache_stats": stats,
+                "timestamp": datetime.now().isoformat()
+            }
+        else:
+            raise HTTPException(status_code=503, detail="Enhanced cache not available")
+    except Exception as e:
+        logger.error(f"Error getting cache stats: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.get("/enhanced/monitor/metrics", tags=["Enhanced Systems"])
+async def get_enhanced_monitor_metrics(category: str = None, auth_user: dict = Depends(get_auth_user)):
+    """Get enhanced monitoring metrics"""
+    try:
+        if ENHANCED_SYSTEMS_AVAILABLE:
+            metrics = enhanced_monitor.get_metrics(category)
+            alerts = enhanced_monitor.get_alerts()
+            return {
+                "status": "success",
+                "metrics": metrics,
+                "alerts": alerts,
+                "timestamp": datetime.now().isoformat()
+            }
+        else:
+            raise HTTPException(status_code=503, detail="Enhanced monitor not available")
+    except Exception as e:
+        logger.error(f"Error getting monitor metrics: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.post("/enhanced/monitor/track", tags=["Enhanced Systems"])
+async def track_metric(
+    name: str = Body(..., description="Metric name"),
+    value: Any = Body(..., description="Metric value"),
+    category: str = Body("general", description="Metric category"),
+    auth_user: dict = Depends(get_auth_user)
+):
+    """Track a metric using enhanced monitoring"""
+    try:
+        if ENHANCED_SYSTEMS_AVAILABLE:
+            enhanced_monitor.track_metric(name, value, category)
+            return {
+                "status": "success",
+                "message": f"Metric '{name}' tracked successfully",
+                "timestamp": datetime.now().isoformat()
+            }
+        else:
+            raise HTTPException(status_code=503, detail="Enhanced monitor not available")
+    except Exception as e:
+        logger.error(f"Error tracking metric: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.post("/enhanced/validator/validate", tags=["Enhanced Systems"])
+async def validate_with_enhanced_system(
+    target: str = Body(..., description="Target to validate (file path, code, etc.)"),
+    validation_type: str = Body("comprehensive", description="Type of validation"),
+    auth_user: dict = Depends(get_auth_user)
+):
+    """Run validation using enhanced validation system"""
+    try:
+        if ENHANCED_SYSTEMS_AVAILABLE:
+            if validation_type == "comprehensive":
+                result = enhanced_validator.run_comprehensive_validation(target)
+            elif validation_type == "python_syntax":
+                with open(target, 'r') as f:
+                    code = f.read()
+                is_valid, message = enhanced_validator.validate_python_syntax(code)
+                result = {
+                    'target': target,
+                    'validations': [{
+                        'type': 'python_syntax',
+                        'status': 'pass' if is_valid else 'fail',
+                        'message': message
+                    }],
+                    'overall_status': 'pass' if is_valid else 'fail'
+                }
+            else:
+                raise HTTPException(status_code=400, detail=f"Unknown validation type: {validation_type}")
+            
+            return {
+                "status": "success",
+                "validation_result": result,
+                "timestamp": datetime.now().isoformat()
+            }
+        else:
+            raise HTTPException(status_code=503, detail="Enhanced validator not available")
+    except Exception as e:
+        logger.error(f"Error running validation: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.post("/enhanced/interface/generate", tags=["Enhanced Systems"])
+async def generate_enhanced_interface(
+    interface_type: str = Body(..., description="Type of interface to generate"),
+    data: Dict[str, Any] = Body(..., description="Data for interface generation"),
+    auth_user: dict = Depends(get_auth_user)
+):
+    """Generate interface using enhanced interface system"""
+    try:
+        if ENHANCED_SYSTEMS_AVAILABLE:
+            if interface_type == "dashboard":
+                content = enhanced_interface.generate_dashboard(data)
+            elif interface_type == "api_docs":
+                content = enhanced_interface.generate_api_documentation(data.get('endpoints', []))
+            else:
+                raise HTTPException(status_code=400, detail=f"Unknown interface type: {interface_type}")
+            
+            # Save the generated interface
+            timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+            file_path = f"generated_interfaces/enhanced_{interface_type}_{timestamp}.html"
+            enhanced_interface.save_interface(content, file_path)
+            
+            return {
+                "status": "success",
+                "interface_type": interface_type,
+                "file_path": file_path,
+                "timestamp": datetime.now().isoformat()
+            }
+        else:
+            raise HTTPException(status_code=503, detail="Enhanced interface not available")
+    except Exception as e:
+        logger.error(f"Error generating interface: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.get("/enhanced/systems/status", tags=["Enhanced Systems"])
+async def get_enhanced_systems_status(auth_user: dict = Depends(get_auth_user)):
+    """Get status of all enhanced systems"""
+    try:
+        if ENHANCED_SYSTEMS_AVAILABLE:
+            return {
+                "status": "success",
+                "enhanced_systems": {
+                    "cache": {
+                        "available": True,
+                        "stats": enhanced_cache.get_stats()
+                    },
+                    "monitor": {
+                        "available": True,
+                        "metrics_count": len(enhanced_monitor.get_metrics()),
+                        "alerts_count": len(enhanced_monitor.get_alerts())
+                    },
+                    "validator": {
+                        "available": True,
+                        "validation_types": ["comprehensive", "python_syntax", "json_syntax", "file_existence"]
+                    },
+                    "interface": {
+                        "available": True,
+                        "interface_types": ["dashboard", "api_docs"]
+                    }
+                },
+                "timestamp": datetime.now().isoformat()
+            }
+        else:
+            return {
+                "status": "error",
+                "message": "Enhanced systems not available",
+                "timestamp": datetime.now().isoformat()
+            }
+    except Exception as e:
+        logger.error(f"Error getting enhanced systems status: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
 if __name__ == "__main__":
-    uvicorn.run(
-        "tools.app:app", 
-        host="0.0.0.0", 
-        port=8000,
-        reload=True,
-        log_level="info"
-    )
+    import sys
+    import os
+    
+    # Configurar hot reload manual se solicitado
+    if "--hot-reload" in sys.argv:
+        print("🔥 Hot reload mode enabled!")
+        uvicorn.run(
+            "tools.app:app", 
+            host="0.0.0.0", 
+            port=8000,
+            reload=True,
+            reload_dirs=["agent", "tools"],
+            log_level="info"
+        )
+    else:
+        # Modo normal sem hot reload
+        uvicorn.run(
+            "tools.app:app", 
+            host="0.0.0.0", 
+            port=8000,
+            log_level="info"
+        )

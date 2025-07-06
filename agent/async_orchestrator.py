@@ -74,6 +74,9 @@ class AsyncAgentOrchestrator:
         self.max_concurrent_agents = config.get('async_orchestration', {}).get('max_concurrent', 4)
         self.default_timeout = config.get('async_orchestration', {}).get('default_timeout', 300)
         
+        # Executor para tarefas bloqueantes
+        self.executor = concurrent.futures.ThreadPoolExecutor(max_workers=self.max_concurrent_agents * 2)
+
         # Semáforos para controle de concorrência
         self.semaphores = {
             agent_type: asyncio.Semaphore(self.max_concurrent_agents) 
@@ -208,99 +211,90 @@ class AsyncAgentOrchestrator:
                 del self.active_tasks[task.task_id]
     
     async def _wait_for_dependencies(self, task: AgentTask):
-        """Aguarda dependências serem completadas"""
+        """Aguarda dependências serem completadas ou falharem."""
         if not task.dependencies:
             return
+
+        self.logger.info(f"⏳ Task {task.task_id} waiting for dependencies: {task.dependencies}")
+
+        for dep_id in task.dependencies:
+            while dep_id not in self.completed_tasks and dep_id not in self.failed_tasks:
+                await asyncio.sleep(1)  # Poll less aggressively
+
+            if dep_id in self.failed_tasks:
+                raise RuntimeError(f"Dependency task {dep_id} failed. Aborting task {task.task_id}.")
         
-        self.logger.info(f"⏳ Waiting for dependencies: {task.dependencies}")
-        
-        while True:
-            unfinished_deps = []
-            for dep_id in task.dependencies:
-                if dep_id not in self.completed_tasks:
-                    unfinished_deps.append(dep_id)
-            
-            if not unfinished_deps:
-                break
-            
-            await asyncio.sleep(0.1)
+        self.logger.info(f"✅ Dependencies for task {task.task_id} are met.")
     
     async def _run_agent_task(self, task: AgentTask) -> Any:
-        """Executa a tarefa específica do agente"""
+        """Executa a tarefa específica do agente de forma não-bloqueante."""
         agent = self.agent_pools[task.agent_type]
-        loop = asyncio.get_event_loop()
-        
+        loop = asyncio.get_running_loop()
+
         if task.agent_type == AgentType.ARCHITECT:
-            with concurrent.futures.ThreadPoolExecutor() as executor:
-                future = executor.submit(
-                    agent.plan_action,
-                    task.objective,
-                    task.context.get('manifest', ''),
-                    task.context.get('file_content_context', '')
-                )
-                return await loop.run_in_executor(None, future.result)
-        
+            return await loop.run_in_executor(
+                self.executor,
+                agent.plan_action,
+                task.objective,
+                task.context.get('manifest', ''),
+                task.context.get('file_content_context', '')
+            )
+
         elif task.agent_type == AgentType.MAESTRO:
-            with concurrent.futures.ThreadPoolExecutor() as executor:
-                future = executor.submit(
-                    agent.choose_strategy,
-                    task.context.get('action_plan_data', {}),
-                    task.context.get('memory_summary', ''),
-                    task.context.get('failed_strategy_context')
-                )
-                return await loop.run_in_executor(None, future.result)
-        
+            return await loop.run_in_executor(
+                self.executor,
+                agent.choose_strategy,
+                task.context.get('action_plan_data', {}),
+                task.context.get('memory_summary', ''),
+                task.context.get('failed_strategy_context')
+            )
+
         elif task.agent_type == AgentType.CODE_REVIEW:
-            with concurrent.futures.ThreadPoolExecutor() as executor:
-                future = executor.submit(
-                    agent.review_patches,
-                    task.context.get('patches_to_apply', [])
-                )
-                return await loop.run_in_executor(None, future.result)
-        
+            return await loop.run_in_executor(
+                self.executor,
+                agent.review_patches,
+                task.context.get('patches_to_apply', [])
+            )
+
         elif task.agent_type == AgentType.LOG_ANALYSIS:
-            with concurrent.futures.ThreadPoolExecutor() as executor:
-                future = executor.submit(
-                    agent.analyze_logs,
-                    task.context.get('log_file_path', 'logs/app.log'),
-                    task.context.get('lines_to_analyze', 200)
-                )
-                return await loop.run_in_executor(None, future.result)
-        
+            return await loop.run_in_executor(
+                self.executor,
+                agent.analyze_logs,
+                task.context.get('log_file_path', 'logs/app.log'),
+                task.context.get('lines_to_analyze', 200)
+            )
+
         elif task.agent_type == AgentType.MODEL_SOMMELIER:
-            with concurrent.futures.ThreadPoolExecutor() as executor:
-                # This agent has dependencies on other tools/data
+            # Esta tarefa tem uma chamada síncrona (list_available_models) que precisa ser tratada.
+            # Executaremos a chamada de ferramenta também no executor para não bloquear o loop.
+            def sommelier_task_wrapper():
                 agent_perf_summary = task.context.get('agent_performance_summary', {})
                 success, available_models = list_available_models()
                 if not success:
                     self.logger.error("Could not retrieve available models for Model Sommelier.")
-                    available_models = [] # Proceed with an empty list
-
-                future = executor.submit(
-                    agent.propose_model_optimization,
+                    available_models = []
+                return agent.propose_model_optimization(
                     agent_performance_summary=agent_perf_summary,
                     available_models=available_models
                 )
-                return await loop.run_in_executor(None, future.result)
-        
+            return await loop.run_in_executor(self.executor, sommelier_task_wrapper)
+
         elif task.agent_type == AgentType.FRONTEND_ARTISAN:
-            with concurrent.futures.ThreadPoolExecutor() as executor:
-                future = executor.submit(
-                    agent.propose_frontend_improvement,
-                    file_path=task.context.get('file_path'),
-                    file_content=task.context.get('file_content')
-                )
-                return await loop.run_in_executor(None, future.result)
-        
+            return await loop.run_in_executor(
+                self.executor,
+                agent.propose_frontend_improvement,
+                file_path=task.context.get('file_path'),
+                file_content=task.context.get('file_content')
+            )
+
         elif task.agent_type == AgentType.BUG_HUNTER:
-            with concurrent.futures.ThreadPoolExecutor() as executor:
-                future = executor.submit(
-                    agent.hunt_bugs,
-                    task.context.get('project_path', ''),
-                    task.context.get('code_to_analyze', '')
-                )
-                return await loop.run_in_executor(None, future.result)
-        
+            return await loop.run_in_executor(
+                self.executor,
+                agent.hunt_bugs,
+                task.context.get('project_path', ''),
+                task.context.get('code_to_analyze', '')
+            )
+
         else:
             raise ValueError(f"Unknown agent type: {task.agent_type}")
     

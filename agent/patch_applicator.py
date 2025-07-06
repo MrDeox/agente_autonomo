@@ -290,3 +290,34 @@ def apply_patches(instructions: List[Dict[str, Any]], logger: logging.Logger, ba
             f"Algumas instruções de patch falharam ou foram puladas. Verifique os logs. Arquivos afetados (tentativas): {processed_files}")
 
     return overall_success
+
+class PatchApplicator:
+    """Main class for applying patches to files."""
+    
+    def __init__(self, logger: logging.Logger, base_path: str = "."):
+        self.logger = logger
+        self.base_path = base_path
+    
+    def apply_patches(self, instructions: List[Dict[str, Any]]) -> bool:
+        """
+        Apply a list of patch instructions to files.
+        
+        Args:
+            instructions: List of patch instructions
+            
+        Returns:
+            True if all patches were applied successfully, False otherwise
+        """
+        return apply_patches(instructions, self.logger, self.base_path)
+    
+    def apply_single_patch(self, instruction: Dict[str, Any]) -> bool:
+        """
+        Apply a single patch instruction.
+        
+        Args:
+            instruction: Single patch instruction
+            
+        Returns:
+            True if patch was applied successfully, False otherwise
+        """
+        return apply_patches([instruction], self.logger, self.base_path)

@@ -23,9 +23,10 @@ class ActivationResult:
 class SystemActivator:
     """Ativa funcionalidades não utilizadas e implementa melhorias"""
     
-    def __init__(self, logger: logging.Logger, config: Dict[str, Any]):
+    def __init__(self, logger: logging.Logger, config: Dict[str, Any], disable_signal_handlers: bool = False):
         self.logger = logger
         self.config = config
+        self.disable_signal_handlers = disable_signal_handlers
         self.activation_results = []
         self.active_features = set()
         
@@ -253,7 +254,7 @@ class SystemActivator:
             from agent.utils.error_prevention_system import ErrorPreventionSystem
             
             # Inicializar sistema de prevenção
-            error_prevention = ErrorPreventionSystem(self.logger)
+            error_prevention = ErrorPreventionSystem(self.logger, disable_signal_handlers=self.disable_signal_handlers)
             error_prevention.start()
             
             activated.extend([
@@ -399,6 +400,6 @@ class SystemActivator:
         """Retorna lista de funcionalidades ativas"""
         return list(self.active_features)
 
-def get_system_activator(logger: logging.Logger, config: Dict[str, Any]) -> SystemActivator:
+def get_system_activator(logger: logging.Logger, config: Dict[str, Any], disable_signal_handlers: bool = False) -> SystemActivator:
     """Factory function para criar ativador do sistema"""
-    return SystemActivator(logger, config) 
+    return SystemActivator(logger, config, disable_signal_handlers) 

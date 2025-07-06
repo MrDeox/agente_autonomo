@@ -11,11 +11,12 @@ __all__ = ['generate_next_objective', 'generate_capacitation_objective', 'genera
 def generate_next_objective(
     model_config: Dict[str, str],
     current_manifest: str,
-    current_objective: Optional[str] = None,
-    logger: Optional[logging.Logger] = None,
-    project_root_dir: str = ".",
+    logger: logging.Logger,
+    project_root_dir: str,
+    config: Optional[Dict[str, Any]] = None,
     memory: Optional[Any] = None,
-    model_optimizer: Optional[Any] = None
+    model_optimizer: Optional[Any] = None,
+    current_objective: Optional[str] = None
 ) -> str:
     """
     Generates the next evolutionary objective using code analysis and performance data.
@@ -43,7 +44,7 @@ def generate_next_objective(
             current_manifest=current_manifest,
             logger=logger,
             project_root_dir=project_root_dir,
-            config=None,
+            config=config,  # Pass config through
             memory=memory,
             model_optimizer=model_optimizer,
             current_objective=current_objective

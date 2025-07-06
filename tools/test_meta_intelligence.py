@@ -66,14 +66,16 @@ def test_meta_intelligence():
     flow_modifier = get_flow_modifier(model_config, logger)
     
     # Simular contexto de chamada
-    mock_context = {
-        "agent_type": "architect",
-        "input_complexity": 0.8,
-        "recent_failures": 2,
-        "urgency": "medium"
-    }
+    from agent.flow_self_modifier import CallContext
+    mock_context = CallContext(
+        agent_type="architect",
+        objective="Test objective",
+        complexity_score=0.8,
+        previous_failures=2,
+        urgency=0.5
+    )
     
-    decision = flow_modifier.should_make_llm_call(mock_context)
+    decision = flow_modifier.decide_on_llm_call(mock_context)
     logger.info(f"✅ Decisão inteligente de chamada LLM: {decision}")
     
     # 3. Testar Evolution Manager

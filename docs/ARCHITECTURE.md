@@ -7,6 +7,7 @@ agente_autonomo/
     MCP_SETUP_GUIDE.md
     RESUMO_REVISAO_FINAL.md
     README.md
+    hephaestus.log
     mcp_server.log
     PROPOSTA_SERVIDOR_MCP.md
     PLANO_ACAO_IMPLEMENTACAO.md
@@ -19,19 +20,24 @@ agente_autonomo/
     META_INTELLIGENCE_UPGRADE_SUMMARY.md
     run_mcp.py
     mcp_server_example.py
+    CRITICAL_ACTION_ITEMS_IMPLEMENTED.md
     cli.py
     INTEGRATOR_AGENT_SUMMARY.md
     HOT_RELOAD_DOCUMENTATION.md
+    performance_report.json
     README_MCP_HEPHAESTUS.md
     poetry.lock
     CORRECOES_CRITICAS_IMPLEMENTADAS.md
     PROGRESSO_CORRECOES.md
     main.py
     API_REST_DOCUMENTATION.md
+    night_agent.log
     hephaestus_config.json
     GUIA_MCP_CURSOR.md
     CHECKLIST_MCP_HEPHAESTUS.md
     RESUMO_ANALISE_MELHORIAS.md
+    AUDIT_RESPONSE_SUMMARY.md
+    TECHNICAL_AUDIT_REPORT.md
     RELATORIO_TECNICO_ESTRATEGICO.md
     demo_organizer_agent.py
     evolution_monitoring.txt
@@ -47,20 +53,26 @@ agente_autonomo/
     setup_mcp.py
     ERROR_DETECTOR_DOCUMENTATION.md
     cursor_mcp_config.json
+    bug_hunter_test.log
     pyproject.toml
     tools/
         app.py
     agent/
+        enhanced_validator_integration.py
         async_orchestrator.py
         objective_generator.py
         analysis_processor.py
         brain.py
+        enhanced_systems_integration.py
         __init__.py
         commit_message_generator.py
         arthur_interface_generator.py
         code_metrics.py
+        feature_activator_agent.py
+        enhanced_cache_integration.py
         tactical_generator.py
         system_activator.py
+        enhanced_monitor_integration.py
         knowledge_integration.py
         model_optimizer.py
         strategic_planner.py
@@ -90,8 +102,11 @@ agente_autonomo/
         project_scanner.py
         queue_manager.py
         state.py
+        interfaces.py
         strategy_optimizer.py
+        enhanced_interface_integration.py
         optimized_pipeline.py
+        dependency_resolver.py
         config_loader.py
         advanced_knowledge_system.py
         validation_steps/
@@ -104,6 +119,9 @@ agente_autonomo/
             pytest_new_file_validator.py
         config/
             technical_debt_config.yaml
+        security/
+            auth_manager.py
+            __init__.py
         agents/
             agent_expansion_coordinator.py
             capability_gap_detector.py
@@ -118,6 +136,7 @@ agente_autonomo/
             error_correction.py
             organizer_agent.py
             cycle_monitor_agent.py
+            system_engineer_agent.py
             error_detector_agent.py
             autonomous_monitor_agent.py
             code_review_agent.py
@@ -129,6 +148,9 @@ agente_autonomo/
             integrator_agent.py
             debt_hunter_agent.py
             error_analyzer.py
+        performance/
+            __init__.py
+            config_cache.py
         utils/
             __init__.py
             json_parser.py
@@ -174,9 +196,13 @@ agente_autonomo/
         continuous_evolution_fixed.log
     templates/
         dashboard.html
+    performance/
+        profiling.py
     reports/
         model_performance.db
+        feature_activation_20250705_162115.json
         coverage_activation_report_20250705_120445.json
+        system_engineer_analysis_20250705_161711.json
         night_work/
             NIGHT_WORK_SUMMARY.md
             NIGHT_AGENT_README.md
@@ -187,6 +213,7 @@ agente_autonomo/
             night_report_20250704_004455.json
     logs/
         error_prevention_test.log
+        feature_activation.log
         error_prevention.log
         monitor_test_results_20250705_112439.json
         uvicorn.log
@@ -195,8 +222,10 @@ agente_autonomo/
         uvicorn_optimized.log
         monitor_hephaestus.log
         cursor_protection_test.log
+        feature_integration.log
         night_evolution_20250705.log
         evolution_log.csv
+        system_engineer_analysis.log
         feature_activation_test.log
         hephaestus_alerts.json
         hephaestus_evolution_20250705_014830.log
@@ -452,6 +481,13 @@ agente_autonomo/
   - *Função principal do setup*
 
 ### Arquivo: `tools/app.py`
+- **Função:** `lifespan(app: FastAPI)`
+  - *Lifespan context manager for FastAPI startup and shutdown events.*
+- **Função:** `load_config()`
+  - *Load configuration for the application*
+- **Classe:** `LoginRequest(BaseModel)`
+- **Classe:** `TokenResponse(BaseModel)`
+- **Classe:** `RefreshTokenRequest(BaseModel)`
 - **Classe:** `ObjectiveRequest(BaseModel)`
 - **Classe:** `DeepReflectionRequest(BaseModel)`
 - **Classe:** `AsyncEvolutionRequest(BaseModel)`
@@ -460,17 +496,21 @@ agente_autonomo/
 - **Classe:** `SystemStatusResponse(BaseModel)`
 - **Função:** `add_process_time_header(request: Request, call_next)`
 - **Função:** `rate_limiting_middleware(request: Request, call_next)`
+  - *Rate limiting middleware using auth manager*
 - **Função:** `get_auth_user(credentials: HTTPAuthorizationCredentials=Depends(security))`
-- **Função:** `startup_event()`
-  - *Initialize the system on startup*
-- **Função:** `shutdown_event()`
-  - *Cleanup on shutdown*
+  - *Authenticate user with JWT token*
 - **Função:** `periodic_log_analysis_task()`
   - *A background task that periodically queues system monitoring tasks.*
 - **Função:** `worker_thread()`
   - *Starts the agent's main execution loop.*
 - **Função:** `process_objective(objective_data: Any)`
   - *DEPRECATED: This logic is now handled by the CycleRunner.run() loop.*
+- **Função:** `login(request: LoginRequest)`
+  - *Authenticate user and return JWT tokens*
+- **Função:** `refresh_token(request: RefreshTokenRequest)`
+  - *Refresh access token using refresh token*
+- **Função:** `logout(auth_user: dict=Depends(get_auth_user))`
+  - *Logout user and invalidate session*
 - **Função:** `root()`
   - *API Root - Welcome page with navigation*
 - **Função:** `health_check()`
@@ -624,6 +664,22 @@ agente_autonomo/
   - *Stop autonomous monitoring system*
 - **Função:** `get_prevention_report(auth_user: dict=Depends(get_auth_user))`
   - *Get error prevention and monitoring report*
+- **Função:** `get_enhanced_cache_stats(auth_user: dict=Depends(get_auth_user))`
+  - *Get enhanced cache statistics*
+- **Função:** `get_enhanced_monitor_metrics(category: str=None, auth_user: dict=Depends(get_auth_user))`
+  - *Get enhanced monitoring metrics*
+- **Função:** `track_metric(name: str=Body(..., description='Metric name'), value: Any=Body(..., description='Metric value'), category: str=Body('general', description='Metric category'), auth_user: dict=Depends(get_auth_user))`
+  - *Track a metric using enhanced monitoring*
+- **Função:** `validate_with_enhanced_system(target: str=Body(..., description='Target to validate (file path, code, etc.)'), validation_type: str=Body('comprehensive', description='Type of validation'), auth_user: dict=Depends(get_auth_user))`
+  - *Run validation using enhanced validation system*
+- **Função:** `generate_enhanced_interface(interface_type: str=Body(..., description='Type of interface to generate'), data: Dict[str, Any]=Body(..., description='Data for interface generation'), auth_user: dict=Depends(get_auth_user))`
+  - *Generate interface using enhanced interface system*
+- **Função:** `get_enhanced_systems_status(auth_user: dict=Depends(get_auth_user))`
+  - *Get status of all enhanced systems*
+
+### Arquivo: `agent/enhanced_validator_integration.py`
+- **Classe:** `EnhancedValidator`
+  - *Enhanced validation system using activated features.*
 
 ### Arquivo: `agent/async_orchestrator.py`
 - **Classe:** `AgentType(Enum)`
@@ -644,8 +700,14 @@ agente_autonomo/
 - **Classe:** `AnalysisProcessor`
 
 ### Arquivo: `agent/brain.py`
-- **Função:** `generate_next_objective(model_config: Dict[str, str], current_manifest: str, current_objective: Optional[str]=None, logger: Optional[logging.Logger]=None, project_root_dir: str='.', memory: Optional[Any]=None, model_optimizer: Optional[Any]=None)`
+- **Função:** `generate_next_objective(model_config: Dict[str, str], current_manifest: str, logger: logging.Logger, project_root_dir: str, config: Optional[Dict[str, Any]]=None, memory: Optional[Any]=None, model_optimizer: Optional[Any]=None, current_objective: Optional[str]=None)`
   - *Generates the next evolutionary objective using code analysis and performance data.*
+
+### Arquivo: `agent/enhanced_systems_integration.py`
+- **Função:** `get_enhanced_systems()`
+  - *Get all enhanced systems.*
+- **Função:** `initialize_enhanced_systems()`
+  - *Initialize all enhanced systems.*
 
 ### Arquivo: `agent/__init__.py`
 
@@ -671,6 +733,14 @@ agente_autonomo/
 - **Função:** `detect_code_duplication(code_string: str, min_lines: int=4, strip_comments_and_blanks: bool=True)`
   - *Detects duplicated code blocks in the given Python code string.*
 
+### Arquivo: `agent/feature_activator_agent.py`
+- **Classe:** `FeatureActivatorAgent`
+  - *Feature Activator Agent that integrates unused functions and features.*
+
+### Arquivo: `agent/enhanced_cache_integration.py`
+- **Classe:** `EnhancedCache`
+  - *Enhanced caching system using activated features.*
+
 ### Arquivo: `agent/tactical_generator.py`
 - **Classe:** `TacticalGenerator`
   - *Handles concrete objective formulation based on strategic direction.*
@@ -679,8 +749,12 @@ agente_autonomo/
 - **Classe:** `ActivationResult`
 - **Classe:** `SystemActivator`
   - *Ativa funcionalidades não utilizadas e implementa melhorias*
-- **Função:** `get_system_activator(logger: logging.Logger, config: Dict[str, Any])`
+- **Função:** `get_system_activator(logger: logging.Logger, config: Dict[str, Any], disable_signal_handlers: bool=False)`
   - *Factory function para criar ativador do sistema*
+
+### Arquivo: `agent/enhanced_monitor_integration.py`
+- **Classe:** `EnhancedMonitor`
+  - *Enhanced monitoring system using activated features.*
 
 ### Arquivo: `agent/knowledge_integration.py`
 - **Classe:** `KnowledgePattern`
@@ -823,6 +897,8 @@ agente_autonomo/
   - *Factory function to get the correct handler for an operation.*
 - **Função:** `apply_patches(instructions: List[Dict[str, Any]], logger: logging.Logger, base_path: str='.')`
   - *Aplica uma lista de instruções de patch aos arquivos.*
+- **Classe:** `PatchApplicator`
+  - *Main class for applying patches to files.*
 
 ### Arquivo: `agent/cycle_runner.py`
 - **Classe:** `CycleRunner`
@@ -963,11 +1039,37 @@ agente_autonomo/
 - **Classe:** `AgentState`
   - *Representa o estado interno do agente Hephaestus durante um ciclo de processamento.*
 
+### Arquivo: `agent/interfaces.py`
+- **Classe:** `AgentCapability(Enum)`
+  - *Standardized agent capabilities*
+- **Classe:** `AgentPriority(Enum)`
+  - *Standardized agent priority levels*
+- **Classe:** `AgentStatus(Enum)`
+  - *Standardized agent status*
+- **Classe:** `AgentContext`
+  - *Typed context system for agent operations*
+- **Classe:** `AgentResult`
+  - *Standardized agent result format*
+- **Classe:** `AgentMetrics`
+  - *Standardized agent performance metrics*
+- **Classe:** `AgentInterface(Protocol)`
+  - *Formal interface protocol for all agents*
+- **Classe:** `BaseAgent(ABC)`
+  - *Abstract base class implementing the AgentInterface protocol*
+- **Classe:** `AgentRegistry`
+  - *Registry for managing agent instances and their capabilities*
+- **Função:** `get_agent_registry()`
+  - *Get the global agent registry instance*
+
 ### Arquivo: `agent/strategy_optimizer.py`
 - **Classe:** `StrategyVariant`
   - *A specific strategy variant with performance metrics.*
 - **Classe:** `StrategyOptimizer`
   - *Core strategy optimization engine.*
+
+### Arquivo: `agent/enhanced_interface_integration.py`
+- **Classe:** `EnhancedInterface`
+  - *Enhanced interface system using activated features.*
 
 ### Arquivo: `agent/optimized_pipeline.py`
 - **Classe:** `PipelineStage`
@@ -980,6 +1082,24 @@ agente_autonomo/
   - *Optimized pipeline with parallel processing and intelligent caching*
 - **Classe:** `PipelineMetrics`
   - *Advanced metrics tracking for pipeline performance*
+
+### Arquivo: `agent/dependency_resolver.py`
+- **Classe:** `DependencyScope(Enum)`
+  - *Dependency injection scopes*
+- **Classe:** `DependencyType(Enum)`
+  - *Types of dependencies*
+- **Classe:** `DependencyDefinition`
+  - *Definition of a dependency*
+- **Classe:** `DependencyResolver`
+  - *Dependency injection container and resolver*
+- **Classe:** `CircularDependencyError(Exception)`
+  - *Raised when a circular dependency is detected*
+- **Classe:** `DependencyNotFoundError(Exception)`
+  - *Raised when a dependency is not found*
+- **Classe:** `AgentFactory`
+  - *Factory for creating and configuring agents with dependency injection*
+- **Função:** `get_dependency_resolver()`
+  - *Get the global dependency resolver instance*
 
 ### Arquivo: `agent/config_loader.py`
 - **Função:** `load_config()`
@@ -1025,6 +1145,22 @@ agente_autonomo/
 ### Arquivo: `agent/validation_steps/pytest_new_file_validator.py`
 - **Classe:** `PytestNewFileValidator(ValidationStep)`
   - *A validation step that runs pytest specifically on newly created test files.*
+
+### Arquivo: `agent/security/auth_manager.py`
+- **Classe:** `AuthLevel(Enum)`
+  - *Authentication levels*
+- **Classe:** `TokenType(Enum)`
+  - *JWT token types*
+- **Classe:** `UserSession`
+  - *User session data*
+- **Classe:** `TokenPayload`
+  - *JWT token payload*
+- **Classe:** `AuthManager`
+  - *Secure authentication manager with JWT and session management*
+- **Função:** `get_auth_manager(config: Dict[str, Any], logger: logging.Logger)`
+  - *Get the global authentication manager instance*
+
+### Arquivo: `agent/security/__init__.py`
 
 ### Arquivo: `agent/agents/agent_expansion_coordinator.py`
 - **Classe:** `AgentExpansionCoordinator`
@@ -1084,6 +1220,10 @@ agente_autonomo/
 ### Arquivo: `agent/agents/cycle_monitor_agent.py`
 - **Classe:** `CycleMonitorAgent`
   - *Agent that monitors and resolves system bottlenecks and stuck cycles*
+
+### Arquivo: `agent/agents/system_engineer_agent.py`
+- **Classe:** `SystemEngineerAgent`
+  - *System Engineer Agent for comprehensive code analysis and optimization.*
 
 ### Arquivo: `agent/agents/error_detector_agent.py`
 - **Classe:** `ErrorPattern`
@@ -1147,6 +1287,18 @@ agente_autonomo/
 ### Arquivo: `agent/agents/error_analyzer.py`
 - **Classe:** `ErrorAnalysisAgent`
 
+### Arquivo: `agent/performance/__init__.py`
+
+### Arquivo: `agent/performance/config_cache.py`
+- **Classe:** `ConfigCacheEntry`
+  - *Configuration cache entry*
+- **Classe:** `ConfigCache`
+  - *Intelligent configuration cache with memory management*
+- **Função:** `get_config_cache(max_size_mb: int=100, logger: logging.Logger=None)`
+  - *Get the global configuration cache instance*
+- **Função:** `cached_config(ttl_seconds: int=3600)`
+  - *Decorator to cache configuration loading*
+
 ### Arquivo: `agent/utils/__init__.py`
 
 ### Arquivo: `agent/utils/json_parser.py`
@@ -1189,6 +1341,12 @@ agente_autonomo/
   - *Calls a generic OpenAI-compatible API (like OpenRouter).*
 - **Função:** `call_llm_with_fallback(model_config: dict, prompt: str, temperature: float, logger: logging.Logger)`
   - *Orchestrates LLM calls with a primary and fallback model.*
+- **Função:** `call_openrouter_api_async(model: str, prompt: str, temperature: float, max_tokens: Optional[int], logger: logging.Logger)`
+  - *Async version of OpenRouter API call.*
+- **Função:** `call_gemini_api_async(model: str, prompt: str, temperature: float, max_tokens: Optional[int], logger: logging.Logger)`
+  - *Async version of Gemini API call (runs in thread pool since google.generativeai is sync).*
+- **Função:** `call_llm_with_fallback_async(model_config: dict, prompt: str, temperature: float, logger: logging.Logger)`
+  - *Async version of LLM call with fallback.*
 
 ### Arquivo: `agent/utils/llm_optimizer.py`
 - **Classe:** `LLMCallOptimizer`
@@ -1298,6 +1456,18 @@ agente_autonomo/
   - *Retorna status do ativador de cobertura*
 - **Função:** `get_coverage_report()`
   - *Retorna relatório de cobertura atual*
+
+### Arquivo: `performance/profiling.py`
+- **Função:** `profile_agent_initialization()`
+  - *Profile agent initialization sequence*
+- **Função:** `profile_mcp_request()`
+  - *Profile MCP request processing*
+- **Função:** `profile_cognitive_cycle()`
+  - *Profile cognitive cycle execution*
+- **Função:** `analyze_performance(results)`
+  - *Analyze profiling results and identify bottlenecks*
+- **Função:** `main()`
+  - *Main profiling workflow*
 
 ## 3. CONTEÚDO COMPLETO DOS ARQUIVOS ALVO
 

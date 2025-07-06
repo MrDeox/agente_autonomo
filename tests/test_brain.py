@@ -44,7 +44,7 @@ class TestBrainFunctions(unittest.TestCase):
             logger=self.logger,
             project_root_dir=".",
             config=self.default_config, # Pass the test config
-            memory_summary="No relevant history."
+            memory=MagicMock() # Mock memory object
         )
 
         mock_analyze_code_metrics.assert_called_with(
@@ -74,7 +74,7 @@ class TestBrainFunctions(unittest.TestCase):
             logger=self.logger,
             project_root_dir="/another/path",
             config=custom_config, # Pass the custom test config
-            memory_summary="Some history."
+            memory=MagicMock()
         )
 
         mock_analyze_code_metrics.assert_called_with(
@@ -118,7 +118,8 @@ class TestBrainFunctions(unittest.TestCase):
 
         objective = generate_next_objective(
             model_config=self.model_config, current_manifest="Test Manifest",
-            logger=self.logger, project_root_dir=".", config=self.default_config
+            logger=self.logger, project_root_dir=".", config=self.default_config,
+            memory=MagicMock()
         )
 
         self.assertEqual(objective, "Test objective")
@@ -140,7 +141,8 @@ class TestBrainFunctions(unittest.TestCase):
 
         objective = generate_next_objective(
             model_config=self.model_config, current_manifest="Test Manifest",
-            logger=self.logger, project_root_dir=".", config=self.default_config
+            logger=self.logger, project_root_dir=".", config=self.default_config,
+            memory=MagicMock()
         )
 
         # Fallback objective

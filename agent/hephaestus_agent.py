@@ -54,7 +54,8 @@ class HephaestusAgent:
                  continuous_mode: bool = False,
                  objective_stack_depth_for_testing: Optional[int] = None,
                  queue_manager: Optional[QueueManager] = None,
-                 use_optimized_pipeline: bool = True):
+                 use_optimized_pipeline: bool = True,
+                 disable_signal_handlers: bool = False):
         """
         Inicializa o agente com configuração.
 
@@ -125,7 +126,7 @@ class HephaestusAgent:
         self.meta_intelligence_active = False
 
         # Inicializar sistema de prevenção de erros ANTES de tudo
-        self.error_prevention = ErrorPreventionSystem(logger_instance)
+        self.error_prevention = ErrorPreventionSystem(logger_instance, disable_signal_handlers=disable_signal_handlers)
         self.error_prevention.start()
         logger_instance.info("🚀 Sistema de prevenção de erros inicializado")
 
@@ -136,7 +137,7 @@ class HephaestusAgent:
 
         # ATIVAR FUNCIONALIDADES NÃO UTILIZADAS
         from agent.system_activator import get_system_activator
-        self.system_activator = get_system_activator(logger_instance, self.config)
+        self.system_activator = get_system_activator(logger_instance, self.config, disable_signal_handlers)
         activation_results = self.system_activator.activate_all_features()
         
         # Mostrar relatório de ativação

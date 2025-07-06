@@ -28,8 +28,8 @@ class SwarmObjective:
     estimated_duration: int  # minutos
     priority: int
     status: str = "pending"  # pending, active, completed, failed
-    participants: List[str] = None
-    created_at: datetime = None
+    participants: Optional[List[str]] = None
+    created_at: Optional[datetime] = None
     
     def __post_init__(self):
         if self.participants is None:
@@ -58,8 +58,8 @@ class SwarmCoordinatorAgent:
         self.config = config
         self.logger = logger.getChild("SwarmCoordinator")
         
-        # Cliente LLM
-        self.model_config = model_config
+        # Initialize LLM client
+        self.llm_client = None  # Will be initialized when needed
         
         # Sistema de comunicação
         self.communication_system = None  # Será inicializado pelo HephaestusAgent
@@ -74,7 +74,33 @@ class SwarmCoordinatorAgent:
         self.min_agents_per_objective = config.get("swarm_coordination", {}).get("min_agents_per_objective", 2)
         self.max_agents_per_objective = config.get("swarm_coordination", {}).get("max_agents_per_objective", 6)
         
+        # Distributed consensus
+        self.raft = self.RaftConsensus(nodes=[])
+        self.leader_id = None
+        self.current_term = 0
+        self.log = []
+        
         self.logger.info("🐝 SwarmCoordinatorAgent initialized")
+
+    class RaftConsensus:
+        """Basic Raft consensus implementation for swarm coordination"""
+        def __init__(self, nodes):
+            self.nodes = nodes
+            self.state = 'follower'
+            self.current_term = 0
+            self.voted_for = None
+            self.log = []
+            
+        async def request_vote(self, candidate_id, term):
+            # Basic vote request handling
+            if term > self.current_term:
+                self.current_term = term
+                self.voted_for = candidate_id
+                return True
+            return False
+            
+        def is_leader(self):
+            return self.state == 'leader'
     
     def set_communication_system(self, communication_system: InterAgentCommunication):
         """Define o sistema de comunicação"""
@@ -110,11 +136,16 @@ class SwarmCoordinatorAgent:
         request_type = content.get("request_type")
         
         if request_type == "coordinate_objective":
-            return await self.coordinate_new_objective(content.get("objective"), content.get("requesting_agent"))
+            objective = content.get("objective") or ""
+            requester = content.get("requesting_agent") or ""
+            return await self.coordinate_new_objective(objective, requester)
         elif request_type == "resolve_conflict":
-            return await self.resolve_agent_conflict(content.get("conflict_description"), content.get("involved_agents"))
+            conflict = content.get("conflict_description") or ""
+            agents = content.get("involved_agents") or []
+            return await self.resolve_agent_conflict(conflict, agents)
         elif request_type == "optimize_collaboration":
-            return await self.optimize_collaboration_strategy(content.get("session_id"))
+            session_id = content.get("session_id") or ""
+            return await self.optimize_collaboration_strategy(session_id)
         else:
             return {"error": f"Unknown request type: {request_type}"}
     
@@ -124,9 +155,17 @@ class SwarmCoordinatorAgent:
         action = content.get("action")
         
         if action == "progress_update":
-            return await self._update_collaboration_progress(content.get("session_id"), content.get("progress"))
+            session_id = content.get("session_id")
+            progress = content.get("progress")
+            if session_id and progress is not None:
+                return await self._update_collaboration_progress(str(session_id), float(progress))
+            return {"error": "Invalid session_id or progress"}
         elif action == "completion_notification":
-            return await self._handle_collaboration_completion(content.get("session_id"), content.get("results"))
+            session_id = content.get("session_id")
+            results = content.get("results")
+            if session_id and results:
+                return await self._handle_collaboration_completion(str(session_id), results)
+            return {"error": "Invalid session_id or results"}
         else:
             return {"status": "acknowledged"}
     
@@ -160,7 +199,9 @@ class SwarmCoordinatorAgent:
         })
         
         # Tentar resolver automaticamente se possível
-        return await self._attempt_error_resolution(agent_name, error_description)
+        if error_description:
+            return await self._attempt_error_resolution(agent_name, str(error_description))
+        return {"error": "No error description provided"}
     
     async def coordinate_new_objective(self, objective_description: str, requesting_agent: str) -> Dict[str, Any]:
         """Coordena um novo objetivo do enxame"""
@@ -213,7 +254,7 @@ class SwarmCoordinatorAgent:
                 return {
                     "success": True,
                     "objective_id": objective_id,
-                    "session_id": collaboration_result.get("session_id"),
+                    "session_id": collaboration_result,
                     "conversation_id": conversation_id,
                     "participants": suitable_agents,
                     "estimated_duration": swarm_objective.estimated_duration
@@ -240,11 +281,15 @@ class SwarmCoordinatorAgent:
             )
             
             # Facilitar negociação estruturada
-            facilitation_result = await self._facilitate_structured_negotiation(
-                conflict_description,
-                involved_agents,
-                negotiation_result.get("conversation_id")
-            )
+            conversation_id = negotiation_result.get("conversation_id")
+            if conversation_id:
+                facilitation_result = await self._facilitate_structured_negotiation(
+                    conflict_description,
+                    involved_agents,
+                    str(conversation_id)
+                )
+            else:
+                facilitation_result = {"error": "No conversation_id in negotiation result"}
             
             return {
                 "success": True,
@@ -285,13 +330,13 @@ class SwarmCoordinatorAgent:
             return {"success": False, "error": str(e)}
     
     async def _analyze_objective_complexity(self, objective_description: str) -> Dict[str, Any]:
-        """Analisa a complexidade de um objetivo usando LLM"""
+        """Analisa a complexidade do objetivo usando LLM"""
         try:
             prompt = f"""
-            Analyze the complexity of this objective and determine:
-            1. Complexity level (simple/moderate/complex/expert)
-            2. Required capabilities
-            3. Estimated duration in minutes
+            Analyze the following objective and return:
+            1. Complexity level (simple, moderate, complex, expert)
+            2. Required capabilities (list)
+            3. Estimated duration (minutes)
             4. Priority level (1-10)
             
             Objective: {objective_description}
@@ -304,9 +349,16 @@ class SwarmCoordinatorAgent:
                 "priority": 7
             }}
             """
-            
-            response = await self.llm_client.call_llm(prompt)
-            
+            from agent.utils.llm_client import call_llm_api
+            response, error = call_llm_api(prompt, self.model_config, self.logger)
+            if error:
+                return {
+                    "complexity_level": "moderate",
+                    "required_capabilities": ["general_problem_solving"],
+                    "estimated_duration": 30,
+                    "priority": 5,
+                    "error": f"LLM call failed: {error}"
+                }
             try:
                 return json.loads(response)
             except json.JSONDecodeError:
@@ -317,7 +369,6 @@ class SwarmCoordinatorAgent:
                     "estimated_duration": 30,
                     "priority": 5
                 }
-                
         except Exception as e:
             self.logger.error(f"❌ Error analyzing complexity: {e}")
             return {
@@ -385,12 +436,12 @@ class SwarmCoordinatorAgent:
                 "consensus_steps": ["step1", "step2"]
             }}
             """
-            
-            response = await self.llm_client.call_llm(prompt)
-            
+            from agent.utils.llm_client import call_llm_api
+            response, error = call_llm_api(prompt, self.model_config, self.logger)
+            if error:
+                return {"error": f"LLM call failed: {error}"}
             try:
                 negotiation_structure = json.loads(response)
-                
                 # Enviar estrutura para a conversa
                 if self.communication_system:
                     structure_message = AgentMessage(
@@ -405,14 +456,10 @@ class SwarmCoordinatorAgent:
                         },
                         conversation_id=conversation_id
                     )
-                    
                     await self.communication_system.send_message(structure_message)
-                
                 return negotiation_structure
-                
             except json.JSONDecodeError:
                 return {"error": "Failed to parse negotiation structure"}
-                
         except Exception as e:
             self.logger.error(f"❌ Error facilitating negotiation: {e}")
             return {"error": str(e)}
@@ -436,7 +483,11 @@ class SwarmCoordinatorAgent:
             }}
             """
             
-            response = await self.llm_client.call_llm(prompt)
+            # Use the existing LLM client from utils
+            from agent.utils.llm_client import call_llm_api
+            response, error = call_llm_api(prompt, self.model_config, self.logger)
+            if error:
+                return {"error": f"LLM call failed: {error}"}
             
             try:
                 resolution = json.loads(response)
@@ -543,6 +594,49 @@ class SwarmCoordinatorAgent:
         except Exception as e:
             self.logger.error(f"❌ Error calculating collective intelligence: {e}")
             return 0.0
+
+    async def _update_collaboration_progress(self, session_id: str, progress: float) -> Dict[str, Any]:
+        """Atualiza o progresso da colaboração"""
+        if session_id in self.active_collaborations:
+            session = self.active_collaborations[session_id]
+            # Corrigir: garantir que session tem atributo progress (float)
+            setattr(session, 'progress', float(progress))
+            return {"status": "progress_updated"}
+        return {"error": "Session not found"}
+
+    async def _handle_collaboration_completion(self, session_id: str, results: Dict[str, Any]) -> Dict[str, Any]:
+        """Processa conclusão de colaboração"""
+        if session_id in self.active_collaborations:
+            session = self.active_collaborations[session_id]
+            setattr(session, 'status', 'completed')
+            setattr(session, 'results', results)
+            return {"status": "completed"}
+        return {"error": "Session not found"}
+
+    async def _facilitate_negotiation(self, message: AgentMessage) -> Dict[str, Any]:
+        """Facilita negociação entre agentes"""
+        # Placeholder implementation
+        return {"status": "negotiation_in_progress"}
+
+    async def _coordinate_problem_solving(self, message: AgentMessage) -> Dict[str, Any]:
+        """Coordena resolução coletiva de problemas"""
+        # Placeholder implementation
+        return {"status": "problem_solving_ongoing"}
+
+    async def _analyze_collaboration_progress(self, session: CollaborationSession) -> Dict[str, Any]:
+        """Analisa o progresso da colaboração"""
+        # Placeholder implementation
+        return {"progress": 0.5}
+
+    async def _generate_collaboration_optimizations(self, session: CollaborationSession, progress_analysis: Dict[str, Any]) -> List[Dict[str, Any]]:
+        """Gera otimizações para colaboração"""
+        # Placeholder implementation
+        return [{"optimization": "reassign_roles"}]
+
+    async def _apply_collaboration_optimizations(self, session_id: str, optimizations: List[Dict[str, Any]]) -> None:
+        """Aplica otimizações à sessão de colaboração"""
+        # Placeholder implementation
+        pass
     
     def get_swarm_status(self) -> Dict[str, Any]:
         """Retorna status detalhado do enxame"""

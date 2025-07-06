@@ -15,7 +15,7 @@ import subprocess
 import threading
 from concurrent.futures import ThreadPoolExecutor
 
-from agent.utils.llm_client import call_llm_api
+from agent.utils.llm_client import call_llm_api, call_llm_api_async
 from agent.utils.json_parser import parse_json_response
 
 
@@ -492,14 +492,13 @@ class BugHunterAgent:
             return False
     
     async def _generate_bug_fix(self, bug: BugReport) -> Optional[BugFix]:
-        """Gera correção para um bug usando LLM"""
+        """Gera uma correção para um bug usando LLM (versão assíncrona)"""
         try:
-            # Ler arquivo se existir
             file_content = ""
             if Path(bug.file_path).exists():
                 with open(bug.file_path, 'r') as f:
                     file_content = f.read()
-            
+
             prompt = f"""
 You are a bug fixing expert. Analyze this bug and provide a fix:
 
@@ -522,24 +521,26 @@ Generate a JSON response with the fix:
     "rollback_plan": "how to undo if needed"
 }}
 """
-            
-            response, error = call_llm_api(
-                prompt=prompt,
-                model_config=self.model_config,
-                temperature=0.3
+
+            # Chamada assíncrona à LLM
+            response, error = await call_llm_api_async(
+                self.model_config,
+                prompt,
+                0.3,
+                self.logger
             )
-            
+
             if error:
                 self.logger.warning(f"LLM error generating fix: {error}")
                 return None
-            
+
             # Parsear resposta JSON
-            parsed, parse_error = parse_json_response(response, self.logger)
-            
+            parsed, parse_error = parse_json_response(response or '', self.logger)
+
             if parse_error:
                 self.logger.warning(f"JSON parse error: {parse_error}")
                 return None
-            
+
             if parsed and "fixed_code" in parsed:
                 return BugFix(
                     bug_id=bug.bug_id,
@@ -550,9 +551,9 @@ Generate a JSON response with the fix:
                     test_commands=parsed.get("test_commands", []),
                     rollback_plan=parsed.get("rollback_plan", "")
                 )
-            
+
             return None
-            
+
         except Exception as e:
             self.logger.error(f"Error generating bug fix: {e}")
             return None

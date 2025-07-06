@@ -30,6 +30,7 @@ class ErrorType(Enum):
     CONFIGURATION_ERROR = "configuration_error"
     DEPENDENCY_ERROR = "dependency_error"
     VALIDATION_ERROR = "validation_error"
+    HOT_RELOAD_INTERRUPT = "hot_reload_interrupt"
 
 @dataclass
 class ErrorEvent:
@@ -265,7 +266,7 @@ class AutoRecovery:
 class ErrorPreventionSystem:
     """Sistema principal de prevenção de erros"""
     
-    def __init__(self, logger: logging.Logger):
+    def __init__(self, logger: logging.Logger, disable_signal_handlers: bool = False):
         self.logger = logger
         self.constructor_validator = ConstructorValidator(logger)
         self.health_monitor = HealthMonitor(logger)
@@ -273,13 +274,15 @@ class ErrorPreventionSystem:
         self.error_history = []
         self.error_patterns = {}
         self.prevention_rules = []
+        self.disable_signal_handlers = disable_signal_handlers
         
         # Configurar logging avançado
         self._setup_advanced_logging()
         
         # Registrar handlers de sinal para graceful shutdown
-        signal.signal(signal.SIGINT, self._signal_handler)
-        signal.signal(signal.SIGTERM, self._signal_handler)
+        if not self.disable_signal_handlers:
+            signal.signal(signal.SIGINT, self._signal_handler)
+            signal.signal(signal.SIGTERM, self._signal_handler)
     
     def _setup_advanced_logging(self):
         """Configura logging avançado para capturar todos os detalhes"""
@@ -301,6 +304,9 @@ class ErrorPreventionSystem:
     
     def _signal_handler(self, signum, frame):
         """Handler para sinais de shutdown"""
+        if self.disable_signal_handlers:
+            self.logger.info(f"Signal {signum} received, but signal handlers are disabled for hot reload. Ignoring sys.exit(0).")
+            return
         self.logger.info(f"Received signal {signum}, shutting down error prevention system")
         self.health_monitor.stop_monitoring()
         sys.exit(0)
