@@ -9,12 +9,12 @@ readme = "README.md"
 requires-python = ">=3.10"
 
 [tool.poetry]
-name = "agente-autonomo"
+name = "hephaestus"
 version = "0.1.0"
 description = "Um agente de IA focado em Aprimoramento Auto Recursivo (RSI)."
 authors = ["MrDeox <arthurptc33@gmail.com>"]
 readme = "README.md"
-package-mode = false
+packages = [{include = "hephaestus", from = "src"}]
 
 [build-system]
 requires = ["poetry-core>=2.0.0"]
@@ -67,3 +67,8 @@ pytest-mock = ">=3.0.0"
 pytest-asyncio = ">=0.21.0"
 ruff = "^0.5.5"
 pytest-cov = "^6.2.1"
+
+[tool.poetry.scripts]
+hephaestus = "hephaestus.api.cli.main:app"
+hephaestus-server = "main:main"
+hephaestus-mcp = "hephaestus_mcp_server:main"

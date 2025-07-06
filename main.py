@@ -1,39 +1,44 @@
+#!/usr/bin/env python3
+"""
+Main entry point for Hephaestus FastAPI server.
+"""
+
 import uvicorn
 import sys
 import os
+from pathlib import Path
 from dotenv import load_dotenv
 
-# Load environment variables from .env file
+# Load environment variables
 load_dotenv()
 
-# Add the project root to the Python path
-sys.path.insert(0, os.path.abspath('.'))
+# Add src to Python path
+src_path = Path(__file__).parent / "src"
+sys.path.insert(0, str(src_path))
 
 def main():
-    """Função principal com validação de startup integrada"""
-    # Import the FastAPI app instance from app.py
-    from tools.app import app
+    """Main function with startup validation."""
+    # Import the FastAPI app from the new structure
+    from hephaestus.api.rest.main import app
     
-    # Carregar configuração para validação
-    from agent.config_loader import load_config
+    # Load configuration for validation
+    from hephaestus.core.config_loader import load_config
     config = load_config()
     
-    # Validar startup
-    from agent.utils.startup_validator import StartupValidator
+    # Validate startup
+    from hephaestus.utils.startup_validator import StartupValidator
     import logging
     
     logger = logging.getLogger("startup_validator")
     validator = StartupValidator(logger)
     
     if not validator.validate_all(config):
-        print("❌ Validação de startup falhou. Verifique os logs para detalhes.")
+        print("❌ Startup validation failed. Check logs for details.")
         return
     
-    # Run the FastAPI application using Uvicorn
-    # host="0.0.0.0" makes the server accessible from any IP address
-    # port=8000 is the default port for FastAPI applications
-    print("🚀 Iniciando Hephaestus com Meta-Inteligência...")
-    print("🧠 Sistema de evolução autônoma será ativado!")
+    # Run the FastAPI application
+    print("🚀 Starting Hephaestus with Meta-Intelligence...")
+    print("🧠 Autonomous evolution system will be activated!")
     uvicorn.run(app, host="0.0.0.0", port=8000)
 
 if __name__ == "__main__":

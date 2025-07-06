@@ -1,0 +1,57 @@
+# Hydra Group Configuration for Models (Located in config/models/main.yaml)
+
+architect_default:
+  _target_: "builtins.dict" # Using dict as a placeholder if no specific class is needed
+  temperature: ${default_model_settings.temperature}
+  max_tokens: ${default_model_settings.max_tokens}
+  primary: "deepseek/deepseek-chat-v3-0324:free"
+  fallback: "mistralai/mistral-7b-instruct:free"
+
+maestro_default:
+  _target_: "builtins.dict"
+  temperature: ${default_model_settings.temperature}
+  max_tokens: ${default_model_settings.max_tokens}
+  primary: "deepseek/deepseek-chat-v3-0324:free"
+  fallback: "mistralai/mistral-7b-instruct:free"
+
+objective_generator:
+  _target_: "builtins.dict"
+  temperature: ${default_model_settings.temperature}
+  max_tokens: ${default_model_settings.max_tokens}
+  primary: "deepseek/deepseek-chat-v3-0324:free"
+  fallback: "mistralai/mistral-7b-instruct:free"
+
+capacitation_generator:
+  _target_: "builtins.dict"
+  temperature: ${default_model_settings.temperature}
+  max_tokens: ${default_model_settings.max_tokens}
+  primary: "deepseek/deepseek-chat-v3-0324:free"
+  fallback: "mistralai/mistral-7b-instruct:free"
+
+error_analyzer:
+  _target_: "builtins.dict"
+  temperature: ${default_model_settings.temperature}
+  max_tokens: ${default_model_settings.max_tokens}
+  primary: "deepseek/deepseek-chat-v3-0324:free"
+  fallback: "mistralai/mistral-7b-instruct:free"
+
+code_reviewer:
+  _target_: "builtins.dict"
+  temperature: ${default_model_settings.temperature}
+  max_tokens: ${default_model_settings.max_tokens}
+  primary: "mistralai/mistral-7b-instruct:free"
+  fallback: "deepseek/deepseek-chat-v3-0324:free"
+
+log_analyzer_default:
+  _target_: "builtins.dict"
+  temperature: ${default_model_settings.temperature}
+  max_tokens: ${default_model_settings.max_tokens}
+  primary: "qwen/qwen3-0.6b-04-28:free"
+  fallback: "mistralai/mistral-7b-instruct:free"
+
+debt_hunter_default:
+  _target_: "builtins.dict"
+  temperature: ${default_model_settings.temperature}
+  max_tokens: ${default_model_settings.max_tokens}
+  primary: "qwen/qwen3-0.6b-04-28:free"
+  fallback: "mistralai/mistral-7b-instruct:free"
