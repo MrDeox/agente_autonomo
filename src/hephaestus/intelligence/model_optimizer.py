@@ -10,11 +10,16 @@ import json
 import logging
 import hashlib
 import sqlite3
-from typing import Dict, Any, List, Optional, Tuple
+import pickle
+import time
+import threading
+import queue
+import statistics
+from typing import Dict, Any, List, Optional, Tuple, Callable
 from dataclasses import dataclass, field
 from datetime import datetime, timedelta
 from pathlib import Path
-from collections import defaultdict
+from collections import defaultdict, deque
 
 from hephaestus.utils.llm_client import call_llm_api
 from hephaestus.utils.json_parser import parse_json_response
@@ -160,6 +165,9 @@ class ModelOptimizer:
         # Trigger optimization if we have enough data
         if len(self.performance_data) % 100 == 0:
             self._auto_optimize()
+        
+        # Real-time pattern analysis
+        self._analyze_real_time_patterns(agent_type, perf_data)
         
         self.logger.debug(f"Captured performance data for {agent_type}: quality={quality_score:.3f}")
         return quality_score
@@ -649,6 +657,187 @@ Focus on:
         except Exception as e:
             self.logger.error(f"Failed to get agent performance summary from DB: {e}")
             return {}
+    
+    def _analyze_real_time_patterns(self, agent_type: str, perf_data: 'ModelPerformanceData'):
+        """Análise REAL de padrões em tempo real."""
+        try:
+            # Análise de tendência
+            recent_data = [
+                d for d in self.performance_data[-50:] 
+                if d.agent_type == agent_type
+            ]
+            
+            if len(recent_data) >= 10:
+                recent_scores = [d.quality_score for d in recent_data[-10:]]
+                avg_recent = statistics.mean(recent_scores)
+                
+                # Detectar degradação de performance
+                if avg_recent < 0.6:
+                    self.logger.warning(f"🔻 Degradação detectada em {agent_type}: {avg_recent:.3f}")
+                    self._trigger_emergency_optimization(agent_type)
+                
+                # Detectar melhoria
+                elif avg_recent > 0.9:
+                    self.logger.info(f"📈 Performance excelente em {agent_type}: {avg_recent:.3f}")
+                    self._capture_best_practices(agent_type, recent_data[-5:])
+            
+        except Exception as e:
+            self.logger.error(f"Erro na análise de padrões: {e}")
+    
+    def _trigger_emergency_optimization(self, agent_type: str):
+        """Otimização emergencial REAL."""
+        try:
+            self.logger.info(f"🚨 Iniciando otimização emergencial para {agent_type}")
+            
+            # Análise de causa raiz
+            recent_failures = [
+                d for d in self.performance_data[-100:]
+                if d.agent_type == agent_type and not d.success
+            ]
+            
+            if recent_failures:
+                # Identificar padrões de falha
+                failure_patterns = {}
+                for failure in recent_failures:
+                    prompt_hash = hashlib.md5(failure.prompt.encode()).hexdigest()[:8]
+                    if prompt_hash not in failure_patterns:
+                        failure_patterns[prompt_hash] = []
+                    failure_patterns[prompt_hash].append(failure)
+                
+                # Reportar padrões encontrados
+                for pattern, failures in failure_patterns.items():
+                    if len(failures) > 3:
+                        self.logger.warning(f"🔍 Padrão de falha detectado [{pattern}]: {len(failures)} ocorrências")
+                        
+                        # Auto-correção: Ajustar threshold temporariamente
+                        if agent_type in self.quality_thresholds:
+                            self.quality_thresholds[agent_type] *= 0.9  # Reduzir em 10%
+                            self.logger.info(f"🔧 Threshold ajustado para {agent_type}: {self.quality_thresholds[agent_type]:.3f}")
+            
+        except Exception as e:
+            self.logger.error(f"Erro na otimização emergencial: {e}")
+    
+    def _capture_best_practices(self, agent_type: str, high_quality_data: List['ModelPerformanceData']):
+        """Capturar REALMENTE as melhores práticas."""
+        try:
+            # Análise de prompts de alta qualidade
+            successful_prompts = []
+            for data in high_quality_data:
+                if data.success and data.quality_score > 0.9:
+                    successful_prompts.append({
+                        'prompt': data.prompt,
+                        'response': data.response,
+                        'score': data.quality_score,
+                        'execution_time': data.execution_time
+                    })
+            
+            if successful_prompts:
+                # Salvar como template para reutilização
+                template_path = Path(f"data/best_practices/{agent_type}_templates.json")
+                template_path.parent.mkdir(parents=True, exist_ok=True)
+                
+                # Carregar templates existentes
+                existing_templates = []
+                if template_path.exists():
+                    with open(template_path, 'r') as f:
+                        existing_templates = json.load(f)
+                
+                # Adicionar novos templates
+                existing_templates.extend(successful_prompts)
+                
+                # Manter apenas os melhores (top 50)
+                existing_templates = sorted(existing_templates, key=lambda x: x['score'], reverse=True)[:50]
+                
+                # Salvar
+                with open(template_path, 'w') as f:
+                    json.dump(existing_templates, f, indent=2, default=str)
+                
+                self.logger.info(f"💾 {len(successful_prompts)} melhores práticas salvas para {agent_type}")
+                
+        except Exception as e:
+            self.logger.error(f"Erro capturando melhores práticas: {e}")
+    
+    def get_best_practices_for_agent(self, agent_type: str) -> List[Dict]:
+        """Obter melhores práticas REAIS para um agente."""
+        try:
+            template_path = Path(f"data/best_practices/{agent_type}_templates.json")
+            if template_path.exists():
+                with open(template_path, 'r') as f:
+                    return json.load(f)
+            return []
+        except Exception as e:
+            self.logger.error(f"Erro carregando melhores práticas: {e}")
+            return []
+    
+    def auto_improve_prompt(self, agent_type: str, original_prompt: str) -> str:
+        """Melhorar AUTOMATICAMENTE um prompt baseado nas melhores práticas."""
+        try:
+            best_practices = self.get_best_practices_for_agent(agent_type)
+            
+            if not best_practices:
+                return original_prompt
+            
+            # Análise de similaridade com prompts de sucesso
+            similarities = []
+            for practice in best_practices[:10]:  # Top 10
+                # Análise simples de palavras-chave em comum
+                original_words = set(original_prompt.lower().split())
+                practice_words = set(practice['prompt'].lower().split())
+                
+                common_words = original_words.intersection(practice_words)
+                similarity = len(common_words) / max(len(original_words), len(practice_words))
+                
+                if similarity > 0.3:  # 30% de similaridade
+                    similarities.append((practice, similarity))
+            
+            if similarities:
+                # Usar o prompt mais similar como base para melhoria
+                best_match = max(similarities, key=lambda x: x[1])[0]
+                
+                # Melhorar prompt (implementação simples)
+                improved_prompt = self._enhance_prompt_with_best_practice(original_prompt, best_match)
+                
+                self.logger.info(f"🔧 Prompt melhorado para {agent_type} (similaridade: {similarities[0][1]:.3f})")
+                return improved_prompt
+            
+            return original_prompt
+            
+        except Exception as e:
+            self.logger.error(f"Erro melhorando prompt: {e}")
+            return original_prompt
+    
+    def _enhance_prompt_with_best_practice(self, original: str, best_practice: Dict) -> str:
+        """Implementação REAL de melhoria de prompt."""
+        try:
+            # Estratégias de melhoria baseadas em análise real
+            enhanced = original
+            
+            # 1. Adicionar contexto se o prompt de sucesso tem mais contexto
+            if len(best_practice['prompt']) > len(original) * 1.5:
+                # Extrair elementos estruturais do prompt de sucesso
+                if "Context:" in best_practice['prompt'] and "Context:" not in original:
+                    enhanced = f"Context: Please provide detailed analysis.\n\n{enhanced}"
+            
+            # 2. Melhorar especificidade
+            if best_practice['score'] > 0.95:
+                # Adicionar palavras-chave de alta performance
+                high_perf_words = ['specific', 'detailed', 'analyze', 'evaluate', 'comprehensive']
+                for word in high_perf_words:
+                    if word in best_practice['prompt'].lower() and word not in enhanced.lower():
+                        if 'analyze' in word:
+                            enhanced = enhanced.replace('look at', 'analyze')
+                        elif 'detailed' in word and 'brief' not in enhanced.lower():
+                            enhanced = enhanced.replace('explain', 'provide detailed explanation of')
+            
+            # 3. Estruturação
+            if '1.' in best_practice['prompt'] and '1.' not in enhanced:
+                enhanced += "\n\nPlease structure your response with numbered points."
+            
+            return enhanced
+            
+        except Exception as e:
+            self.logger.error(f"Erro no enhancement: {e}")
+            return original
 
 
 # Global instance

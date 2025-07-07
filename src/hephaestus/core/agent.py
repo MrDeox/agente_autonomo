@@ -39,7 +39,7 @@ from hephaestus.agents.swarm_coordinator_agent import SwarmCoordinatorAgent
 from .hot_reload_manager import HotReloadManager, SelfEvolutionEngine
 from hephaestus.utils.error_prevention_system import ErrorPreventionSystem, ErrorEvent, ErrorType, ErrorSeverity, validate_constructor
 from hephaestus.utils.continuous_monitor import get_continuous_monitor
-# from .agents.autonomous_monitor_agent import AutonomousMonitorAgent
+from .agents.autonomous_monitor_agent import AutonomousMonitorAgent
 
 # Configuração do Logging
 logger = logging.getLogger(__name__)

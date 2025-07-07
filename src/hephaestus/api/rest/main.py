@@ -20,9 +20,9 @@ load_dotenv() # Carrega as variáveis de ambiente do arquivo .env
 from hephaestus.utils.queue_manager import QueueManager
 from hephaestus.core.agent import HephaestusAgent
 from hephaestus.utils.config_loader import load_config
-# from hephaestus.core.arthur_interface_generator import ArthurInterfaceGenerator
-# from hephaestus.agents.error_detector_agent import ErrorDetectorAgent
-# from hephaestus.agents.dependency_fixer_agent import DependencyFixerAgent
+from hephaestus.core.arthur_interface_generator import ArthurInterfaceGenerator
+from hephaestus.agents.error_detector_agent import ErrorDetectorAgent
+from hephaestus.agents.dependency_fixer_agent import DependencyFixerAgent
 # from hephaestus.agents.cycle_monitor_agent import CycleMonitorAgent
 # from hephaestus.agents.agent_expansion_coordinator import AgentExpansionCoordinator
 from hephaestus.core.cycle_runner import CycleRunner
