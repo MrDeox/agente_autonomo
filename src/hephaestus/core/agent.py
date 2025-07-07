@@ -179,12 +179,14 @@ class HephaestusAgent:
         except Exception as e:
             self._handle_agent_initialization_error("MaestroAgent", e)
 
-        code_review_model_config = self.config.get("models", {}).get("code_reviewer", self.config.get("models", {}).get("architect_default")) # Fallback to architect model
-        self.code_reviewer = CodeReviewAgent(
-            model_config=code_review_model_config,
-            logger=self.logger.getChild("CodeReviewAgent")
-        )
-        self.logger.info(f"CodeReviewAgent inicializado com a configuração: {code_review_model_config}")
+        # TODO: Implement CodeReviewAgent in new structure
+        # code_review_model_config = self.config.get("models", {}).get("code_reviewer", self.config.get("models", {}).get("architect_default")) # Fallback to architect model
+        # self.code_reviewer = CodeReviewAgent(
+        #     model_config=code_review_model_config,
+        #     logger=self.logger.getChild("CodeReviewAgent")
+        # )
+        # self.logger.info(f"CodeReviewAgent inicializado com a configuração: {code_review_model_config}")
+        self.logger.warning("CodeReviewAgent disabled - not implemented in new structure")
 
         # Inicializar OrganizerAgent
         self.organizer = OrganizerAgent(

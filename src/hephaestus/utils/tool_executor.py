@@ -498,7 +498,7 @@ def _create_results_summary(results: list, search_type: str) -> str:
         return f"Encontradas {len(results)} possíveis soluções. A mais relevante sugere: {top_result.get('snippet', 'Ver detalhes')[:150]}..."
     
     elif search_type == "documentation":
-        return f"Documentação encontrada para '{context.get('library', 'library')}'. O resultado principal é: {top_result.get('title', 'N/A')}."
+        return f"Documentação encontrada. O resultado principal é: {top_result.get('title', 'N/A')}."
     
     elif search_type == "tutorial":
         return f"Encontrados {len(results)} tutoriais. Sugestão principal: {top_result.get('title', 'Primeiro resultado')}"

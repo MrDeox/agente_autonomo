@@ -5,7 +5,7 @@ import sys
 import json
 import logging
 from pathlib import Path
-from agent import code_metrics # Updated import
+from hephaestus.core import code_metrics # Updated import
 
 # Configuração básica de logging se não configurado externamente
 # logging.basicConfig(level=logging.INFO, format='%(levelname)s: %(message)s')

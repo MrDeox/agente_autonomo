@@ -15,6 +15,9 @@ from hephaestus.core.brain import (
 )
 from hephaestus.utils.tool_executor import run_git_command, list_available_models
 from hephaestus.agents import LinterAgent
+# TODO: Add these agents to the new structure
+# from hephaestus.agents.prompt_optimizer import PromptOptimizer
+# from hephaestus.agents.error_analyzer import ErrorAnalysisAgent
 from hephaestus.services.validation import get_validation_step
 from hephaestus.services.orchestration.async_orchestrator import AgentTask, AgentType, AgentResult
 
@@ -313,20 +316,24 @@ class CycleRunner:
     def _optimize_failed_prompt(self, objective: str, reason: str, context: str):
         """Tries to optimize the prompt for a repeatedly failing objective."""
         self.agent.logger.info(f"Optimizing prompt for objective that failed repeatedly: '{objective}'")
-        optimizer = PromptOptimizer(model_config=self.agent.config.get("models", {}).get("prompt_optimizer"), logger=self.agent.logger.getChild("PromptOptimizer"))
-        optimized_objective = optimizer.optimize_prompt(original_prompt=objective, failure_context=f"Reason: {reason}. Details: {context}")
-        if optimized_objective:
-            self.agent.objective_stack.append(optimized_objective)
+        # TODO: Implement PromptOptimizer in new structure
+        # optimizer = PromptOptimizer(model_config=self.agent.config.get("models", {}).get("prompt_optimizer"), logger=self.agent.logger.getChild("PromptOptimizer"))
+        # optimized_objective = optimizer.optimize_prompt(original_prompt=objective, failure_context=f"Reason: {reason}. Details: {context}")
+        # if optimized_objective:
+        #     self.agent.objective_stack.append(optimized_objective)
+        self.agent.logger.warning("Prompt optimization disabled - PromptOptimizer not implemented in new structure")
 
     def _run_error_analysis(self, objective: str, reason: str, context: str):
         """Runs the ErrorAnalysisAgent to get a corrective objective."""
         self.agent.logger.info(f"Initiating ErrorAnalysisAgent for correctable failure: {reason}")
-        error_analyzer = ErrorAnalysisAgent(model_config=self.agent.config.get("models", {}).get("error_analyzer"), logger=self.agent.logger.getChild("ErrorAnalysisAgent"))
-        patches_json = json.dumps(self.agent.state.get_patches_to_apply(), indent=2)
-        analysis_result = error_analyzer.analyze_error(failed_objective=objective, error_reason=reason, error_context=context, original_patches=patches_json, capabilities_content=self.agent.state.manifesto_content or "")
-        if correction_prompt := analysis_result.get("suggested_prompt"):
-            self.agent.objective_stack.append(objective) # Re-add original
-            self.agent.objective_stack.append(correction_prompt)
+        # TODO: Implement ErrorAnalysisAgent in new structure
+        # error_analyzer = ErrorAnalysisAgent(model_config=self.agent.config.get("models", {}).get("error_analyzer"), logger=self.agent.logger.getChild("ErrorAnalysisAgent"))
+        # patches_json = json.dumps(self.agent.state.get_patches_to_apply(), indent=2)
+        # analysis_result = error_analyzer.analyze_error(failed_objective=objective, error_reason=reason, error_context=context, original_patches=patches_json, capabilities_content=self.agent.state.manifesto_content or "")
+        # if correction_prompt := analysis_result.get("suggested_prompt"):
+        #     self.agent.objective_stack.append(objective) # Re-add original
+        #     self.agent.objective_stack.append(correction_prompt)
+        self.agent.logger.warning("Error analysis disabled - ErrorAnalysisAgent not implemented in new structure")
 
     async def run(self) -> None:
         """Execute the main evolution loop."""
