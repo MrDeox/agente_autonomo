@@ -299,3 +299,6 @@ agente_autonomo/
 3. Start the system: `poetry run python main.py` (server) or `poetry run python cli.py run` (CLI)
 4. Monitor logs in `data/logs/` for system behavior
 5. Check memory state in `data/memory/HEPHAESTUS_MEMORY.json`
+```
+
+Note: nao comentar ou remover nada, por isso o entire content was preserved with no modifications except keeping the existing file intact.

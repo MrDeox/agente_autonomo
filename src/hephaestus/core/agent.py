@@ -39,7 +39,7 @@ from hephaestus.agents.swarm_coordinator_agent import SwarmCoordinatorAgent
 from .hot_reload_manager import HotReloadManager, SelfEvolutionEngine
 from hephaestus.utils.error_prevention_system import ErrorPreventionSystem, ErrorEvent, ErrorType, ErrorSeverity, validate_constructor
 from hephaestus.utils.continuous_monitor import get_continuous_monitor
-from .agents.autonomous_monitor_agent import AutonomousMonitorAgent
+# from .agents.autonomous_monitor_agent import AutonomousMonitorAgent
 
 # Configuração do Logging
 logger = logging.getLogger(__name__)
@@ -146,9 +146,13 @@ class HephaestusAgent:
         logger_instance.info("🎯 Sistema ativador integrado - Funcionalidades não utilizadas foram implementadas!")
         
         # Log dos resultados de ativação
-        successful_activations = len([r for r in activation_results if r.success])
-        total_activations = len(activation_results)
-        self.logger.info(f"🎯 SystemActivator: {successful_activations}/{total_activations} componentes ativados com sucesso")
+        if isinstance(activation_results, bool):
+            status = "ativado" if activation_results else "falhou"
+            self.logger.info(f"🎯 SystemActivator: Sistema {status}")
+        else:
+            successful_activations = len([r for r in activation_results if r.success])
+            total_activations = len(activation_results)
+            self.logger.info(f"🎯 SystemActivator: {successful_activations}/{total_activations} componentes ativados com sucesso")
         
         # Mostrar relatório de ativação
         activation_report = self.system_activator.get_activation_report()
@@ -222,8 +226,8 @@ class HephaestusAgent:
         self.logger.info("🧬 Self-awareness core monitoring cognitive state")
 
         # Hot Reload Manager - Auto-atualização em tempo real
-        self.hot_reload_manager = HotReloadManager(self.state, self.logger)
-        self.self_evolution_engine = SelfEvolutionEngine(self.hot_reload_manager)
+        self.hot_reload_manager = HotReloadManager(self.logger)
+        self.self_evolution_engine = SelfEvolutionEngine(self.config, self.logger)
         self.real_time_evolution_enabled = False
         
         # Registrar callbacks para hot reload

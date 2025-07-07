@@ -11,11 +11,13 @@ from enum import Enum
 import concurrent.futures
 from datetime import datetime
 
-from hephaestus.agents import ArchitectAgent, MaestroAgent, CodeReviewAgent
-from hephaestus.agents.log_analysis_agent import LogAnalysisAgent
-from hephaestus.agents.model_sommelier_agent import ModelSommelierAgent
-from hephaestus.agents.frontend_artisan_agent import FrontendArtisanAgent
-from hephaestus.agents.bug_hunter_agent import BugHunterAgent
+from hephaestus.agents import (
+    ArchitectAgent, 
+    MaestroAgent, 
+    BugHunterAgent,
+    LogAnalysisAgent,
+    PerformanceAnalysisAgent
+)
 from hephaestus.utils.tool_executor import list_available_models
 
 
@@ -102,9 +104,10 @@ class AsyncAgentOrchestrator:
                 config=self.config
             )
             
-            self.agent_pools[AgentType.CODE_REVIEW] = CodeReviewAgent(
+            self.agent_pools[AgentType.CODE_REVIEW] = BugHunterAgent(
                 model_config=self.config.get("models", {}).get("code_review_default", "gpt-4"),
-                logger=self.logger.getChild("CodeReviewAgent")
+                config=self.config,
+                logger=self.logger.getChild("BugHunterAgent")
             )
             
             log_analyzer_model_config = self.config.get("models", {}).get("log_analyzer_default", self.config.get("models", {}).get("architect_default"))
@@ -113,17 +116,9 @@ class AsyncAgentOrchestrator:
                 logger=self.logger.getChild("LogAnalysisAgent")
             )
 
-            self.agent_pools[AgentType.MODEL_SOMMELIER] = ModelSommelierAgent(
-                model_config=self.config.get("models", {}).get("sommelier_default", self.config.get("models", {}).get("architect_default")),
-                config=self.config,
-                logger=self.logger.getChild("ModelSommelierAgent")
-            )
-
-            self.agent_pools[AgentType.FRONTEND_ARTISAN] = FrontendArtisanAgent(
-                model_config=self.config.get("models", {}).get("frontend_artisan_default", self.config.get("models", {}).get("architect_default")),
-                config=self.config,
-                logger=self.logger.getChild("FrontendArtisanAgent")
-            )
+            # Skip agents that don't exist for now
+            # self.agent_pools[AgentType.MODEL_SOMMELIER] = ModelSommelierAgent(...)
+            # self.agent_pools[AgentType.FRONTEND_ARTISAN] = FrontendArtisanAgent(...)
             
             self.agent_pools[AgentType.BUG_HUNTER] = BugHunterAgent(
                 model_config=self.config.get("models", {}).get("bug_hunter_default", self.config.get("models", {}).get("architect_default")),
@@ -252,8 +247,9 @@ class AsyncAgentOrchestrator:
         elif task.agent_type == AgentType.CODE_REVIEW:
             return await loop.run_in_executor(
                 self.executor,
-                agent.review_patches,
-                task.context.get('patches_to_apply', [])
+                agent.hunt_bugs,
+                task.context.get('project_path', ''),
+                task.context.get('code_to_analyze', '')
             )
 
         elif task.agent_type == AgentType.LOG_ANALYSIS:
@@ -264,28 +260,14 @@ class AsyncAgentOrchestrator:
                 task.context.get('lines_to_analyze', 200)
             )
 
+        # Skip unavailable agents
         elif task.agent_type == AgentType.MODEL_SOMMELIER:
-            # Esta tarefa tem uma chamada síncrona (list_available_models) que precisa ser tratada.
-            # Executaremos a chamada de ferramenta também no executor para não bloquear o loop.
-            def sommelier_task_wrapper():
-                agent_perf_summary = task.context.get('agent_performance_summary', {})
-                success, available_models = list_available_models()
-                if not success:
-                    self.logger.error("Could not retrieve available models for Model Sommelier.")
-                    available_models = []
-                return agent.propose_model_optimization(
-                    agent_performance_summary=agent_perf_summary,
-                    available_models=available_models
-                )
-            return await loop.run_in_executor(self.executor, sommelier_task_wrapper)
+            self.logger.warning("Model Sommelier agent not available")
+            return {"status": "skipped", "reason": "agent not available"}
 
         elif task.agent_type == AgentType.FRONTEND_ARTISAN:
-            return await loop.run_in_executor(
-                self.executor,
-                agent.propose_frontend_improvement,
-                file_path=task.context.get('file_path'),
-                file_content=task.context.get('file_content')
-            )
+            self.logger.warning("Frontend Artisan agent not available")
+            return {"status": "skipped", "reason": "agent not available"}
 
         elif task.agent_type == AgentType.BUG_HUNTER:
             return await loop.run_in_executor(

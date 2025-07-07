@@ -19,6 +19,45 @@ import time
 import signal
 import sys
 
+# Add src to Python path for imports
+sys.path.insert(0, "src")
+
+# Import trading components directly to avoid complex dependencies
+try:
+    # Try to import from the financial modules directly
+    import importlib.util
+    
+    # Load trading engine
+    spec_trading = importlib.util.spec_from_file_location(
+        "trading_engine", 
+        "src/hephaestus/financial/trading_engine.py"
+    )
+    trading_module = importlib.util.module_from_spec(spec_trading)
+    spec_trading.loader.exec_module(trading_module)
+    TradingEngine = trading_module.TradingEngine
+    MockExchangeAPI = trading_module.MockExchangeAPI
+    
+    # Load risk manager
+    spec_risk = importlib.util.spec_from_file_location(
+        "risk_manager", 
+        "src/hephaestus/financial/risk_manager.py"
+    )
+    risk_module = importlib.util.module_from_spec(spec_risk)
+    spec_risk.loader.exec_module(risk_module)
+    RiskManager = risk_module.RiskManager
+    RiskLimits = risk_module.RiskLimits
+    
+    TRADING_AVAILABLE = True
+    
+except Exception as e:
+    print(f"⚠️  Trading components not available: {e}")
+    print("🔍 Running in detection-only mode")
+    TradingEngine = None
+    MockExchangeAPI = None
+    RiskManager = None
+    RiskLimits = None
+    TRADING_AVAILABLE = False
+
 # Initialize colorama for colored output
 colorama.init()
 
@@ -57,17 +96,26 @@ class ArbitrageAlert:
 class CryptoHunter247:
     """24/7 Crypto arbitrage hunter with multiple exchanges."""
     
-    def __init__(self):
+    def __init__(self, enable_trading=False):
         self.session = None
         self.logger = self._setup_logger()
         self.running = False
+        self.enable_trading = enable_trading
+        
+        # Trading components (inicializados apenas se trading estiver habilitado)
+        self.trading_engine = None
+        self.risk_manager = None
+        
         self.stats = {
             'total_scans': 0,
             'opportunities_found': 0,
             'high_profit_alerts': 0,
             'exchanges_monitored': 0,
             'uptime_start': None,
-            'last_opportunity': None
+            'last_opportunity': None,
+            'trades_executed': 0,
+            'successful_trades': 0,
+            'total_profit': 0.0
         }
         
         # Configuration
@@ -129,6 +177,10 @@ class CryptoHunter247:
         # Setup signal handlers for graceful shutdown
         signal.signal(signal.SIGINT, self._signal_handler)
         signal.signal(signal.SIGTERM, self._signal_handler)
+        
+        # Initialize trading components if enabled
+        if self.enable_trading:
+            self._initialize_trading_components()
     
     def _setup_logger(self) -> logging.Logger:
         """Setup logger with file and console output."""
@@ -159,6 +211,50 @@ class CryptoHunter247:
         """Handle shutdown signals."""
         print(f"\n{Fore.YELLOW}🛑 Shutdown signal received. Stopping gracefully...{Style.RESET_ALL}")
         self.running = False
+    
+    def _initialize_trading_components(self):
+        """Initialize trading engine and risk manager."""
+        try:
+            if not TRADING_AVAILABLE:
+                self.logger.warning("⚠️  Trading components not available, disabling trading")
+                self.enable_trading = False
+                return
+                
+            self.logger.info("🔧 Inicializando componentes de trading...")
+            
+            # Configure trading engine
+            trading_config = {
+                'max_trade_amount': 200,  # $200 max per trade
+                'min_profit_threshold': self.PROFIT_THRESHOLD,
+                'execution_timeout': 30
+            }
+            self.trading_engine = TradingEngine(trading_config)
+            
+            # Add mock exchanges for simulation
+            self.trading_engine.add_exchange('binance', MockExchangeAPI('binance'))
+            self.trading_engine.add_exchange('coinbase', MockExchangeAPI('coinbase'))
+            self.trading_engine.add_exchange('kraken', MockExchangeAPI('kraken'))
+            
+            # Configure risk manager
+            risk_limits = RiskLimits(
+                max_trade_amount=200,
+                max_daily_trades=20,
+                max_daily_loss=500,
+                min_profit_threshold=self.PROFIT_THRESHOLD,
+                max_position_size=0.1
+            )
+            self.risk_manager = RiskManager(risk_limits)
+            
+            # Set initial portfolio (simulation)
+            self.risk_manager.portfolio.update_balance('USD', 5000.0)
+            self.risk_manager.portfolio.update_balance('BTC', 0.05)
+            self.risk_manager.portfolio.update_balance('ETH', 1.0)
+            
+            self.logger.info("✅ Componentes de trading inicializados")
+            
+        except Exception as e:
+            self.logger.error(f"❌ Erro inicializando trading: {e}")
+            self.enable_trading = False
     
     async def __aenter__(self):
         self.session = aiohttp.ClientSession(
@@ -513,6 +609,98 @@ class CryptoHunter247:
         
         return sorted(opportunities, key=lambda x: x.profit_percentage, reverse=True)
     
+    async def execute_trade_if_enabled(self, alert: ArbitrageAlert) -> bool:
+        """Execute trade automatically if trading is enabled."""
+        if not self.enable_trading or not self.trading_engine or not self.risk_manager:
+            return False
+        
+        try:
+            self.logger.info(f"🤖 Avaliando execução de trade: {alert.symbol}")
+            
+            # 1. Validate with risk manager
+            trade_amount = min(200, 100)  # Start conservative
+            risk_validation = self.risk_manager.validate_trade(alert, trade_amount)
+            
+            if not risk_validation['approved']:
+                self.logger.info(f"🚫 Trade bloqueado pelo risk manager: {alert.symbol}")
+                for reason in risk_validation['blocks']:
+                    self.logger.info(f"   Motivo: {reason}")
+                return False
+            
+            # Adjust amount if needed
+            if risk_validation['adjusted_amount'] != trade_amount:
+                trade_amount = risk_validation['adjusted_amount']
+                self.logger.info(f"💰 Valor ajustado para ${trade_amount:.2f}")
+            
+            # 2. Execute arbitrage
+            self.logger.info(f"🚀 EXECUTANDO TRADE: {alert.symbol}")
+            self.logger.info(f"   Lucro esperado: {alert.profit_percentage:.3%}")
+            self.logger.info(f"   {alert.buy_exchange} → {alert.sell_exchange}")
+            self.logger.info(f"   Valor: ${trade_amount:.2f}")
+            self.logger.info(f"   Risk Score: {risk_validation['risk_score']:.2f}")
+            
+            execution_result = await self.trading_engine.execute_arbitrage(alert)
+            
+            if execution_result:
+                # 3. Record result
+                self.risk_manager.record_trade_result(execution_result)
+                
+                # 4. Update stats
+                self.stats['trades_executed'] += 1
+                
+                if execution_result.status == 'completed':
+                    self.stats['successful_trades'] += 1
+                    self.stats['total_profit'] += execution_result.actual_profit or 0
+                    
+                    self.logger.info(f"✅ TRADE CONCLUÍDO: ${execution_result.actual_profit:.2f} lucro")
+                    
+                    # Log to CSV
+                    self._log_successful_trade(alert, execution_result)
+                    
+                    return True
+                else:
+                    self.logger.error(f"❌ TRADE FALHOU: {execution_result.status}")
+            
+            return False
+            
+        except Exception as e:
+            self.logger.error(f"❌ Erro executando trade {alert.symbol}: {e}")
+            return False
+    
+    def _log_successful_trade(self, alert: ArbitrageAlert, execution_result):
+        """Log successful trade to CSV file."""
+        try:
+            trade_log_file = 'successful_trades.csv'
+            file_exists = os.path.exists(trade_log_file)
+            
+            with open(trade_log_file, 'a', newline='') as csvfile:
+                fieldnames = [
+                    'timestamp', 'symbol', 'profit_percentage', 'actual_profit',
+                    'buy_exchange', 'sell_exchange', 'buy_price', 'sell_price',
+                    'execution_time', 'confidence'
+                ]
+                
+                writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
+                
+                if not file_exists:
+                    writer.writeheader()
+                
+                writer.writerow({
+                    'timestamp': execution_result.buy_trade.timestamp.isoformat(),
+                    'symbol': alert.symbol,
+                    'profit_percentage': alert.profit_percentage,
+                    'actual_profit': execution_result.actual_profit,
+                    'buy_exchange': alert.buy_exchange,
+                    'sell_exchange': alert.sell_exchange,
+                    'buy_price': alert.buy_price,
+                    'sell_price': alert.sell_price,
+                    'execution_time': execution_result.execution_time,
+                    'confidence': alert.confidence
+                })
+                
+        except Exception as e:
+            self.logger.error(f"Erro salvando log de trade: {e}")
+    
     def _calculate_confidence(self, buy_price: CryptoPrice, sell_price: CryptoPrice) -> float:
         """Calculate confidence score for arbitrage opportunity."""
         confidence = 0.5
@@ -614,6 +802,17 @@ class CryptoHunter247:
         print(f"{Fore.RED}🚨 High Profit Alerts:{Style.RESET_ALL} {self.stats['high_profit_alerts']}")
         print(f"{Fore.CYAN}📊 Exchanges:{Style.RESET_ALL} {self.stats['exchanges_monitored']}")
         
+        # Trading stats if enabled
+        if self.enable_trading:
+            success_rate = (self.stats['successful_trades'] / max(1, self.stats['trades_executed'])) * 100
+            print(f"{Fore.GREEN}🤖 Trading Mode:{Style.RESET_ALL} ATIVO")
+            print(f"{Fore.BLUE}💼 Trades Executados:{Style.RESET_ALL} {self.stats['trades_executed']}")
+            print(f"{Fore.GREEN}✅ Trades Bem-sucedidos:{Style.RESET_ALL} {self.stats['successful_trades']}")
+            print(f"{Fore.YELLOW}📈 Taxa de Sucesso:{Style.RESET_ALL} {success_rate:.1f}%")
+            print(f"{Fore.MAGENTA}💰 Lucro Total:{Style.RESET_ALL} ${self.stats['total_profit']:.2f}")
+        else:
+            print(f"{Fore.LIGHTBLACK_EX}🤖 Trading Mode:{Style.RESET_ALL} DESATIVADO (apenas detecção)")
+        
         if opportunities:
             print(f"\n{Fore.GREEN}💰 CURRENT OPPORTUNITIES ({len(opportunities)}):{Style.RESET_ALL}")
             for i, opp in enumerate(opportunities[:5], 1):
@@ -655,11 +854,22 @@ class CryptoHunter247:
                     self.stats['opportunities_found'] += len(opportunities)
                     self.stats['last_opportunity'] = datetime.now()
                 
-                # Process alerts
+                # Process alerts and execute trades if enabled
                 for opportunity in opportunities:
                     if self.should_alert(opportunity):
                         self.print_alert(opportunity)
                         self.save_opportunity(opportunity)
+                        
+                        # Execute trade if trading is enabled and profitable enough
+                        if (self.enable_trading and 
+                            opportunity.profit_percentage >= self.HIGH_PROFIT_THRESHOLD):
+                            
+                            trade_executed = await self.execute_trade_if_enabled(opportunity)
+                            if trade_executed:
+                                print(f"\n{Back.GREEN}{Fore.WHITE}💰 TRADE EXECUTADO COM SUCESSO! 💰{Style.RESET_ALL}")
+                            
+                            # Small delay between trades
+                            await asyncio.sleep(2)
                 
                 # Print status every 10 scans or if opportunities found
                 if self.stats['total_scans'] % 10 == 0 or opportunities:
@@ -703,10 +913,32 @@ class CryptoHunter247:
 
 async def main():
     """Main function."""
-    print(f"{Fore.GREEN}🚀 CRYPTO HUNTER 24/7 - ULTIMATE ARBITRAGE DETECTOR{Style.RESET_ALL}")
+    print(f"{Fore.GREEN}🚀 CRYPTO HUNTER 24/7 - ULTIMATE ARBITRAGE DETECTOR + AUTO TRADER{Style.RESET_ALL}")
     print(f"{Fore.CYAN}{'='*70}{Style.RESET_ALL}")
     
-    async with CryptoHunter247() as hunter:
+    # Ask user if they want to enable trading
+    print(f"\n{Fore.YELLOW}⚙️  CONFIGURAÇÃO DO SISTEMA:{Style.RESET_ALL}")
+    print(f"1. {Fore.GREEN}MODO DETECÇÃO{Style.RESET_ALL}: Apenas detecta oportunidades (sem execução)")
+    print(f"2. {Fore.RED}MODO TRADING{Style.RESET_ALL}: Detecta E executa trades automaticamente (SIMULAÇÃO)")
+    
+    try:
+        choice = input(f"\n{Fore.WHITE}Escolha o modo (1 ou 2): {Style.RESET_ALL}").strip()
+        enable_trading = choice == "2"
+    except (EOFError, KeyboardInterrupt):
+        enable_trading = False
+    
+    if enable_trading:
+        print(f"\n{Back.RED}{Fore.WHITE}🤖 MODO TRADING AUTOMÁTICO ATIVADO! 🤖{Style.RESET_ALL}")
+        print(f"{Fore.YELLOW}⚠️  ATENÇÃO: Sistema executará trades em modo SIMULAÇÃO{Style.RESET_ALL}")
+        print(f"{Fore.GREEN}💰 Portfólio inicial: $5,000 USD + 0.05 BTC + 1 ETH{Style.RESET_ALL}")
+        print(f"{Fore.CYAN}🎯 Trades automáticos para oportunidades > 0.5%{Style.RESET_ALL}")
+    else:
+        print(f"\n{Fore.GREEN}📊 MODO DETECÇÃO ATIVADO{Style.RESET_ALL}")
+        print(f"{Fore.LIGHTBLACK_EX}Apenas detectará e reportará oportunidades{Style.RESET_ALL}")
+    
+    print(f"\n{Fore.WHITE}🚀 Iniciando sistema...{Style.RESET_ALL}")
+    
+    async with CryptoHunter247(enable_trading=enable_trading) as hunter:
         await hunter.hunt_24_7()
 
 if __name__ == "__main__":

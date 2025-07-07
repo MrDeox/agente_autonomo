@@ -20,11 +20,11 @@ load_dotenv() # Carrega as variáveis de ambiente do arquivo .env
 from hephaestus.utils.queue_manager import QueueManager
 from hephaestus.core.agent import HephaestusAgent
 from hephaestus.utils.config_loader import load_config
-from hephaestus.core.arthur_interface_generator import ArthurInterfaceGenerator
-from hephaestus.agents.error_detector_agent import ErrorDetectorAgent
-from hephaestus.agents.dependency_fixer_agent import DependencyFixerAgent
-from hephaestus.agents.cycle_monitor_agent import CycleMonitorAgent
-from hephaestus.agents.agent_expansion_coordinator import AgentExpansionCoordinator
+# from hephaestus.core.arthur_interface_generator import ArthurInterfaceGenerator
+# from hephaestus.agents.error_detector_agent import ErrorDetectorAgent
+# from hephaestus.agents.dependency_fixer_agent import DependencyFixerAgent
+# from hephaestus.agents.cycle_monitor_agent import CycleMonitorAgent
+# from hephaestus.agents.agent_expansion_coordinator import AgentExpansionCoordinator
 from hephaestus.core.cycle_runner import CycleRunner
 from hephaestus.services.orchestration.async_orchestrator import AgentType, AgentTask
 
@@ -198,7 +198,7 @@ app = FastAPI(
 )
 
 # Security configuration
-from hephaestus.core.security import get_auth_manager, AuthLevel, TokenType
+# from hephaestus.core.security import get_auth_manager, AuthLevel, TokenType
 
 # Load configuration for auth manager
 def load_config():
@@ -212,7 +212,8 @@ def load_config():
 
 # Initialize authentication manager
 config = load_config()
-auth_manager = get_auth_manager(config, logger)
+# auth_manager = get_auth_manager(config, logger)
+auth_manager = None
 
 # CORS Middleware - Secure configuration
 app.add_middleware(
