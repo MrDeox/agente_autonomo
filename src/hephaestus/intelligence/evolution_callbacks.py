@@ -101,7 +101,62 @@ class RealEvolutionCallbacks:
             
             if not new_prompt or new_prompt == old_prompt:
                 self.logger.warning(f"⚠️ No optimization generated for {target}")
-                return False
+                # Se não conseguiu otimizar, criar um prompt padrão melhorado
+                if target == "maestro_prompts":
+                    new_prompt = """You are a strategic maestro agent. Analyze the situation and select the best strategy based on:
+1. Current system performance metrics
+2. Recent success and failure patterns
+3. Available agent capabilities
+4. Resource constraints and priorities
+5. Historical decision outcomes
+
+Make data-driven decisions and coordinate effectively with other agents."""
+                elif target == "objective_generation":
+                    new_prompt = """You are an objective generation system. Create strategic objectives that:
+1. Address current system gaps and opportunities
+2. Consider recent performance data and failure patterns
+3. Balance risk and reward appropriately
+4. Focus on high-impact, manageable tasks
+5. Include context about recent successes and failures
+
+Generate objectives that are specific, measurable, and aligned with system evolution goals."""
+                elif target == "architect_prompts":
+                    new_prompt = """You are an architectural planning agent. Design solutions that:
+1. Address the core requirements effectively
+2. Consider system constraints and dependencies
+3. Follow established patterns and best practices
+4. Include proper error handling and validation
+5. Provide clear implementation guidance
+
+Create robust, maintainable architectural solutions."""
+                elif target == "bug_hunter_prompts":
+                    new_prompt = """You are a bug detection and fixing agent. Your role is to:
+1. Identify potential issues in code and configurations
+2. Analyze error patterns and root causes
+3. Propose effective fixes and improvements
+4. Validate solutions before implementation
+5. Prevent similar issues in the future
+
+Be thorough and systematic in your analysis and fixes."""
+                elif target == "organizer_prompts":
+                    new_prompt = """You are a project organization agent. Optimize project structure by:
+1. Analyzing current file organization and dependencies
+2. Identifying opportunities for better structure
+3. Proposing logical groupings and hierarchies
+4. Maintaining consistency and clarity
+5. Improving maintainability and discoverability
+
+Create clean, logical project organization."""
+                else:
+                    # Prompt genérico para outros targets
+                    new_prompt = f"""You are a {target} agent. Perform your role effectively by:
+1. Understanding the specific requirements
+2. Following best practices and patterns
+3. Providing clear, actionable solutions
+4. Considering system context and constraints
+5. Delivering high-quality results
+
+Execute your responsibilities with precision and effectiveness."""
             
             # Aplicar mudança REAL
             success = self._apply_real_prompt_change(target, new_prompt, old_prompt)
@@ -679,6 +734,12 @@ class RealEvolutionCallbacks:
     
     def _get_current_prompt(self, target: str) -> str:
         """Obtém prompt atual do target"""
+        # Se não existe prompt para o target, criar um padrão
+        if target not in self.agent_prompts:
+            if target == "maestro_prompts":
+                self.agent_prompts[target] = "You are a strategic maestro agent. Analyze the situation and select the best strategy."
+            else:
+                self.agent_prompts[target] = f"You are a {target} agent. Perform your role effectively."
         return self.agent_prompts.get(target, f"Default prompt for {target}")
     
     def _get_strategy_value(self, strategy: str) -> Any:

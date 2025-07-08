@@ -105,7 +105,10 @@ agente_autonomo/
                 self_awareness.py
                 __init__.py
                 real_time_evolution_engine.py
+                evolution_callbacks.py
                 model_optimizer.py
+                parallel_reality_testing.py
+                collective_intelligence_network.py
                 root_cause_analyzer.py
                 knowledge_system.py
                 predictive_failure_engine.py
@@ -143,6 +146,8 @@ agente_autonomo/
         models/
             main.yaml
             local.yaml
+        dynamic/
+            runtime_config.yaml
         validation_strategies/
             main.yaml
     templates/
@@ -152,9 +157,32 @@ agente_autonomo/
         memory/
             HEPHAESTUS_MEMORY.json
     data/
+        collective_intelligence/
+            agents/
+                hephaestus_agent_131199891566032.json
+                hephaestus_agent_132143394637904.json
+                hephaestus_agent_138690457629328.json
+                hephaestus_agent_133539398070928.json
+                hephaestus_agent_128203156791888.json
+                hephaestus_agent_128831221084048.json
+                hephaestus_agent_126700022820624.json
+                hephaestus_agent_133701957859664.json
+                hephaestus_agent_138529170054608.json
+                hephaestus_agent_135134363908816.json
+                hephaestus_agent_135227240817680.json
+                hephaestus_agent_136630682440144.json
+            insights/
+            knowledge/
+        agents/
+            bug_hunter_config.yaml
+            architect_config.yaml
         memory/
             HEPHAESTUS_MEMORY.json
             META_FUNCTIONALITIES_MEMORY.json
+        prompts/
+            maestro_prompts_prompt.txt
+            objective_generation_prompt.txt
+            architect_prompts_prompt.txt
         reports/
             model_performance.db
             feature_activation_20250705_162115.json
@@ -169,6 +197,9 @@ agente_autonomo/
             evolution/
                 evolution_report_20250704_085755.json
                 night_report_20250704_004455.json
+        parallel_tests/
+            results/
+            environments/
         logs/
             error_prevention_test.log
             feature_activation.log
@@ -198,6 +229,23 @@ agente_autonomo/
                 bughunteragentenhanced_agent.log
                 testenhanced_agent.log
                 architectagentenhanced_agent.log
+        backups/
+            config_backup_20250708_135724.yaml
+            error_handling_workflow_backup_20250708_140151.yaml
+            architect_config_backup_20250708_140348.yaml
+            architect_config_backup_20250708_135733.yaml
+            maestro_prompts_backup_20250708_140548.txt
+            architect_prompts_backup_20250708_140555.txt
+            config_backup_20250708_140744.yaml
+            architect_config_backup_20250708_140136.yaml
+            config_backup_20250708_135714.yaml
+            bug_hunter_config_backup_20250708_140726.yaml
+            objective_generation_backup_20250708_140144.txt
+            architect_config_backup_20250708_140737.yaml
+            maestro_prompts_backup_20250708_135704.txt
+            config_backup_20250708_140540.yaml
+        workflows/
+            error_handling_workflow.yaml
     logs/
         error_prevention.log
         evolution_log.csv
@@ -672,6 +720,20 @@ agente_autonomo/
   - *Generate interface using enhanced interface system*
 - **Função:** `get_enhanced_systems_status(auth_user: dict=Depends(get_auth_user))`
   - *Get status of all enhanced systems*
+- **Função:** `get_evolution_status(auth_user: dict=Depends(get_auth_user))`
+  - *Get complete evolution system status - Real-Time Evolution, Parallel Testing, Collective Intelligence*
+- **Função:** `test_parallel_strategies(objective: str=Body(..., description='Objective to test strategies for'), strategy_count: int=Body(3, description='Number of strategies to test in parallel'), auth_user: dict=Depends(get_auth_user))`
+  - *Test multiple strategies in parallel and return the best performing one*
+- **Função:** `get_collective_insights(limit: int=10, auth_user: dict=Depends(get_auth_user))`
+  - *Get collective intelligence insights from the network*
+- **Função:** `trigger_evolution_mutation(mutation_type: str=Body(..., description='Type of mutation to trigger'), auth_user: dict=Depends(get_auth_user))`
+  - *Manually trigger a specific type of evolution mutation*
+- **Função:** `start_real_time_evolution(auth_user: dict=Depends(get_auth_user))`
+  - *Start the real-time evolution engine*
+- **Função:** `stop_real_time_evolution(auth_user: dict=Depends(get_auth_user))`
+  - *Stop the real-time evolution engine*
+- **Função:** `demo_full_evolution_system(auth_user: dict=Depends(get_auth_user))`
+  - *Comprehensive demonstration of the full evolution system working together*
 
 ### Arquivo: `src/hephaestus/api/rest/error_resilience.py`
 - **Classe:** `SelfReflectionRequest(BaseModel)`
@@ -1006,6 +1068,14 @@ agente_autonomo/
 - **Função:** `get_real_time_evolution_engine(config: Dict[str, Any], logger: logging.Logger)`
   - *Get singleton instance of the Real-Time Evolution Engine*
 
+### Arquivo: `src/hephaestus/intelligence/evolution_callbacks.py`
+- **Classe:** `EvolutionChange`
+  - *Representa uma mudança REAL aplicada ao sistema*
+- **Classe:** `RealEvolutionCallbacks`
+  - *Sistema de callbacks FUNCIONAIS que aplicam mutações reais no sistema.*
+- **Função:** `get_evolution_callbacks(config: Dict[str, Any], logger: logging.Logger)`
+  - *Get singleton instance of Real Evolution Callbacks*
+
 ### Arquivo: `src/hephaestus/intelligence/model_optimizer.py`
 - **Classe:** `ModelPerformanceData`
   - *Performance data for a specific model call*
@@ -1015,6 +1085,36 @@ agente_autonomo/
   - *Advanced system for model self-optimization through performance data collection*
 - **Função:** `get_model_optimizer(model_config: Dict[str, str], logger: logging.Logger)`
   - *Factory function to get a singleton instance of the ModelOptimizer.*
+
+### Arquivo: `src/hephaestus/intelligence/parallel_reality_testing.py`
+- **Classe:** `TestEnvironmentType(Enum)`
+  - *Tipos de ambiente de teste*
+- **Classe:** `StrategyType(Enum)`
+  - *Tipos de estratégias que podem ser testadas*
+- **Classe:** `TestStrategy`
+  - *Representa uma estratégia a ser testada*
+- **Classe:** `TestResult`
+  - *Resultado de um teste de estratégia*
+- **Classe:** `ParallelRealityTester`
+  - *Sistema de teste paralelo que executa múltiplas estratégias simultaneamente*
+- **Função:** `get_parallel_reality_tester(config: Dict[str, Any], logger: logging.Logger)`
+  - *Get singleton instance of Parallel Reality Tester*
+
+### Arquivo: `src/hephaestus/intelligence/collective_intelligence_network.py`
+- **Classe:** `KnowledgeType(Enum)`
+  - *Tipos de conhecimento compartilhado*
+- **Classe:** `KnowledgeRelevance(Enum)`
+  - *Níveis de relevância do conhecimento*
+- **Classe:** `KnowledgeItem`
+  - *Item de conhecimento compartilhado*
+- **Classe:** `AgentProfile`
+  - *Perfil de um agente na rede*
+- **Classe:** `CollectiveInsight`
+  - *Insight coletivo gerado pela rede*
+- **Classe:** `CollectiveIntelligenceNetwork`
+  - *Rede de inteligência coletiva que permite compartilhamento de conhecimento*
+- **Função:** `get_collective_intelligence_network(config: Dict[str, Any], logger: logging.Logger)`
+  - *Get singleton instance of Collective Intelligence Network*
 
 ### Arquivo: `src/hephaestus/intelligence/root_cause_analyzer.py`
 - **Classe:** `FailureType(Enum)`
@@ -1200,3 +1300,9 @@ agente_autonomo/
 
 ## 3. CONTEÚDO COMPLETO DOS ARQUIVOS ALVO
 
+
+### Arquivo: `agent/project_scanner.py`
+
+```
+# ARQUIVO NÃO ENCONTRADO OU NÃO PROCESSADO
+```

@@ -623,7 +623,7 @@ class CollectiveIntelligenceNetwork:
                 
                 if response and len(response) >= 2 and response[1]:
                     # Parsear resposta
-                    insight_data = parse_json_response(response[1])
+                    insight_data = parse_json_response(response[1], self.logger)
                     
                     if isinstance(insight_data, list):
                         for insight_info in insight_data:
@@ -836,8 +836,8 @@ class CollectiveIntelligenceNetwork:
                 data = {
                     "agent_id": profile.agent_id,
                     "agent_type": profile.agent_type,
-                    "capabilities": profile.capabilities,
-                    "expertise_areas": profile.expertise_areas,
+                    "capabilities": list(profile.capabilities) if isinstance(profile.capabilities, set) else profile.capabilities,
+                    "expertise_areas": list(profile.expertise_areas) if isinstance(profile.expertise_areas, set) else profile.expertise_areas,
                     "contribution_score": profile.contribution_score,
                     "reputation_score": profile.reputation_score,
                     "knowledge_shared": profile.knowledge_shared,
@@ -845,7 +845,7 @@ class CollectiveIntelligenceNetwork:
                     "successful_collaborations": profile.successful_collaborations,
                     "failed_collaborations": profile.failed_collaborations,
                     "last_active": profile.last_active.isoformat(),
-                    "specialization_tags": profile.specialization_tags
+                    "specialization_tags": list(profile.specialization_tags) if isinstance(profile.specialization_tags, set) else profile.specialization_tags
                 }
                 json.dump(data, f, indent=2, ensure_ascii=False)
                 
