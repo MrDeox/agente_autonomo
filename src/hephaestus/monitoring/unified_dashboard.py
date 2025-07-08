@@ -74,6 +74,43 @@ class UnifiedDashboard:
         
         self.logger.info("📊 Unified Dashboard initialized")
     
+    def register_agent(self, agent_name: str, agent_type: str = "enhanced"):
+        """Register an agent with the dashboard."""
+        if agent_name not in self.agents:
+            self.agents[agent_name] = AgentStatus(
+                name=agent_name,
+                status="active",
+                last_activity=datetime.now(),
+                success_rate=1.0,
+                avg_response_time=0.0,
+                total_operations=0,
+                current_load=0.0
+            )
+            self.logger.info(f"📝 Registered agent: {agent_name}")
+    
+    def update_agent_activity(self, agent_name: str, success: bool = True, response_time: float = 0.0):
+        """Update agent activity metrics."""
+        if agent_name in self.agents:
+            agent = self.agents[agent_name]
+            agent.last_activity = datetime.now()
+            agent.total_operations += 1
+            
+            # Update success rate with moving average
+            if agent.total_operations == 1:
+                agent.success_rate = 1.0 if success else 0.0
+            else:
+                weight = 0.1  # How much new data affects the average
+                new_success = 1.0 if success else 0.0
+                agent.success_rate = (1 - weight) * agent.success_rate + weight * new_success
+            
+            # Update response time with moving average
+            if response_time > 0:
+                if agent.avg_response_time == 0:
+                    agent.avg_response_time = response_time
+                else:
+                    weight = 0.2
+                    agent.avg_response_time = (1 - weight) * agent.avg_response_time + weight * response_time
+    
     async def start_monitoring(self):
         """Start real-time monitoring."""
         if self._running:
@@ -150,13 +187,24 @@ class UnifiedDashboard:
     
     async def _update_system_health(self):
         """Calculate overall system health."""
+        # Get fresh agent metrics to ensure we detect active agents
+        agent_metrics = self.metrics.get_all_agent_dashboards()
+        
+        # If no agents in our cache but we have metrics, populate from metrics
+        if not self.agents and agent_metrics:
+            await self._update_agent_statuses()
+        
+        # If still no agents, create a baseline health score
         if not self.agents:
+            # Base score of 30% if system is running but no agents yet detected
+            base_score = 30.0 if agent_metrics else 0.0
+            
             self.system_health = SystemHealth(
-                overall_score=0.0,
-                status="unknown",
-                components={},
-                issues=["No agents detected"],
-                recommendations=["Start agent monitoring"],
+                overall_score=base_score,
+                status="initializing" if base_score > 0 else "unknown",
+                components={"system": base_score},
+                issues=["Agent detection in progress"] if base_score > 0 else ["No agents detected"],
+                recommendations=["Allow time for agent initialization"] if base_score > 0 else ["Start agent monitoring"],
                 timestamp=datetime.now()
             )
             return

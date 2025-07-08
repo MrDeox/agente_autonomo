@@ -51,6 +51,9 @@ class EnhancedBaseAgent(BaseAgent, EnhancedAgentMixin, ABC):
         # Setup LLM manager
         self._setup_llm_manager()
         
+        # Register with monitoring dashboard
+        self._register_with_dashboard()
+        
         # Log successful initialization
         self.logger.info(f"Enhanced {agent_name} initialized successfully")
     
@@ -60,6 +63,15 @@ class EnhancedBaseAgent(BaseAgent, EnhancedAgentMixin, ABC):
         self.llm_manager = LLMCallManager(model_config, self.logger)
         
         self.logger.debug(f"LLM Manager initialized with model: {model_config}")
+    
+    def _register_with_dashboard(self):
+        """Register this agent with the monitoring dashboard."""
+        try:
+            from hephaestus.monitoring import get_unified_dashboard
+            dashboard = get_unified_dashboard()
+            dashboard.register_agent(self.name, "enhanced")
+        except Exception as e:
+            self.logger.debug(f"Could not register with dashboard: {e}")
     
     @abstractmethod
     def get_default_capabilities(self) -> list:

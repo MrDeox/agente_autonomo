@@ -426,7 +426,8 @@ class OrganizerAgentEnhanced(EnhancedBaseAgent):
         complexity += len(lines) * 0.001
         
         # Nesting level (approximate)
-        max_indent = max((len(line) - len(line.lstrip())) // 4 for line in lines if line.strip()) if lines else 0
+        indents = [(len(line) - len(line.lstrip())) // 4 for line in lines if line.strip()]
+        max_indent = max(indents) if indents else 0
         complexity += max_indent * 0.1
         
         return min(complexity, 10.0)  # Cap at 10

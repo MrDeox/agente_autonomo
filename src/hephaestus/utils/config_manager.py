@@ -105,6 +105,26 @@ class ConfigManager:
         
         merged_config = {**default_model_config, **model_config}
         
+        # If model_config is just a string (model name), convert to proper format
+        if isinstance(model_config, str):
+            merged_config['primary'] = model_config
+        elif 'primary' not in merged_config and model_type in models_config:
+            # Use the model from Hydra config if available
+            hydra_model = models_config.get(model_type)
+            if isinstance(hydra_model, dict):
+                merged_config['primary'] = hydra_model.get('primary', 'deepseek/deepseek-chat-v3-0324:free')
+                merged_config['fallback'] = hydra_model.get('fallback', 'mistralai/mistral-7b-instruct:free')
+            elif isinstance(hydra_model, str):
+                merged_config['primary'] = hydra_model
+        
+        # Ensure we have fallback models
+        if 'fallback' not in merged_config:
+            merged_config['fallback'] = 'mistralai/mistral-7b-instruct:free'
+        
+        # Ensure we have a primary model
+        if 'primary' not in merged_config:
+            merged_config['primary'] = 'deepseek/deepseek-chat-v3-0324:free'
+        
         # Cache result
         cls._config_cache[cache_key] = merged_config
         return merged_config

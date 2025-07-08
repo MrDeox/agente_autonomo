@@ -1,1 +1,12 @@
- 
+# Local model configuration
+# This file can be used to override model settings for local development
+
+# Example local model configuration:
+# architect_default:
+#   _target_: "builtins.dict"
+#   temperature: 0.3
+#   max_tokens: 2048
+#   primary: "local/model:latest"
+#   fallback: "deepseek/deepseek-chat-v3-0324:free"
+
+# For now, use default configuration from main.yaml

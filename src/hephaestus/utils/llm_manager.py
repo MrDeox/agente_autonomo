@@ -181,7 +181,7 @@ class LLMCallManager:
             return None, "No response from LLM"
         
         # Parse JSON response
-        parsed_json, parse_error = parse_json_response(response)
+        parsed_json, parse_error = parse_json_response(response, self.logger)
         
         if parse_error:
             self.logger.warning(f"JSON parsing failed: {parse_error}")
@@ -206,13 +206,12 @@ class LLMCallManager:
     async def _make_llm_call(self, prompt: str, temperature: float, **kwargs) -> Tuple[Optional[str], Optional[str]]:
         """Make the actual LLM call."""
         try:
-            # Use existing LLM client
-            return call_llm_api(
+            # Use existing LLM client with correct signature
+            return call_llm_with_fallback(
                 model_config=self.model_config,
                 prompt=prompt,
                 temperature=temperature,
-                logger=self.logger,
-                **kwargs
+                logger=self.logger
             )
         except Exception as e:
             return None, str(e)
@@ -220,12 +219,11 @@ class LLMCallManager:
     async def _make_llm_call_with_config(self, prompt: str, temperature: float, config: Dict[str, Any], **kwargs) -> Tuple[Optional[str], Optional[str]]:
         """Make LLM call with specific config."""
         try:
-            return call_llm_api(
+            return call_llm_with_fallback(
                 model_config=config,
                 prompt=prompt,
                 temperature=temperature,
-                logger=self.logger,
-                **kwargs
+                logger=self.logger
             )
         except Exception as e:
             return None, str(e)
