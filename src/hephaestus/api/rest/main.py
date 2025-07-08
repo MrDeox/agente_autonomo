@@ -597,7 +597,10 @@ def worker_thread():
             # The CycleRunner contains the main loop that handles both
             # queued and continuously generated objectives. We just need to start it.
             cycle_runner = CycleRunner(hephaestus_agent_instance, hephaestus_agent_instance.queue_manager)
-            asyncio.create_task(cycle_runner.run())
+            # Create new event loop for the worker thread
+            loop = asyncio.new_event_loop()
+            asyncio.set_event_loop(loop)
+            loop.run_until_complete(cycle_runner.run())
         except Exception as e:
             logger.error(f"❌ Critical error in agent's main run loop: {e}", exc_info=True)
     else:

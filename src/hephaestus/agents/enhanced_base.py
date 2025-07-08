@@ -12,7 +12,7 @@ from hephaestus.agents.mixins import EnhancedAgentMixin
 from hephaestus.utils.llm_manager import LLMCallManager, llm_call_with_metrics, llm_call_with_retry
 
 
-class EnhancedBaseAgent(BaseAgent, EnhancedAgentMixin, ABC):
+class EnhancedBaseAgent(EnhancedAgentMixin, BaseAgent, ABC):
     """
     Enhanced base agent with all modern capabilities:
     - Dependency injection
@@ -34,16 +34,15 @@ class EnhancedBaseAgent(BaseAgent, EnhancedAgentMixin, ABC):
         # Initialize base classes
         agent_name = agent_name or self.__class__.__name__
         
-        # Initialize BaseAgent
-        BaseAgent.__init__(
-            self, 
+        # Filter kwargs for BaseAgent (only accepts logger)
+        base_kwargs = {k: v for k, v in kwargs.items() if k == 'logger'}
+        
+        # Initialize with proper MRO using super()
+        super().__init__(
             name=agent_name,
             capabilities=self.get_default_capabilities(),
-            logger=None  # Will be setup by mixin
+            **base_kwargs
         )
-        
-        # Initialize EnhancedAgentMixin (handles logger setup)
-        EnhancedAgentMixin.__init__(self, agent_name, **kwargs)
         
         # Override BaseAgent logger with enhanced logger
         self.logger = self.get_agent_logger()

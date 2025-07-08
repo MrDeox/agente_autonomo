@@ -1,10 +1,10 @@
 """Specialized agents for different tasks."""
 
 from .base import BaseAgent, AgentInterface, AgentRegistry
-from .architect import ArchitectAgent
-from .maestro import MaestroAgent
-from .bug_hunter import BugHunterAgent
-from .organizer import OrganizerAgent
+from .architect_enhanced import ArchitectAgentEnhanced as ArchitectAgent
+from .maestro_enhanced import MaestroAgentEnhanced as MaestroAgent
+from .bug_hunter_enhanced import BugHunterAgentEnhanced as BugHunterAgent
+from .organizer_enhanced import OrganizerAgentEnhanced as OrganizerAgent
 from .performance_analyzer import PerformanceAnalysisAgent
 from .linter_agent import LinterAgent
 from .log_analysis_agent import LogAnalysisAgent
