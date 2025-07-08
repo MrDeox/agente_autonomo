@@ -11,8 +11,15 @@ from pathlib import Path
 # Add src to path
 sys.path.insert(0, 'src')
 
-# Set API key
-os.environ['OPENROUTER_API_KEY'] = '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'
+# Load API key from .env file
+from dotenv import load_dotenv
+load_dotenv()
+
+# Verify API key is loaded
+if not os.getenv('OPENROUTER_API_KEY'):
+    print("❌ OPENROUTER_API_KEY not found in .env file!")
+    print("📝 Please add your API key to .env file")
+    sys.exit(1)
 
 def patch_llm_client():
     """Patch LLM client to use OpenRouter directly."""
