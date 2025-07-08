@@ -7,8 +7,11 @@ agente_autonomo/
     setup_multiple_keys.py
     hephaestus_mcp_server.py
     cli.py
+    monitor_evolution.py
+    next_meta_functionalities_v2.md
     debug_keys.py
     poetry.lock
+    analyze_meta_functionalities.py
     main.py
     hephaestus_config.json
     CLAUDE.md
@@ -110,15 +113,19 @@ agente_autonomo/
                 self_awareness.py
                 __init__.py
                 real_time_evolution_engine.py
+                meta_objective_generator.py
                 evolution_callbacks.py
                 model_optimizer.py
                 parallel_reality_testing.py
                 collective_intelligence_network.py
                 root_cause_analyzer.py
                 knowledge_system.py
+                self_awareness_core.py
                 evolution_analytics.py
+                parallel_reality_tester.py
                 predictive_failure_engine.py
                 meta_core.py
+                meta_learning_intelligence.py
             services/
                 __init__.py
                 communication/
@@ -167,28 +174,42 @@ agente_autonomo/
         collective_intelligence/
             agents/
                 hephaestus_agent_124423607735120.json
+                hephaestus_agent_130662635941712.json
+                hephaestus_agent_136018006606288.json
                 hephaestus_agent_127244829982160.json
+                hephaestus_agent_137408510679952.json
                 hephaestus_agent_130730365742800.json
                 hephaestus_agent_126280159603280.json
                 hephaestus_agent_130698451963792.json
+                hephaestus_agent_132721687100368.json
+                hephaestus_agent_126569939634000.json
                 hephaestus_agent_129748972437456.json
                 hephaestus_agent_135442763201808.json
                 hephaestus_agent_139396809887184.json
+                hephaestus_agent_123283764277712.json
                 hephaestus_agent_123169772310352.json
                 hephaestus_agent_129041742934352.json
+                hephaestus_agent_124203824008784.json
                 hephaestus_agent_139220132189904.json
                 hephaestus_agent_132641144558672.json
             insights/
             knowledge/
                 strategy_discovery_13ddf8ce.json
                 strategy_discovery_767ee161.json
+                strategy_discovery_23817242.json
+                strategy_discovery_57f200e2.json
+                strategy_discovery_cedd7679.json
                 strategy_discovery_c6d261f1.json
+                strategy_discovery_3c2f012c.json
                 strategy_discovery_ae850502.json
                 strategy_discovery_e106bffc.json
+                strategy_discovery_a28125aa.json
                 strategy_discovery_539cbb83.json
                 strategy_discovery_058ea617.json
                 strategy_discovery_9db8dbd9.json
                 strategy_discovery_03f8dab4.json
+                strategy_discovery_496dcb64.json
+                strategy_discovery_706eb9c4.json
                 strategy_discovery_0bb3a3d0.json
                 strategy_discovery_e59e00e2.json
                 strategy_discovery_f0329457.json
@@ -222,9 +243,13 @@ agente_autonomo/
             evolution/
                 evolution_report_20250704_085755.json
                 night_report_20250704_004455.json
+        self_awareness/
+            awareness_data.json
         parallel_tests/
             results/
             environments/
+        meta_learning/
+            learning_data.json
         logs/
             error_prevention_test.log
             feature_activation.log
@@ -254,6 +279,9 @@ agente_autonomo/
                 bughunteragentenhanced_agent.log
                 testenhanced_agent.log
                 architectagentenhanced_agent.log
+        intelligence/
+            meta_objectives/
+                meta_objective_data.json
         evolution_analytics/
             metrics_history.json
             chart_cycle_success_rate_7d.png
@@ -300,7 +328,21 @@ agente_autonomo/
 
 ### Arquivo: `cli.py`
 
+### Arquivo: `monitor_evolution.py`
+- **Função:** `monitor_system()`
+  - *Monitora o sistema em tempo real*
+
 ### Arquivo: `debug_keys.py`
+
+### Arquivo: `analyze_meta_functionalities.py`
+- **Função:** `analyze_logs()`
+  - *Analisa logs para verificar status das meta-funcionalidades*
+- **Função:** `check_memory_files()`
+  - *Verifica arquivos de memória para estado das meta-funcionalidades*
+- **Função:** `monitor_real_time_improvements()`
+  - *Monitora melhorias em tempo real*
+- **Função:** `show_key_log_patterns()`
+  - *Mostra padrões-chave para procurar nos logs*
 
 ### Arquivo: `main.py`
 - **Função:** `main()`
@@ -1129,6 +1171,24 @@ agente_autonomo/
 - **Função:** `get_real_time_evolution_engine(config: Dict[str, Any], logger: logging.Logger, collective_network=None)`
   - *Get singleton instance of the Real-Time Evolution Engine*
 
+### Arquivo: `src/hephaestus/intelligence/meta_objective_generator.py`
+- **Classe:** `ObjectiveType(Enum)`
+  - *Tipos de objetivos que podem ser gerados*
+- **Classe:** `ObjectiveComplexity(Enum)`
+  - *Níveis de complexidade dos objetivos*
+- **Classe:** `ObjectiveScope(Enum)`
+  - *Escopo dos objetivos*
+- **Classe:** `GeneratedObjective`
+  - *Objetivo gerado pelo sistema*
+- **Classe:** `CapabilityAssessment`
+  - *Avaliação das capacidades de geração de objetivos*
+- **Classe:** `MetaObjectivePattern`
+  - *Padrão identificado na geração de meta-objetivos*
+- **Classe:** `MetaObjectiveGenerator`
+  - *🎯 Meta-Objective Generator - Sistema que gera objetivos para melhorar objetivos*
+- **Função:** `get_meta_objective_generator(config: Dict[str, Any], logger: logging.Logger)`
+  - *Get singleton instance of MetaObjectiveGenerator*
+
 ### Arquivo: `src/hephaestus/intelligence/evolution_callbacks.py`
 - **Classe:** `EvolutionChange`
   - *Representa uma mudança REAL aplicada ao sistema*
@@ -1205,6 +1265,24 @@ agente_autonomo/
 - **Função:** `_safe_json_serialize(obj: Any)`
   - *Safely serialize objects to JSON-compatible format.*
 
+### Arquivo: `src/hephaestus/intelligence/self_awareness_core.py`
+- **Classe:** `CognitiveState(Enum)`
+  - *Estados cognitivos possíveis do sistema*
+- **Classe:** `BiasType(Enum)`
+  - *Tipos de vieses cognitivos que podem ser detectados*
+- **Classe:** `SelfOptimizationTrigger(Enum)`
+  - *Triggers que indicam necessidade de auto-otimização*
+- **Classe:** `CognitiveStateSnapshot`
+  - *Snapshot do estado cognitivo em um momento*
+- **Classe:** `SelfReflection`
+  - *Resultado de uma sessão de auto-reflexão profunda*
+- **Classe:** `PersonalityProfile`
+  - *Perfil de personalidade do sistema*
+- **Classe:** `SelfAwarenessCore`
+  - *🧠 Self-Awareness Core 2.0*
+- **Função:** `get_self_awareness_core(config: Dict[str, Any], logger: logging.Logger)`
+  - *Get singleton instance of SelfAwarenessCore*
+
 ### Arquivo: `src/hephaestus/intelligence/evolution_analytics.py`
 - **Classe:** `EvolutionMetric`
   - *Métrica de evolução capturada*
@@ -1214,6 +1292,20 @@ agente_autonomo/
   - *Sistema de análise de evolução de longo prazo*
 - **Função:** `get_evolution_analytics(config: Dict[str, Any], logger: logging.Logger)`
   - *Get singleton instance of Evolution Analytics*
+
+### Arquivo: `src/hephaestus/intelligence/parallel_reality_tester.py`
+- **Classe:** `RealityTestStatus(Enum)`
+  - *Status de um teste de realidade paralela*
+- **Classe:** `StrategyType(Enum)`
+  - *Tipos de estratégias que podem ser testadas*
+- **Classe:** `RealityTest`
+  - *Representa um teste de realidade (estratégia sendo executada)*
+- **Classe:** `ParallelTestSession`
+  - *Sessão de teste paralelo com múltiplas realidades*
+- **Classe:** `ParallelRealityTester`
+  - *🧪 Parallel Reality Testing System*
+- **Função:** `get_parallel_reality_tester(config: Dict[str, Any], logger: logging.Logger)`
+  - *Get singleton instance of ParallelRealityTester*
 
 ### Arquivo: `src/hephaestus/intelligence/predictive_failure_engine.py`
 - **Classe:** `FailurePattern`
@@ -1240,6 +1332,24 @@ agente_autonomo/
   - *The ultimate meta-cognitive controller that orchestrates all self-improvement*
 - **Função:** `get_meta_intelligence(model_config: Dict[str, str], logger: logging.Logger)`
   - *Get or create the global meta-intelligence instance*
+
+### Arquivo: `src/hephaestus/intelligence/meta_learning_intelligence.py`
+- **Classe:** `LearningType(Enum)`
+  - *Tipos de aprendizado que o sistema pode fazer*
+- **Classe:** `LearningContext(Enum)`
+  - *Contextos onde o aprendizado acontece*
+- **Classe:** `LearningEffectiveness(Enum)`
+  - *Níveis de efetividade do aprendizado*
+- **Classe:** `LearningEvent`
+  - *Representa um evento de aprendizado*
+- **Classe:** `LearningPattern`
+  - *Padrão de aprendizado identificado*
+- **Classe:** `AdaptiveMemory`
+  - *Sistema de memória que adapta retention baseado na relevância*
+- **Classe:** `MetaLearningIntelligence`
+  - *🧠 Meta-Learning Intelligence System*
+- **Função:** `get_meta_learning_intelligence(config: Dict[str, Any], logger: logging.Logger)`
+  - *Get singleton instance of MetaLearningIntelligence*
 
 ### Arquivo: `src/hephaestus/services/__init__.py`
 

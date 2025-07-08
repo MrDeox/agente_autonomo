@@ -54,32 +54,99 @@ bug_hunter:
   scan_test_failures: true
   scan_performance_issues: true
 
-# Configurações do Real-Time Evolution Engine - OTIMIZADO PARA EXECUÇÃO
+# Configurações do Real-Time Evolution Engine - BALANCEADO PARA EXECUÇÃO + EVOLUÇÃO
 real_time_evolution:
-  enabled: false  # DESABILITADO temporariamente para focar em execução
-  mutation_interval: 300  # 5 minutos entre mutações (aumentado drasticamente)
-  max_parallel_tests: 1  # máximo de testes simultâneos
-  fitness_threshold: 0.5  # limiar mais alto para deployment
-  risk_threshold: 0.2  # limiar mais baixo de risco
-  evolution_cooldown: 1800  # 30 minutos de cooldown entre ciclos evolutivos
-  force_execution_mode: true  # força modo de execução em vez de evolução
+  enabled: true  # ✅ HABILITADO - LLM funcionando agora!
+  mutation_interval: 900  # 15 minutos entre mutações (conservador)
+  max_parallel_tests: 1  # máximo de testes simultâneos (seguro)
+  fitness_threshold: 0.7  # limiar alto para deployment (70%+ de melhoria)
+  risk_threshold: 0.15  # limiar baixo de risco (máx 15% de risco)
+  evolution_cooldown: 3600  # 1 hora de cooldown entre ciclos evolutivos
+  force_execution_mode: false  # permite evolução controlada
+  execution_priority: true  # prioriza execução sobre evolução
+  max_mutations_per_hour: 2  # limite de 2 mutações por hora
+  require_success_before_mutation: true  # só muta após sucesso
 
-# Configurações de Rate Limiting para API
+# Configurações de Rate Limiting para API - OTIMIZADO PARA MÚLTIPLAS CHAVES
 rate_limiting:
   enabled: true
-  max_concurrent_llm_calls: 2  # reduzido para estabilidade
-  calls_per_minute: 30  # reduzido para evitar rate limiting
-  retry_delay_seconds: 10  # delay maior entre retries
+  max_concurrent_llm_calls: 3  # aumentado - temos 5 chaves agora!
+  calls_per_minute: 60  # aumentado - distribuição entre chaves
+  retry_delay_seconds: 5  # reduzido - fallback automático é rápido
   exponential_backoff: true  # usar backoff exponencial
+  use_multiple_keys: true  # usa sistema de múltiplas chaves
+  key_rotation_enabled: true  # rotaciona entre chaves automaticamente
 
-# Evolution Analytics Configuration
+# Evolution Analytics Configuration - HABILITADO PARA MONITORAMENTO
 evolution_analytics:
-  retention_days: 7  # reduzido para limpeza mais frequente
-  analysis_interval_hours: 12  # análise menos frequente
-  min_data_points: 5  # menos pontos para análise
-  chart_generation: false  # desabilitado para reduzir carga
-  prediction_enabled: false  # desabilitado temporariamente
+  retention_days: 14  # aumentado para melhor análise histórica
+  analysis_interval_hours: 6  # análise mais frequente para detectar padrões
+  min_data_points: 3  # reduzido para análise mais rápida
+  chart_generation: true  # ✅ HABILITADO - útil para visualizar evolução
+  prediction_enabled: true  # ✅ HABILITADO - predição de tendências
   auto_cleanup: true
+  detailed_logging: true  # log detalhado para debug
+  performance_tracking: true  # tracking de performance das mutações
+
+# Configurações do Parallel Reality Testing - 3ª META-FUNCIONALIDADE
+parallel_reality:
+  enabled: true  # ✅ HABILITADO - Sistema de múltiplas estratégias paralelas
+  max_parallel_tests: 3  # máximo de estratégias testadas simultaneamente
+  early_termination_threshold: 0.2  # diferença mínima para terminar testes cedo
+  winner_selection_interval: 30  # segundos entre verificações de vencedor
+  min_execution_time: 10  # tempo mínimo de execução por teste
+  max_session_time: 300  # 5 minutos máximo por sessão de teste
+  strategy_types: ["conservative", "aggressive", "balanced", "experimental", "optimized"]
+  learning_enabled: true  # aprende com comparações entre estratégias
+  resource_monitoring: true  # monitora uso de recursos por estratégia
+  historical_optimization: true  # usa dados históricos para otimizar estratégias
+
+# Configurações do Meta-Learning Intelligence - 4ª META-FUNCIONALIDADE
+meta_learning:
+  enabled: true  # ✅ HABILITADO - Sistema que aprende como aprender melhor
+  base_learning_rate: 0.1  # taxa base de aprendizado
+  adaptive_rate_enabled: true  # ajusta taxa baseado no contexto
+  pattern_detection_threshold: 5  # mínimo de eventos para detectar padrões
+  memory_retention_threshold: 0.3  # limiar para reter memórias
+  transfer_learning_enabled: true  # permite transferência entre domínios
+  max_learning_events: 1000  # máximo de eventos na memória
+  bias_detection_enabled: true  # detecta vieses no aprendizado
+  continuous_optimization: true  # otimização contínua em background
+  adaptive_memory_enabled: true  # sistema de memória que adapta retenção
+
+# Configurações do Self-Awareness Core 2.0 - 5ª META-FUNCIONALIDADE
+self_awareness:
+  enabled: true  # ✅ HABILITADO - Sistema de consciência profunda do próprio estado cognitivo
+  reflection_interval: 300  # 5 minutos entre auto-reflexões profundas
+  state_monitoring_interval: 60  # 1 minuto entre snapshots de estado cognitivo
+  bias_detection_enabled: true  # detecta vieses cognitivos próprios
+  personality_evolution_enabled: true  # permite evolução da personalidade
+  metacognitive_awareness: true  # consciência sobre próprios processos de pensamento
+  continuous_monitoring: true  # monitoramento contínuo em background
+  wellness_threshold: 0.4  # limiar de bem-estar para auto-otimização
+  fatigue_detection_enabled: true  # detecta fadiga cognitiva
+  max_state_history: 1000  # máximo de snapshots na memória
+  self_optimization_triggers: true  # triggers automáticos de auto-otimização
+  bias_correction_enabled: true  # correção automática de vieses detectados
+  cognitive_load_monitoring: true  # monitora sobrecarga cognitiva
+  decision_quality_tracking: true  # acompanha qualidade das decisões
+
+# Configurações do Meta-Objective Generator - 6ª META-FUNCIONALIDADE
+meta_objective_generator:
+  enabled: true  # ✅ HABILITADO - Sistema que gera objetivos para melhorar objetivos
+  generation_interval: 600  # 10 minutos entre gerações automáticas de meta-objetivos
+  capability_analysis_interval: 1800  # 30 minutos entre análises de capacidade
+  max_concurrent_objectives: 5  # máximo de meta-objetivos ativos simultaneamente
+  pattern_detection_threshold: 3  # mínimo de eventos para detectar padrões
+  improvement_threshold: 0.1  # limiar mínimo de melhoria (10%)
+  quality_threshold: 0.7  # limiar de qualidade para objetivos gerados
+  recursive_depth: 3  # profundidade máxima de recursão em meta-objetivos
+  strategic_planning_enabled: true  # permite planejamento estratégico de longo prazo
+  auto_capability_assessment: true  # avaliação automática de capacidades
+  pattern_learning_enabled: true  # aprendizado de padrões de sucesso
+  objective_evolution_enabled: true  # evolução contínua de objetivos
+  context_awareness_level: "high"  # nível de consciência contextual (low/medium/high)
+  creativity_boost_factor: 1.2  # fator de aumento de criatividade
 
 # NOVA CONFIGURAÇÃO: Modo de Execução Forçada
 execution_mode:

@@ -34,7 +34,8 @@ from hephaestus.services.orchestration.async_orchestrator import AsyncAgentOrche
 from hephaestus.intelligence.model_optimizer import ModelOptimizer, get_model_optimizer
 from hephaestus.intelligence.knowledge_system import AdvancedKnowledgeSystem, get_knowledge_system
 from hephaestus.intelligence.root_cause_analyzer import RootCauseAnalyzer, get_root_cause_analyzer
-from hephaestus.intelligence.self_awareness import SelfAwarenessCore, get_self_awareness_core
+from hephaestus.intelligence.self_awareness_core import SelfAwarenessCore, get_self_awareness_core
+from hephaestus.intelligence.meta_objective_generator import MetaObjectiveGenerator, get_meta_objective_generator
 from hephaestus.utils.infrastructure_manager import InfrastructureManager, get_infrastructure_manager
 from hephaestus.services.communication.inter_agent import get_inter_agent_communication
 from hephaestus.agents.swarm_coordinator_agent import SwarmCoordinatorAgent
@@ -107,7 +108,9 @@ class HephaestusAgent:
         
         self.root_cause_analyzer = get_root_cause_analyzer(model_config, self.logger)
         
-        self.self_awareness_core = get_self_awareness_core(model_config, self.logger)
+        self.self_awareness_core = get_self_awareness_core(self.config, self.logger)
+        
+        self.meta_objective_generator = get_meta_objective_generator(self.config, self.logger)
         
         self.infrastructure_manager = get_infrastructure_manager(self.logger)
         
@@ -251,6 +254,11 @@ class HephaestusAgent:
         from hephaestus.intelligence.parallel_reality_testing import get_parallel_reality_tester
         self.parallel_reality_tester = get_parallel_reality_tester(self.config, self.logger)
         self.logger.info("🧪 Parallel Reality Testing initialized!")
+        
+        # Meta-Learning Intelligence - Sistema que aprende como aprender melhor
+        from hephaestus.intelligence.meta_learning_intelligence import get_meta_learning_intelligence
+        self.meta_learning_intelligence = get_meta_learning_intelligence(self.config, self.logger)
+        self.logger.info("🧠 Meta-Learning Intelligence initialized!")
         
         # Collective Intelligence Network - Rede de inteligência coletiva
         from hephaestus.intelligence.collective_intelligence_network import get_collective_intelligence_network

@@ -164,7 +164,12 @@ class CycleRunner:
                 self._handle_cycle_failure(objective_str, "MAESTRO_PHASE_FAILED", reason)
                 return
 
-            self.agent.state.strategy_key = maestro_result.result.get("strategy")
+            strategy_key = maestro_result.result.get("strategy") if maestro_result.result else None
+            if not strategy_key:
+                self._handle_cycle_failure(objective_str, "NO_STRATEGY_SELECTED", "Maestro did not select a valid strategy.")
+                return
+            
+            self.agent.state.strategy_key = strategy_key
 
             # Stage 3: Synchronous validation and application logic
             self._run_validation_and_application(objective_str)
@@ -245,7 +250,7 @@ class CycleRunner:
             break
         
         # If loop finishes without success
-        reason, context = self.agent.state.validation_result
+        success, reason, context = self.agent.state.validation_result
         self._handle_cycle_failure(current_objective, reason, context)
 
     def _handle_capacitation_request(self, current_objective: str):
