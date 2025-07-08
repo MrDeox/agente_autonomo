@@ -8,8 +8,8 @@ agents:
   bug_hunter:
     behavior: detection_sensitivity
     change: Increase detection threshold
-    detection_threshold: 2.9000000000000012
-    last_behavior_change: '2025-07-08T14:56:48.983397'
+    detection_threshold: 2.800000000000001
+    last_behavior_change: '2025-07-08T14:53:54.700681'
     sensitivity: high
   maestro:
     behavior: strategy_selection
@@ -94,21 +94,7 @@ models:
   sommelier_default: deepseek/deepseek-chat-v3-0324:free
 prompts:
   architect_prompts: Both primary and fallback models failed or are not configured.
-  maestro_prompts: 'You are a strategic maestro agent. Analyze the situation and select
-    the best strategy based on:
-
-    1. Current system performance metrics
-
-    2. Recent success and failure patterns
-
-    3. Available agent capabilities
-
-    4. Resource constraints and priorities
-
-    5. Historical decision outcomes
-
-
-    Make data-driven decisions and coordinate effectively with other agents.'
+  maestro_prompts: Both primary and fallback models failed or are not configured.
   objective_generation: 'You are an objective generation system. Create strategic
     objectives that:
 
