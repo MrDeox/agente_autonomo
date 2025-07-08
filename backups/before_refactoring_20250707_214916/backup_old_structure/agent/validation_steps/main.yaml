@@ -1,0 +1,22 @@
+parameters:
+  schema:
+    type: object
+    required: ['agent']
+    additionalProperties: false
+    properties:
+      agent:
+        type: object
+        required: ['validation']
+        additionalProperties: false
+        properties:
+          validation:
+            type: object
+            additionalProperties: false
+            properties:
+              # Campos de validação específicos
+            required: []
+    properties:
+      # Campos adicionais no root (não autorizados)
+    additionalProperties: false
+    required: ['agent']
+    type: object

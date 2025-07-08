@@ -1,0 +1,36 @@
+# Base configuration for Hephaestus
+# This file is included by default.yaml
+
+# Default memory file path
+memory_file_path: "reports/memory/HEPHAESTUS_MEMORY.json"
+
+# Default model temperature and max tokens
+# These can be overridden in specific model configurations
+default_model_settings:
+  temperature: 0.3 # Default temperature from original default.yaml
+  max_tokens: -1 # Default max_tokens from original default.yaml
+
+# Model configurations will be loaded from model_config.yaml
+# We define a placeholder here so Hydra knows about the 'models' group
+models: {}
+
+# Validation strategies will be loaded from validation_config.yaml
+# We define a placeholder here so Hydra knows about the 'validation_strategies' group
+validation_strategies: {}
+
+# Code analysis thresholds from hephaestus_config.json
+code_analysis_thresholds:
+  file_loc: 300
+  function_loc: 50
+  function_cc: 10
+
+# Other general settings can be added here
+# For example, if 'example_config.json' had relevant general settings,
+# they would be migrated here.
+# Based on 'example_config.json':
+# api_key: "your-api-key-here" # This should be managed via environment variables or secrets, not committed
+# default_model: "gpt-3.5-turbo" # This is superseded by the detailed model configs
+# base_url: "https://openrouter.ai/api/v1" # This could be part of LLM client config if needed
+log_level: "INFO" # from example_config.json
+max_retries: 3 # from example_config.json
+timeout_seconds: 30 # from example_config.json

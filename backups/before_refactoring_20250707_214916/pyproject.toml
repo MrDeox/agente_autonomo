@@ -1,0 +1,74 @@
+[project]
+name = "agente-autonomo"
+version = "0.1.0"
+description = "Um agente de IA focado em Aprimoramento Auto Recursivo (RSI)."
+authors = [
+    {name = "MrDeox",email = "arthurptc33@gmail.com"}
+]
+readme = "README.md"
+requires-python = ">=3.10"
+
+[tool.poetry]
+name = "hephaestus"
+version = "0.1.0"
+description = "Um agente de IA focado em Aprimoramento Auto Recursivo (RSI)."
+authors = ["MrDeox <arthurptc33@gmail.com>"]
+readme = "README.md"
+packages = [{include = "hephaestus", from = "src"}]
+
+[build-system]
+requires = ["poetry-core>=2.0.0"]
+build-backend = "poetry.core.masonry.api"
+
+[tool.poetry.dependencies]
+python = "^3.10"
+
+# Core Dependencies
+python-dotenv = "^1.0.0"
+requests = "^2.31.0"
+termcolor = "^2.4.0"
+PyYAML = "^6.0.1"
+loguru = "^0.7.2"
+GitPython = "^3.1.43"
+"ruamel.yaml" = "^0.18.6"
+psutil = ">=5.9.8"
+pandas = ">=1.0.0"
+radon = ">=5.1.0"
+typer = ">=0.16.0,<0.17.0"
+pydantic = "^2.6.4"
+hydra-core = ">=1.3.2,<2.0.0"
+
+# LLM & AI Dependencies
+google-generativeai = ">=0.8.5,<0.9.0"
+openai = "^1.13.3"
+
+# Framework & Server Dependencies
+fastapi = ">=0.100.0"
+uvicorn = {extras = ["standard"], version = ">=0.20.0"}
+
+# MCP Dependencies
+mcp = "^1.0.0"
+websockets = "^11.0.0"
+fastapi-mcp = ">=0.1.0" # From requirements_mcp
+
+# Validation & Testing
+jsonschema = "^4.22.0"
+
+# New dependency
+scikit-learn = "^1.5.1"
+watchdog = "^6.0.0"
+httpx = "^0.28.1"
+pyjwt = "^2.10.1"
+python-multipart = "^0.0.20"
+
+[tool.poetry.group.dev.dependencies]
+pytest = "^8.1.1"
+pytest-mock = ">=3.0.0"
+pytest-asyncio = ">=0.21.0"
+ruff = "^0.5.5"
+pytest-cov = "^6.2.1"
+
+[tool.poetry.scripts]
+hephaestus = "hephaestus.api.cli.main:app"
+hephaestus-server = "main:main"
+hephaestus-mcp = "hephaestus_mcp_server:main"
