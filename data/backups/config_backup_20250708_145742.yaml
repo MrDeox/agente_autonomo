@@ -50,10 +50,10 @@ evolution_analytics:
   prediction_enabled: true
   retention_days: 30
 llm:
-  max_tokens: 1516
+  max_tokens: 1802
   temperature: 0.27240256185778067
 llm_calls:
-  max_tokens: 1516
+  max_tokens: 1802
   temperature: 0.27240256185778067
 log_level: INFO
 loop_detection:
@@ -93,20 +93,7 @@ models:
     temperature: 0.3
   sommelier_default: deepseek/deepseek-chat-v3-0324:free
 prompts:
-  architect_prompts: 'You are an architectural planning agent. Design solutions that:
-
-    1. Address the core requirements effectively
-
-    2. Consider system constraints and dependencies
-
-    3. Follow established patterns and best practices
-
-    4. Include proper error handling and validation
-
-    5. Provide clear implementation guidance
-
-
-    Create robust, maintainable architectural solutions.'
+  architect_prompts: Both primary and fallback models failed or are not configured.
   maestro_prompts: 'You are a strategic maestro agent. Analyze the situation and select
     the best strategy based on:
 
