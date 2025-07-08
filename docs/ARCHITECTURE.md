@@ -160,11 +160,14 @@ agente_autonomo/
         collective_intelligence/
             agents/
                 hephaestus_agent_131199891566032.json
+                hephaestus_agent_140176976408080.json
                 hephaestus_agent_132143394637904.json
                 hephaestus_agent_138690457629328.json
                 hephaestus_agent_133539398070928.json
+                hephaestus_agent_137180373945040.json
                 hephaestus_agent_128203156791888.json
                 hephaestus_agent_128831221084048.json
+                hephaestus_agent_139169624894160.json
                 hephaestus_agent_126700022820624.json
                 hephaestus_agent_133701957859664.json
                 hephaestus_agent_138529170054608.json
@@ -173,7 +176,11 @@ agente_autonomo/
                 hephaestus_agent_136630682440144.json
             insights/
             knowledge/
+                strategy_discovery_e4e786c3.json
+                strategy_discovery_473ad33a.json
+                strategy_discovery_9fab15a1.json
         agents/
+            maestro_config.yaml
             bug_hunter_config.yaml
             architect_config.yaml
         memory/
@@ -230,20 +237,34 @@ agente_autonomo/
                 testenhanced_agent.log
                 architectagentenhanced_agent.log
         backups/
+            maestro_config_backup_20250708_141805.yaml
+            bug_hunter_config_backup_20250708_141538.yaml
             config_backup_20250708_135724.yaml
             error_handling_workflow_backup_20250708_140151.yaml
             architect_config_backup_20250708_140348.yaml
             architect_config_backup_20250708_135733.yaml
+            architect_config_backup_20250708_141550.yaml
+            bug_hunter_config_backup_20250708_141600.yaml
             maestro_prompts_backup_20250708_140548.txt
+            config_backup_20250708_140801.yaml
             architect_prompts_backup_20250708_140555.txt
             config_backup_20250708_140744.yaml
+            architect_config_backup_20250708_141813.yaml
+            objective_generation_backup_20250708_141756.txt
             architect_config_backup_20250708_140136.yaml
+            maestro_config_backup_20250708_141530.yaml
             config_backup_20250708_135714.yaml
             bug_hunter_config_backup_20250708_140726.yaml
+            config_backup_20250708_141618.yaml
             objective_generation_backup_20250708_140144.txt
+            architect_config_backup_20250708_140751.yaml
             architect_config_backup_20250708_140737.yaml
+            config_backup_20250708_141626.yaml
+            config_backup_20250708_141545.yaml
             maestro_prompts_backup_20250708_135704.txt
+            config_backup_20250708_141609.yaml
             config_backup_20250708_140540.yaml
+            objective_generation_backup_20250708_141524.txt
         workflows/
             error_handling_workflow.yaml
     logs/
@@ -1065,7 +1086,7 @@ agente_autonomo/
   - *Métricas de performance da evolução*
 - **Classe:** `RealTimeEvolutionEngine`
   - *⚡ Engine de Evolução em Tempo Real - O Coração da Auto-Melhoria*
-- **Função:** `get_real_time_evolution_engine(config: Dict[str, Any], logger: logging.Logger)`
+- **Função:** `get_real_time_evolution_engine(config: Dict[str, Any], logger: logging.Logger, collective_network=None)`
   - *Get singleton instance of the Real-Time Evolution Engine*
 
 ### Arquivo: `src/hephaestus/intelligence/evolution_callbacks.py`
@@ -1300,9 +1321,3 @@ agente_autonomo/
 
 ## 3. CONTEÚDO COMPLETO DOS ARQUIVOS ALVO
 
-
-### Arquivo: `agent/project_scanner.py`
-
-```
-# ARQUIVO NÃO ENCONTRADO OU NÃO PROCESSADO
-```

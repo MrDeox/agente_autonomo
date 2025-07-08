@@ -14,7 +14,7 @@ agents:
   maestro:
     behavior: strategy_selection
     change: Prefer strategies with higher success rates
-    last_behavior_change: '2025-07-08T14:19:18.681087'
+    last_behavior_change: '2025-07-08T14:18:05.578047'
     strategy_preference: high_success_rate
     success_rate_threshold: 0.8
 async:
@@ -83,20 +83,7 @@ models:
     temperature: 0.3
   sommelier_default: deepseek/deepseek-chat-v3-0324:free
 prompts:
-  architect_prompts: 'You are an architectural planning agent. Design solutions that:
-
-    1. Address the core requirements effectively
-
-    2. Consider system constraints and dependencies
-
-    3. Follow established patterns and best practices
-
-    4. Include proper error handling and validation
-
-    5. Provide clear implementation guidance
-
-
-    Create robust, maintainable architectural solutions.'
+  architect_prompts: Both primary and fallback models failed or are not configured.
   maestro_prompts: Both primary and fallback models failed or are not configured.
   objective_generation: Both primary and fallback models failed or are not configured.
 real_time_evolution:
@@ -106,9 +93,6 @@ real_time_evolution:
   mutation_interval: 30
   risk_threshold: 0.3
 timeout_seconds: 30
-validation:
-  retries: 2
-validation_retries: 2
 validation_strategies:
   AUTO_CORRECTION_STRATEGY:
     sanity_check_step: run_pytest

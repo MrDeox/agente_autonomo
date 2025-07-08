@@ -136,7 +136,7 @@ class RealTimeEvolutionEngine:
     SEM PARAR a execução principal do sistema.
     """
     
-    def __init__(self, config: Dict[str, Any], logger: logging.Logger):
+    def __init__(self, config: Dict[str, Any], logger: logging.Logger, collective_network=None):
         self.config = config
         self.logger = logger.getChild("RealTimeEvolutionEngine")
         
@@ -165,6 +165,9 @@ class RealTimeEvolutionEngine:
         # Performance tracking
         self.performance_history: List[Dict[str, Any]] = []
         self.baseline_performance: Dict[str, float] = {}
+        
+        # Collective Intelligence Network integration
+        self.collective_network = collective_network
         
         # Start time
         self.start_time = datetime.now()
@@ -775,6 +778,24 @@ class RealTimeEvolutionEngine:
                 # Apply the mutation
                 success = callback(candidate.mutation_data)
                 if success:
+                    # Compartilhar conhecimento sobre a evolução
+                    if self.collective_network:
+                        try:
+                            self.collective_network.share_evolution_knowledge(
+                                agent_id="real_time_evolution_engine",
+                                evolution_type="mutation_applied",
+                                details={
+                                    "mutation": candidate.description,
+                                    "fitness": candidate.fitness_score,
+                                    "mutation_type": candidate.mutation_type.value,
+                                    "description": f"Successfully applied {candidate.mutation_type.value} mutation",
+                                    "success_rate": candidate.success_rate,
+                                    "performance_impact": candidate.performance_impact
+                                }
+                            )
+                        except Exception as e:
+                            self.logger.error(f"❌ Error sharing evolution knowledge: {e}")
+                    
                     self.logger.info(f"✅ Applied mutation: {candidate.description}")
                     return True
                 else:
@@ -792,6 +813,21 @@ class RealTimeEvolutionEngine:
     def _trigger_emergency_evolution(self):
         """Dispara evolução de emergência em caso de degradação"""
         self.logger.warning("🚨 Emergency evolution triggered!")
+        
+        # Compartilhar conhecimento sobre evolução de emergência
+        if self.collective_network:
+            try:
+                self.collective_network.share_evolution_knowledge(
+                    agent_id="real_time_evolution_engine",
+                    evolution_type="emergency_evolution",
+                    details={
+                        "trigger": "performance_degradation",
+                        "corrections": ["validation_retries", "system_load_reduction"],
+                        "description": "Emergency evolution triggered due to performance degradation"
+                    }
+                )
+            except Exception as e:
+                self.logger.error(f"❌ Error sharing emergency evolution knowledge: {e}")
         
         # Generate emergency mutations (more aggressive)
         emergency_mutations = [
@@ -879,9 +915,9 @@ class RealTimeEvolutionEngine:
 # Singleton instance
 _evolution_engine = None
 
-def get_real_time_evolution_engine(config: Dict[str, Any], logger: logging.Logger) -> RealTimeEvolutionEngine:
+def get_real_time_evolution_engine(config: Dict[str, Any], logger: logging.Logger, collective_network=None) -> RealTimeEvolutionEngine:
     """Get singleton instance of the Real-Time Evolution Engine"""
     global _evolution_engine
     if _evolution_engine is None:
-        _evolution_engine = RealTimeEvolutionEngine(config, logger)
+        _evolution_engine = RealTimeEvolutionEngine(config, logger, collective_network)
     return _evolution_engine

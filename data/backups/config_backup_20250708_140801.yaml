@@ -2,25 +2,19 @@ agents:
   architect:
     behavior: risk_assessment
     change: More conservative patch generation
-    last_behavior_change: '2025-07-08T14:18:13.316168'
+    last_behavior_change: '2025-07-08T14:07:51.052534'
     patch_generation: conservative
     risk_tolerance: conservative
   bug_hunter:
     behavior: detection_sensitivity
     change: Increase detection threshold
-    detection_threshold: 0.8999999999999999
-    last_behavior_change: '2025-07-08T14:18:46.918329'
+    detection_threshold: 0.6
+    last_behavior_change: '2025-07-08T14:07:26.007398'
     sensitivity: high
-  maestro:
-    behavior: strategy_selection
-    change: Prefer strategies with higher success rates
-    last_behavior_change: '2025-07-08T14:19:18.681087'
-    strategy_preference: high_success_rate
-    success_rate_threshold: 0.8
 async:
-  timeout: 297.0
+  timeout: 391.0
 async_operations:
-  timeout: 297
+  timeout: 391
 bug_hunter:
   auto_fix_enabled: true
   max_concurrent_fixes: 3
@@ -40,11 +34,11 @@ default_model_settings:
   temperature: 0.3
 degenerative_loop_threshold: 2
 llm:
-  max_tokens: 2885
-  temperature: 0.23391617709162282
+  max_tokens: 2375
+  temperature: 0.14315216261371175
 llm_calls:
-  max_tokens: 2885
-  temperature: 0.23391617709162282
+  max_tokens: 2375
+  temperature: 0.14315216261371175
 log_level: INFO
 loop_detection:
   threshold: 2
@@ -83,20 +77,7 @@ models:
     temperature: 0.3
   sommelier_default: deepseek/deepseek-chat-v3-0324:free
 prompts:
-  architect_prompts: 'You are an architectural planning agent. Design solutions that:
-
-    1. Address the core requirements effectively
-
-    2. Consider system constraints and dependencies
-
-    3. Follow established patterns and best practices
-
-    4. Include proper error handling and validation
-
-    5. Provide clear implementation guidance
-
-
-    Create robust, maintainable architectural solutions.'
+  architect_prompts: Both primary and fallback models failed or are not configured.
   maestro_prompts: Both primary and fallback models failed or are not configured.
   objective_generation: Both primary and fallback models failed or are not configured.
 real_time_evolution:
@@ -106,9 +87,6 @@ real_time_evolution:
   mutation_interval: 30
   risk_threshold: 0.3
 timeout_seconds: 30
-validation:
-  retries: 2
-validation_retries: 2
 validation_strategies:
   AUTO_CORRECTION_STRATEGY:
     sanity_check_step: run_pytest

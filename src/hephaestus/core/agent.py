@@ -107,6 +107,12 @@ class HephaestusAgent:
         
         self.infrastructure_manager = get_infrastructure_manager(self.logger)
         
+        # Inicializar Collective Intelligence Network (temporariamente desabilitado)
+        self.collective_network = None
+        
+        # Inicializar Real-Time Evolution Engine (temporariamente desabilitado)
+        self.real_time_evolution_engine = None
+        
         # Inicializar orquestrador assíncrono
         self.async_orchestrator = AsyncAgentOrchestrator(self.config, self.logger)
         
