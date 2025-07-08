@@ -5,7 +5,7 @@ import logging
 from hephaestus.utils.config_loader import load_config
 
 # Load environment variables from .env file
-load_dotenv()
+load_dotenv(override=True)
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)

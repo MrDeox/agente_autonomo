@@ -7,12 +7,13 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 This is **Hephaestus**, a Recursive Self-Improvement (RSI) agent designed to autonomously enhance its own capabilities. Unlike traditional software development agents, Hephaestus focuses on self-analysis, identifying limitations, and generating objectives to improve its architecture and efficiency.
 
 **🎯 Recent Updates**: 
-- The project has been completely reorganized into a professional Python package structure
-- Startup initialization optimized with parallel agent loading (8-12s → 0.04s, 99.7% improvement)
-- **Critical security fixes**: Removed exposed API keys, now using .env file exclusively
-- **System health improvements**: Health score improved from 0% to 87% through monitoring enhancements
-- **Bug fixes**: Fixed organizer agent file analysis errors and LLM configuration issues
-- **Enhanced agents**: Added BugHunterAgentEnhanced, MaestroAgentEnhanced, OrganizerAgentEnhanced with automatic registration
+- **Major cleanup completed**: Removed 50+ obsolete files, backup directories, and legacy code
+- **Agent consolidation**: Simplified to enhanced versions only (architect_enhanced.py, maestro_enhanced.py, etc.)
+- **Startup optimization**: API server initialization reduced from 8-12s → 0.04s (99.7% improvement)
+- **Enhanced inheritance**: Fixed multiple inheritance issues in EnhancedBaseAgent
+- **Security fixes**: All API keys moved to .env file, removed hardcoded credentials
+- **System health**: Monitoring dashboard with automatic agent registration
+- **LLM management**: Centralized LLM calls with fallback support and retry logic
 
 ## Development Commands
 
@@ -69,9 +70,9 @@ poetry run python cli.py status
 **Server Mode (API access - OPTIMIZED startup):**
 ```bash
 # Start FastAPI server with optimized parallel initialization
-python main.py
+poetry run python main.py
 # Then access API at http://localhost:8000/docs
-# Note: Port 8000 may be in use - check for existing processes if startup fails
+# Note: Port 8000 may be in use - check with: lsof -i :8000
 ```
 
 **MCP Server Mode:**
@@ -115,16 +116,17 @@ The system features advanced meta-cognitive capabilities:
 - `state.py`: Agent state management
 
 **Specialized Agents (`src/hephaestus/agents/`)**
-- `architect.py` & `architect_enhanced.py`: Strategic planning and code architecture
-- `maestro.py` & `maestro_enhanced.py`: Strategy selection with weighted decisions and intelligent coordination
-- `bug_hunter.py` & `bug_hunter_enhanced.py`: Automated bug detection and fixing (518+ bugs fixed automatically)
-- `organizer.py` & `organizer_enhanced.py`: Project structure optimization with file analysis
+- `architect_enhanced.py`: Strategic planning and code architecture (ArchitectAgentEnhanced)
+- `maestro_enhanced.py`: Strategy selection with weighted decisions and coordination (MaestroAgentEnhanced)
+- `bug_hunter_enhanced.py`: Automated bug detection and fixing (BugHunterAgentEnhanced)
+- `organizer_enhanced.py`: Project structure optimization with file analysis (OrganizerAgentEnhanced)
 - `error_detector_agent.py`: Real-time error monitoring and detection
 - `dependency_fixer_agent.py`: Automated dependency resolution
 - `cycle_monitor_agent.py`: Performance and cycle tracking
 - `agent_expansion_coordinator.py`: Dynamic agent creation and coordination
-- `enhanced_base.py`: Enhanced base class with automatic dashboard registration
+- `enhanced_base.py`: Enhanced base class with proper MRO and automatic dashboard registration
 - `base.py`: Base classes and interfaces for all agents
+- `mixins.py`: Agent mixins for logging, caching, and LLM management
 
 **Meta-Intelligence (`src/hephaestus/intelligence/`)**
 - `model_optimizer.py`: LLM performance optimization and fine-tuning
@@ -207,10 +209,13 @@ The system features advanced meta-cognitive capabilities:
 ## Development Guidelines
 
 ### Agent Development
-When creating new agents, inherit from `BaseAgent` in `src/hephaestus/agents/base.py` and implement:
+When creating new agents, prefer inheriting from `EnhancedBaseAgent` in `src/hephaestus/agents/enhanced_base.py` for modern capabilities:
 - `execute()`: Main agent logic
-- `get_capabilities()`: List of agent capabilities
+- `get_capabilities()`: List of agent capabilities  
 - `get_status()`: Current agent status
+- Automatic logger setup, dashboard registration, and LLM management included
+
+For basic agents, inherit from `BaseAgent` in `src/hephaestus/agents/base.py`.
 
 ### Import Patterns (New Structure)
 ```python
@@ -290,10 +295,11 @@ The new structure provides:
 **✅ COMPLETED**: The project has been successfully reorganized from a chaotic structure to a professional Python package.
 
 ### What Changed:
-- **Before**: 74 files cluttered in root directory
-- **After**: Clean root with only 5 essential files
-- **Package**: Code now organized in `src/hephaestus/` following Python standards
-- **Backup**: Old structure preserved in `backup_old_structure/`
+- **Before**: 74+ files cluttered in root directory with multiple backup folders
+- **After**: Clean root with only essential files (main.py, cli.py, hephaestus_mcp_server.py, etc.)
+- **Package**: Code organized in `src/hephaestus/` following Python standards
+- **Cleanup**: Removed backup directories, obsolete files, and crypto-related modules
+- **Agent consolidation**: Only enhanced versions remain (e.g., architect_enhanced.py)
 
 ### Current Structure:
 ```
@@ -329,10 +335,10 @@ agente_autonomo/
 ### Important Notes
 - This system is designed to be self-modifying and autonomous
 - The reorganized structure follows Python packaging best practices
-- All core functionality has been preserved during reorganization
+- All core functionality has been preserved during reorganization and cleanup
 - The system maintains extensive logs in `data/logs/` for debugging
 - Memory is persistent across sessions in `data/memory/`
-- Legacy backup is available in `backup_old_structure/` if needed
+- **Cleaned structure**: All obsolete files and backups have been removed for maintainability
 
 ### Getting Started
 1. Ensure all dependencies are installed: `poetry install`
@@ -364,3 +370,34 @@ curl "http://localhost:8000/status"
 # Access interactive documentation
 # Open http://localhost:8000/docs in browser
 ```
+
+## Troubleshooting
+
+### Common Issues
+
+**Port 8000 already in use:**
+```bash
+# Check what's using the port
+lsof -i :8000
+# Kill the process
+kill <PID>
+```
+
+**LLM configuration errors:**
+- Ensure `.env` file exists with valid API keys
+- Check `config/models/main.yaml` for model configurations
+- Verify primary/fallback model settings in `src/hephaestus/utils/config_manager.py`
+
+**Agent initialization errors:**
+- Enhanced agents use multiple inheritance - ensure proper MRO in `enhanced_base.py`
+- Filter kwargs appropriately when calling parent constructors
+- Check for missing dependencies in agent mixins
+
+**Import errors after cleanup:**
+- All agent imports now use enhanced versions (e.g., `ArchitectAgentEnhanced as ArchitectAgent`)
+- Update any hardcoded imports to use the new consolidated structure
+
+### Key Log Files
+- Main system: `data/logs/hephaestus_main.log`
+- Individual agents: `data/logs/agents/<agent_name>_agent.log`
+- Error prevention: `data/logs/error_prevention.log`

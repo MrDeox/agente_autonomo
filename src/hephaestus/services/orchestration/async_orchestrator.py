@@ -224,18 +224,35 @@ class AsyncAgentOrchestrator:
     async def _run_agent_task(self, task: AgentTask) -> Any:
         """Executa a tarefa específica do agente de forma não-bloqueante."""
         agent = self.agent_pools[task.agent_type]
-        loop = asyncio.get_running_loop()
 
         if task.agent_type == AgentType.ARCHITECT:
-            return await loop.run_in_executor(
-                self.executor,
-                agent.plan_action,
-                task.objective,
-                task.context.get('manifest', ''),
-                task.context.get('file_content_context', '')
-            )
+            # For async methods, call directly without executor
+            if hasattr(agent, 'plan_action') and asyncio.iscoroutinefunction(agent.plan_action):
+                result = await agent.plan_action(
+                    task.objective,
+                    task.context.get('manifest', ''),
+                    task.context.get('file_content_context', '')
+                )
+                # If it returns a tuple (result, error), take the result part
+                if isinstance(result, tuple) and len(result) == 2:
+                    plan, error = result
+                    if error:
+                        raise Exception(f"Plan action failed: {error}")
+                    return plan
+                return result
+            else:
+                # For sync methods, use executor
+                loop = asyncio.get_running_loop()
+                return await loop.run_in_executor(
+                    self.executor,
+                    agent.plan_action,
+                    task.objective,
+                    task.context.get('manifest', ''),
+                    task.context.get('file_content_context', '')
+                )
 
         elif task.agent_type == AgentType.MAESTRO:
+            loop = asyncio.get_running_loop()
             return await loop.run_in_executor(
                 self.executor,
                 agent.choose_strategy,
@@ -245,14 +262,21 @@ class AsyncAgentOrchestrator:
             )
 
         elif task.agent_type == AgentType.CODE_REVIEW:
-            return await loop.run_in_executor(
-                self.executor,
-                agent.hunt_bugs,
-                task.context.get('project_path', ''),
-                task.context.get('code_to_analyze', '')
-            )
+            loop = asyncio.get_running_loop()
+            # Check if agent has hunt_bugs method
+            if hasattr(agent, 'hunt_bugs'):
+                return await loop.run_in_executor(
+                    self.executor,
+                    agent.hunt_bugs,
+                    task.context.get('project_path', ''),
+                    task.context.get('code_to_analyze', '')
+                )
+            else:
+                self.logger.warning(f"Agent {agent.__class__.__name__} does not have hunt_bugs method")
+                return {"status": "skipped", "reason": "method not available"}
 
         elif task.agent_type == AgentType.LOG_ANALYSIS:
+            loop = asyncio.get_running_loop()
             return await loop.run_in_executor(
                 self.executor,
                 agent.analyze_logs,
@@ -270,12 +294,18 @@ class AsyncAgentOrchestrator:
             return {"status": "skipped", "reason": "agent not available"}
 
         elif task.agent_type == AgentType.BUG_HUNTER:
-            return await loop.run_in_executor(
-                self.executor,
-                agent.hunt_bugs,
-                task.context.get('project_path', ''),
-                task.context.get('code_to_analyze', '')
-            )
+            loop = asyncio.get_running_loop()
+            # Check if agent has hunt_bugs method
+            if hasattr(agent, 'hunt_bugs'):
+                return await loop.run_in_executor(
+                    self.executor,
+                    agent.hunt_bugs,
+                    task.context.get('project_path', ''),
+                    task.context.get('code_to_analyze', '')
+                )
+            else:
+                self.logger.warning(f"Agent {agent.__class__.__name__} does not have hunt_bugs method")
+                return {"status": "skipped", "reason": "method not available"}
 
         else:
             raise ValueError(f"Unknown agent type: {task.agent_type}")

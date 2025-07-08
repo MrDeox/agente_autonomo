@@ -1,0 +1,337 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Hephaestus Agent Dashboard</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            color: #333;
+        }
+        
+        .dashboard {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+            color: white;
+        }
+        
+        .header h1 {
+            font-size: 2.5rem;
+            margin-bottom: 10px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+        }
+        
+        .header p {
+            font-size: 1.1rem;
+            opacity: 0.9;
+        }
+        
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+        
+        .stat-card {
+            background: white;
+            padding: 25px;
+            border-radius: 15px;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.1);
+            border: 1px solid rgba(255,255,255,0.18);
+            backdrop-filter: blur(10px);
+            transition: transform 0.3s ease;
+        }
+        
+        .stat-card:hover {
+            transform: translateY(-5px);
+        }
+        
+        .stat-card h3 {
+            color: #667eea;
+            margin-bottom: 10px;
+            font-size: 1.1rem;
+        }
+        
+        .stat-value {
+            font-size: 2rem;
+            font-weight: bold;
+            color: #333;
+            margin-bottom: 5px;
+        }
+        
+        .stat-label {
+            color: #666;
+            font-size: 0.9rem;
+        }
+        
+        .section {
+            background: white;
+            padding: 25px;
+            border-radius: 15px;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.1);
+            margin-bottom: 30px;
+            border: 1px solid rgba(255,255,255,0.18);
+        }
+        
+        .section h2 {
+            color: #667eea;
+            margin-bottom: 20px;
+            font-size: 1.5rem;
+            border-bottom: 2px solid #f0f0f0;
+            padding-bottom: 10px;
+        }
+        
+        .agent-list {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 15px;
+        }
+        
+        .agent-card {
+            background: #f8f9fa;
+            padding: 20px;
+            border-radius: 10px;
+            border-left: 4px solid #667eea;
+        }
+        
+        .agent-name {
+            font-weight: bold;
+            color: #333;
+            margin-bottom: 10px;
+        }
+        
+        .agent-status {
+            display: inline-block;
+            padding: 4px 8px;
+            border-radius: 20px;
+            font-size: 0.8rem;
+            font-weight: bold;
+            text-transform: uppercase;
+        }
+        
+        .status-active {
+            background: #d4edda;
+            color: #155724;
+        }
+        
+        .status-inactive {
+            background: #f8d7da;
+            color: #721c24;
+        }
+        
+        .capabilities {
+            margin-top: 10px;
+        }
+        
+        .capability-tag {
+            display: inline-block;
+            background: #667eea;
+            color: white;
+            padding: 2px 6px;
+            border-radius: 12px;
+            font-size: 0.7rem;
+            margin: 2px;
+        }
+        
+        .logs {
+            background: #2c3e50;
+            color: #ecf0f1;
+            padding: 20px;
+            border-radius: 10px;
+            font-family: 'Courier New', monospace;
+            max-height: 300px;
+            overflow-y: auto;
+        }
+        
+        .log-entry {
+            margin-bottom: 5px;
+            padding: 5px;
+            border-radius: 3px;
+        }
+        
+        .log-info {
+            background: rgba(52, 152, 219, 0.2);
+        }
+        
+        .log-warning {
+            background: rgba(241, 196, 15, 0.2);
+        }
+        
+        .log-error {
+            background: rgba(231, 76, 60, 0.2);
+        }
+        
+        .refresh-btn {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 25px;
+            cursor: pointer;
+            font-size: 1rem;
+            font-weight: bold;
+            transition: transform 0.3s ease;
+            margin-bottom: 20px;
+        }
+        
+        .refresh-btn:hover {
+            transform: scale(1.05);
+        }
+        
+        .footer {
+            text-align: center;
+            color: white;
+            margin-top: 40px;
+            opacity: 0.8;
+        }
+    </style>
+</head>
+<body>
+    <div class="dashboard">
+        <div class="header">
+            <h1>🔥 Hephaestus Agent Dashboard</h1>
+            <p>Recursive Self-Improvement Agent System</p>
+        </div>
+        
+        <button class="refresh-btn" onclick="refreshDashboard()">🔄 Refresh Dashboard</button>
+        
+        <div class="stats-grid">
+            <div class="stat-card">
+                <h3>🎯 Active Objectives</h3>
+                <div class="stat-value" id="activeObjectives">--</div>
+                <div class="stat-label">Currently Processing</div>
+            </div>
+            
+            <div class="stat-card">
+                <h3>✅ Completed Tasks</h3>
+                <div class="stat-value" id="completedTasks">--</div>
+                <div class="stat-label">Successfully Finished</div>
+            </div>
+            
+            <div class="stat-card">
+                <h3>🤖 Active Agents</h3>
+                <div class="stat-value" id="activeAgents">--</div>
+                <div class="stat-label">Currently Running</div>
+            </div>
+            
+            <div class="stat-card">
+                <h3>🧠 System Health</h3>
+                <div class="stat-value" id="systemHealth">--</div>
+                <div class="stat-label">Overall Status</div>
+            </div>
+        </div>
+        
+        <div class="section">
+            <h2>🤖 Agent Status</h2>
+            <div class="agent-list" id="agentList">
+                <div class="agent-card">
+                    <div class="agent-name">🏗️ Architect Agent</div>
+                    <span class="agent-status status-active">Active</span>
+                    <div class="capabilities">
+                        <span class="capability-tag">Architecture Design</span>
+                        <span class="capability-tag">Code Analysis</span>
+                        <span class="capability-tag">Planning</span>
+                    </div>
+                </div>
+                
+                <div class="agent-card">
+                    <div class="agent-name">🎭 Maestro Agent</div>
+                    <span class="agent-status status-active">Active</span>
+                    <div class="capabilities">
+                        <span class="capability-tag">Strategy Selection</span>
+                        <span class="capability-tag">Orchestration</span>
+                        <span class="capability-tag">Decision Making</span>
+                    </div>
+                </div>
+                
+                <div class="agent-card">
+                    <div class="agent-name">🐛 Bug Hunter Agent</div>
+                    <span class="agent-status status-active">Active</span>
+                    <div class="capabilities">
+                        <span class="capability-tag">Bug Detection</span>
+                        <span class="capability-tag">Error Analysis</span>
+                        <span class="capability-tag">Automatic Fixing</span>
+                    </div>
+                </div>
+                
+                <div class="agent-card">
+                    <div class="agent-name">📁 Organizer Agent</div>
+                    <span class="agent-status status-active">Active</span>
+                    <div class="capabilities">
+                        <span class="capability-tag">Project Organization</span>
+                        <span class="capability-tag">File Management</span>
+                        <span class="capability-tag">Structure Optimization</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="section">
+            <h2>📊 Recent Activity</h2>
+            <div class="logs" id="recentLogs">
+                <div class="log-entry log-info">[INFO] System initialization completed successfully</div>
+                <div class="log-entry log-info">[INFO] All agents loaded and ready</div>
+                <div class="log-entry log-info">[INFO] Continuous mode enabled</div>
+                <div class="log-entry log-warning">[WARN] CodeReviewAgent disabled - not implemented in new structure</div>
+                <div class="log-entry log-info">[INFO] Meta-intelligence systems active</div>
+            </div>
+        </div>
+        
+        <div class="footer">
+            <p>Hephaestus - Recursive Self-Improvement Agent | Built with ❤️ and 🤖</p>
+        </div>
+    </div>
+    
+    <script>
+        function refreshDashboard() {
+            // Simulate loading
+            document.getElementById('activeObjectives').textContent = '...';
+            document.getElementById('completedTasks').textContent = '...';
+            document.getElementById('activeAgents').textContent = '...';
+            document.getElementById('systemHealth').textContent = '...';
+            
+            // Simulate API call
+            setTimeout(() => {
+                document.getElementById('activeObjectives').textContent = '3';
+                document.getElementById('completedTasks').textContent = '127';
+                document.getElementById('activeAgents').textContent = '4';
+                document.getElementById('systemHealth').textContent = '95%';
+                
+                // Add new log entry
+                const logsContainer = document.getElementById('recentLogs');
+                const newLog = document.createElement('div');
+                newLog.className = 'log-entry log-info';
+                newLog.textContent = `[INFO] Dashboard refreshed at ${new Date().toLocaleTimeString()}`;
+                logsContainer.insertBefore(newLog, logsContainer.firstChild);
+                
+                // Keep only last 10 logs
+                while (logsContainer.children.length > 10) {
+                    logsContainer.removeChild(logsContainer.lastChild);
+                }
+            }, 1000);
+        }
+        
+        // Auto-refresh every 30 seconds
+        setInterval(refreshDashboard, 30000);
+        
+        // Initial load
+        refreshDashboard();
+    </script>
+</body>
+</html>

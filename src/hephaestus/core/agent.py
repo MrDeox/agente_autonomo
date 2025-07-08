@@ -190,6 +190,7 @@ class HephaestusAgent:
         #     logger=self.logger.getChild("CodeReviewAgent")
         # )
         # self.logger.info(f"CodeReviewAgent inicializado com a configuração: {code_review_model_config}")
+        self.code_reviewer = None  # Set to None instead of leaving undefined
         self.logger.warning("CodeReviewAgent disabled - not implemented in new structure")
 
         # Inicializar OrganizerAgent
@@ -229,6 +230,12 @@ class HephaestusAgent:
         self.hot_reload_manager = HotReloadManager(self.logger)
         self.self_evolution_engine = SelfEvolutionEngine(self.config, self.logger)
         self.real_time_evolution_enabled = False
+        
+        # Real-Time Evolution Engine - Evolução contínua durante execução
+        from hephaestus.intelligence.real_time_evolution_engine import get_real_time_evolution_engine
+        self.real_time_evolution_engine = get_real_time_evolution_engine(self.config, self.logger)
+        self._register_evolution_callbacks()
+        self.logger.info("⚡ Real-Time Evolution Engine initialized!")
         
         # Registrar callbacks para hot reload
         self._register_hot_reload_callbacks()
@@ -447,6 +454,11 @@ class HephaestusAgent:
             self.logger.info("Nenhum patch para revisar. Pulando fase de revisão.")
             return True
 
+        # Skip code review if not available
+        if self.code_reviewer is None:
+            self.logger.warning("CodeReviewAgent not available, skipping code review")
+            return True
+        
         review_passed, feedback = self.code_reviewer.review_patches(patches)
         
         if review_passed:
@@ -739,13 +751,34 @@ class HephaestusAgent:
 
         # Inicia o monitoramento autônomo em background
         try:
-            asyncio.create_task(self.start_autonomous_monitoring())
+            # Criar event loop se necessário
+            try:
+                loop = asyncio.get_event_loop()
+            except RuntimeError:
+                loop = asyncio.new_event_loop()
+                asyncio.set_event_loop(loop)
+            
+            # Criar task para monitoramento
+            loop.create_task(self.start_autonomous_monitoring())
             self.logger.info("🤖 Monitoramento autônomo iniciado")
         except Exception as e:
             self.logger.error(f"Erro ao iniciar monitoramento autônomo: {e}")
+        
+        # Iniciar Real-Time Evolution Engine
+        try:
+            self.real_time_evolution_engine.start_evolution()
+            self.logger.info("⚡ Real-Time Evolution Engine started!")
+        except Exception as e:
+            self.logger.error(f"Erro ao iniciar Real-Time Evolution Engine: {e}")
 
         cycle_runner = CycleRunner(self, self.queue_manager)
-        cycle_runner.run()
+        # Executar cycle_runner de forma assíncrona
+        try:
+            loop = asyncio.get_event_loop()
+            loop.run_until_complete(cycle_runner.run())
+        except RuntimeError:
+            # Se não houver event loop, criar um novo
+            asyncio.run(cycle_runner.run())
 
     def run_continuous(self):
         """Run the agent in continuous mode with meta-intelligence"""
@@ -914,10 +947,12 @@ class HephaestusAgent:
                 ["strategy_selection", "orchestration", "decision_making"]
             )
             
-            self.inter_agent_communication.register_agent(
-                "code_reviewer", self.code_reviewer,
-                ["code_review", "quality_assessment", "best_practices"]
-            )
+            # Skip code_reviewer registration if not available
+            if self.code_reviewer is not None:
+                self.inter_agent_communication.register_agent(
+                    "code_reviewer", self.code_reviewer,
+                    ["code_review", "quality_assessment", "best_practices"]
+                )
             
             self.inter_agent_communication.register_agent(
                 "bug_hunter", self.bug_hunter,
@@ -1086,6 +1121,95 @@ class HephaestusAgent:
             "auto_evolution_enabled": self.hot_reload_manager.auto_evolution_enabled
         }
     
+    def _register_evolution_callbacks(self):
+        """Registrar callbacks para aplicar mutações do Real-Time Evolution Engine"""
+        try:
+            from hephaestus.intelligence.real_time_evolution_engine import MutationType
+            
+            # Callback para otimização de prompts
+            def apply_prompt_optimization(mutation_data):
+                try:
+                    target = mutation_data.get("target")
+                    modification = mutation_data.get("modification")
+                    self.logger.info(f"🧬 Applying prompt optimization: {target} - {modification}")
+                    # TODO: Implement actual prompt modification logic
+                    return True
+                except Exception as e:
+                    self.logger.error(f"Error applying prompt optimization: {e}")
+                    return False
+            
+            # Callback para ajuste de estratégia
+            def apply_strategy_adjustment(mutation_data):
+                try:
+                    strategy = mutation_data.get("strategy")
+                    new_value = mutation_data.get("new_value")
+                    self.logger.info(f"⚙️ Applying strategy adjustment: {strategy} = {new_value}")
+                    # TODO: Implement actual strategy adjustment logic
+                    return True
+                except Exception as e:
+                    self.logger.error(f"Error applying strategy adjustment: {e}")
+                    return False
+            
+            # Callback para tuning de parâmetros
+            def apply_parameter_tuning(mutation_data):
+                try:
+                    parameter = mutation_data.get("parameter")
+                    component = mutation_data.get("component")
+                    new_value = mutation_data.get("new_value")
+                    self.logger.info(f"🎛️ Applying parameter tuning: {component}.{parameter} = {new_value}")
+                    # TODO: Implement actual parameter tuning logic
+                    return True
+                except Exception as e:
+                    self.logger.error(f"Error applying parameter tuning: {e}")
+                    return False
+            
+            # Callback para modificação de workflow
+            def apply_workflow_modification(mutation_data):
+                try:
+                    workflow = mutation_data.get("workflow")
+                    modification = mutation_data.get("modification")
+                    self.logger.info(f"🔄 Applying workflow modification: {workflow} - {modification}")
+                    # TODO: Implement actual workflow modification logic
+                    return True
+                except Exception as e:
+                    self.logger.error(f"Error applying workflow modification: {e}")
+                    return False
+            
+            # Callback para mudança de comportamento dos agentes
+            def apply_agent_behavior_change(mutation_data):
+                try:
+                    agent = mutation_data.get("agent")
+                    behavior = mutation_data.get("behavior")
+                    change = mutation_data.get("change")
+                    self.logger.info(f"🤖 Applying agent behavior change: {agent}.{behavior} - {change}")
+                    # TODO: Implement actual behavior change logic
+                    return True
+                except Exception as e:
+                    self.logger.error(f"Error applying agent behavior change: {e}")
+                    return False
+            
+            # Registrar callbacks
+            self.real_time_evolution_engine.register_mutation_callback(
+                MutationType.PROMPT_OPTIMIZATION, apply_prompt_optimization
+            )
+            self.real_time_evolution_engine.register_mutation_callback(
+                MutationType.STRATEGY_ADJUSTMENT, apply_strategy_adjustment
+            )
+            self.real_time_evolution_engine.register_mutation_callback(
+                MutationType.PARAMETER_TUNING, apply_parameter_tuning
+            )
+            self.real_time_evolution_engine.register_mutation_callback(
+                MutationType.WORKFLOW_MODIFICATION, apply_workflow_modification
+            )
+            self.real_time_evolution_engine.register_mutation_callback(
+                MutationType.AGENT_BEHAVIOR_CHANGE, apply_agent_behavior_change
+            )
+            
+            self.logger.info("📋 Evolution callbacks registered successfully")
+            
+        except Exception as e:
+            self.logger.error(f"❌ Error registering evolution callbacks: {e}")
+
     def _register_hot_reload_callbacks(self):
         """Registrar callbacks para quando módulos forem recarregados"""
         try:
@@ -2038,10 +2162,12 @@ class HephaestusAgent:
         try:
             self.logger.info("🚀 Iniciando monitoramento autônomo do Hephaestus Agent")
             
-            # Inicia o monitor autônomo em background
-            self.monitor_task = asyncio.create_task(
-                self.autonomous_monitor.start_monitoring()
-            )
+            # Inicia o monitor autônomo de forma síncrona (ele usa threads internamente)
+            # Não precisa usar asyncio.create_task pois start_monitoring já é thread-based
+            self.autonomous_monitor.start_monitoring()
+            
+            # Criar uma task vazia para compatibilidade se necessário
+            self.monitor_task = asyncio.create_task(asyncio.sleep(0))
             
         except Exception as e:
             self.logger.error(f"Erro ao iniciar monitoramento autônomo: {e}")

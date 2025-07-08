@@ -13,6 +13,7 @@ from hephaestus.core.prompt_builder import (
 )
 from hephaestus.core.memory import Memory
 from hephaestus.intelligence.model_optimizer import ModelOptimizer
+from hephaestus.intelligence.predictive_failure_engine import get_predictive_failure_engine
 
 
 def generate_next_objective(
@@ -196,7 +197,40 @@ def generate_next_objective(
             logger.warning(log_message)
         return "Analisar o estado atual do projeto e propor uma melhoria incremental"
 
-    return content.strip()
+    generated_objective = content.strip()
+    
+    # 🔮 PREDICTIVE FAILURE ENGINE INTEGRATION
+    if memory and logger:
+        try:
+            # Get predictive failure engine
+            predictive_engine = get_predictive_failure_engine(
+                config=config,
+                logger=logger,
+                memory_path=memory.filepath
+            )
+            
+            # Predict failure probability
+            analysis = predictive_engine.predict_failure_probability(generated_objective)
+            
+            logger.info(f"🔮 Failure prediction: {analysis.failure_probability:.2%} probability")
+            
+            # Apply preventive modifications if high risk
+            if predictive_engine.should_modify_objective(analysis):
+                modified_objective = predictive_engine.apply_preventive_modifications(
+                    generated_objective, analysis
+                )
+                
+                logger.info(f"🛡️ Applied preventive modifications")
+                logger.info(f"🔄 Risk factors: {', '.join(analysis.risk_factors)}")
+                
+                return modified_objective
+            else:
+                logger.info("✅ Objective passed failure prediction check")
+                
+        except Exception as e:
+            logger.warning(f"Predictive failure engine error: {e}")
+    
+    return generated_objective
 
 
 def generate_capacitation_objective(

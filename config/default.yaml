@@ -39,3 +39,11 @@ bug_hunter:
   scan_log_errors: true
   scan_test_failures: true
   scan_performance_issues: true
+
+# Configurações do Real-Time Evolution Engine
+real_time_evolution:
+  enabled: true  # evolução em tempo real habilitada
+  mutation_interval: 30  # segundos entre gerações de mutação
+  max_parallel_tests: 3  # máximo de testes simultâneos
+  fitness_threshold: 0.1  # limiar mínimo de fitness para deployment
+  risk_threshold: 0.3  # limiar máximo de risco para deployment

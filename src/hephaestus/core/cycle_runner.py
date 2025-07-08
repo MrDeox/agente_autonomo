@@ -9,6 +9,7 @@ from pathlib import Path
 
 from hephaestus.utils.project_scanner import update_project_manifest
 from hephaestus.core.objective_generator import generate_next_objective
+from hephaestus.intelligence.predictive_failure_engine import get_predictive_failure_engine
 from hephaestus.core.brain import (
     generate_capacitation_objective,
     generate_commit_message,
@@ -70,7 +71,16 @@ class CycleRunner:
     def _is_degenerative_loop(self, objective: str) -> bool:
         """Checks if the objective has failed too many times consecutively."""
         threshold = self.agent.config.get("degenerative_loop_threshold", 3)
-        return self.agent.memory.has_degenerative_failure_pattern(objective, threshold=threshold)
+        # Check for any degenerative failure pattern by looking at recent failures
+        # We'll check for the most common failure reasons
+        common_failure_reasons = ["ARCHITECT_PHASE_FAILED", "MAESTRO_PHASE_FAILED", "VALIDATION_FAILED", "TIMEOUT"]
+        
+        for reason in common_failure_reasons:
+            if self.agent.memory.has_degenerative_failure_pattern(objective, reason, threshold=threshold):
+                return True
+        
+        # Also check for generic pattern with empty reason
+        return self.agent.memory.has_degenerative_failure_pattern(objective, "GENERAL_FAILURE", threshold=threshold)
 
     async def _run_special_task(self, task_data: dict):
         """Dispatches and runs special tasks like log analysis, linting, etc."""
@@ -120,6 +130,9 @@ class CycleRunner:
         objective_str = str(current_objective)
         self.agent._reset_cycle_state()
         self.agent.state.current_objective = objective_str
+        
+        # 🔮 Track cycle start time for learning
+        self.agent.state.cycle_start_time = datetime.now()
 
         if not self.agent._generate_manifest():
             self._handle_cycle_failure(objective_str, "MANIFEST_GENERATION_FAILED", "Could not generate project manifest.")
@@ -271,6 +284,9 @@ class CycleRunner:
             strategy=self.agent.state.strategy_key,
             details=f"Applied. Sanity ({sanity_check_tool}): OK. Details: {details}",
         )
+        
+        # 🔮 PREDICTIVE FAILURE ENGINE LEARNING
+        self._learn_from_success()
 
     def _run_sanity_check(self) -> tuple[bool, str, str]:
         """Runs the configured sanity check step."""
@@ -304,6 +320,9 @@ class CycleRunner:
         """Handles the logic for a failed cycle."""
         self.agent.logger.warning(f"CYCLE FAILED! Reason: {reason}\nContext: {context}")
         self.agent.memory.add_failed_objective(objective, reason, context)
+        
+        # 🔮 PREDICTIVE FAILURE ENGINE LEARNING
+        self._learn_from_failure(objective, reason, context)
 
         if self._is_degenerative_loop(objective):
             self._optimize_failed_prompt(objective, reason, context)
@@ -368,6 +387,57 @@ class CycleRunner:
                 await asyncio.sleep(self.agent.config.get("cycle_delay_seconds", 1))
 
         self.agent.logger.info(f"{'='*20} END OF HEPHAESTUS EXECUTION {'='*20}")
+    
+    def _learn_from_success(self):
+        """Ensina o Predictive Failure Engine sobre sucessos"""
+        try:
+            predictive_engine = get_predictive_failure_engine(
+                config=self.agent.config,
+                logger=self.agent.logger,
+                memory_path=self.agent.memory.filepath
+            )
+            
+            # Calculate execution time (simplified)
+            execution_time = 0.0
+            if hasattr(self.agent.state, 'cycle_start_time'):
+                execution_time = (datetime.now() - self.agent.state.cycle_start_time).total_seconds()
+            
+            predictive_engine.learn_from_execution(
+                objective=self.agent.state.current_objective,
+                success=True,
+                execution_time=execution_time
+            )
+            
+            self.agent.logger.info("🎓 Predictive engine learned from success")
+            
+        except Exception as e:
+            self.agent.logger.warning(f"Error learning from success: {e}")
+    
+    def _learn_from_failure(self, objective: str, reason: str, context: str):
+        """Ensina o Predictive Failure Engine sobre falhas"""
+        try:
+            predictive_engine = get_predictive_failure_engine(
+                config=self.agent.config,
+                logger=self.agent.logger,
+                memory_path=self.agent.memory.filepath
+            )
+            
+            # Calculate execution time (simplified)
+            execution_time = 0.0
+            if hasattr(self.agent.state, 'cycle_start_time'):
+                execution_time = (datetime.now() - self.agent.state.cycle_start_time).total_seconds()
+            
+            predictive_engine.learn_from_execution(
+                objective=objective,
+                success=False,
+                failure_reason=reason,
+                execution_time=execution_time
+            )
+            
+            self.agent.logger.info("🎓 Predictive engine learned from failure")
+            
+        except Exception as e:
+            self.agent.logger.warning(f"Error learning from failure: {e}")
 
     def _log_cycle_completion(self, objective: str, start_time: datetime, end_time: datetime):
         """Logs the final status of the completed cycle."""
