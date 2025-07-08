@@ -111,6 +111,7 @@ agente_autonomo/
                 collective_intelligence_network.py
                 root_cause_analyzer.py
                 knowledge_system.py
+                evolution_analytics.py
                 predictive_failure_engine.py
                 meta_core.py
             services/
@@ -159,26 +160,14 @@ agente_autonomo/
     data/
         collective_intelligence/
             agents/
-                hephaestus_agent_131199891566032.json
-                hephaestus_agent_140176976408080.json
-                hephaestus_agent_132143394637904.json
-                hephaestus_agent_138690457629328.json
-                hephaestus_agent_133539398070928.json
-                hephaestus_agent_137180373945040.json
-                hephaestus_agent_128203156791888.json
-                hephaestus_agent_128831221084048.json
-                hephaestus_agent_139169624894160.json
-                hephaestus_agent_126700022820624.json
-                hephaestus_agent_133701957859664.json
-                hephaestus_agent_138529170054608.json
-                hephaestus_agent_135134363908816.json
-                hephaestus_agent_135227240817680.json
-                hephaestus_agent_136630682440144.json
+                hephaestus_agent_130698451963792.json
+                hephaestus_agent_135442763201808.json
+                hephaestus_agent_139396809887184.json
             insights/
             knowledge/
-                strategy_discovery_e4e786c3.json
-                strategy_discovery_473ad33a.json
-                strategy_discovery_9fab15a1.json
+                strategy_discovery_e106bffc.json
+                strategy_discovery_9db8dbd9.json
+                strategy_discovery_f0329457.json
         agents/
             maestro_config.yaml
             bug_hunter_config.yaml
@@ -236,36 +225,168 @@ agente_autonomo/
                 bughunteragentenhanced_agent.log
                 testenhanced_agent.log
                 architectagentenhanced_agent.log
+        evolution_analytics/
+            metrics_history.json
+            chart_cycle_success_rate_7d.png
+            trends_history.json
+            chart_cycle_duration_seconds_7d.png
+            chart_agents_per_cycle_7d.png
         backups/
+            error_handling_workflow_backup_20250708_141936.yaml
+            maestro_config_backup_20250708_143356.yaml
             maestro_config_backup_20250708_141805.yaml
             bug_hunter_config_backup_20250708_141538.yaml
+            architect_config_backup_20250708_143314.yaml
+            agent_coordination_workflow_backup_20250708_143259.yaml
+            error_handling_workflow_backup_20250708_142001.yaml
+            config_backup_20250708_141901.yaml
+            maestro_config_backup_20250708_142212.yaml
+            bug_hunter_config_backup_20250708_143041.yaml
+            maestro_config_backup_20250708_142349.yaml
+            config_backup_20250708_143534.yaml
+            config_backup_20250708_143226.yaml
+            architect_config_backup_20250708_143019.yaml
+            maestro_prompts_backup_20250708_143634.txt
+            objective_generation_backup_20250708_142057.txt
+            maestro_prompts_backup_20250708_142131.txt
             config_backup_20250708_135724.yaml
+            objective_generation_backup_20250708_143407.txt
+            config_backup_20250708_143500.yaml
+            objective_generation_backup_20250708_143326.txt
+            maestro_config_backup_20250708_143852.yaml
             error_handling_workflow_backup_20250708_140151.yaml
+            config_backup_20250708_142051.yaml
+            maestro_config_backup_20250708_141918.yaml
+            config_backup_20250708_144555.yaml
+            config_backup_20250708_142021.yaml
             architect_config_backup_20250708_140348.yaml
             architect_config_backup_20250708_135733.yaml
+            config_backup_20250708_143057.yaml
+            architect_prompts_backup_20250708_143623.txt
+            architect_prompts_backup_20250708_141839.txt
+            config_backup_20250708_143639.yaml
+            architect_prompts_backup_20250708_141908.txt
             architect_config_backup_20250708_141550.yaml
+            maestro_config_backup_20250708_142314.yaml
+            config_backup_20250708_143437.yaml
+            config_backup_20250708_143417.yaml
+            maestro_config_backup_20250708_142232.yaml
+            maestro_config_backup_20250708_142248.yaml
+            config_backup_20250708_143136.yaml
+            config_backup_20250708_142112.yaml
             bug_hunter_config_backup_20250708_141600.yaml
+            maestro_config_backup_20250708_143401.yaml
+            architect_config_backup_20250708_143520.yaml
             maestro_prompts_backup_20250708_140548.txt
             config_backup_20250708_140801.yaml
+            config_backup_20250708_142220.yaml
+            config_backup_20250708_142152.yaml
+            maestro_prompts_backup_20250708_143010.txt
+            bug_hunter_config_backup_20250708_143347.yaml
+            error_handling_workflow_backup_20250708_142938.yaml
+            config_backup_20250708_142300.yaml
             architect_prompts_backup_20250708_140555.txt
             config_backup_20250708_140744.yaml
+            config_backup_20250708_143218.yaml
+            config_backup_20250708_143244.yaml
+            architect_prompts_backup_20250708_143422.txt
+            bug_hunter_config_backup_20250708_142253.yaml
+            config_backup_20250708_142359.yaml
+            config_backup_20250708_143847.yaml
+            config_backup_20250708_142107.yaml
+            config_backup_20250708_142328.yaml
+            config_backup_20250708_141853.yaml
+            error_handling_workflow_backup_20250708_142205.yaml
+            agent_coordination_workflow_backup_20250708_143737.yaml
+            bug_hunter_config_backup_20250708_141846.yaml
+            agent_coordination_workflow_backup_20250708_142014.yaml
+            maestro_prompts_backup_20250708_142118.txt
+            architect_prompts_backup_20250708_143729.txt
+            config_backup_20250708_142147.yaml
+            config_backup_20250708_143653.yaml
+            error_handling_workflow_backup_20250708_141951.yaml
+            agent_coordination_workflow_backup_20250708_143108.yaml
+            config_backup_20250708_144538.yaml
             architect_config_backup_20250708_141813.yaml
             objective_generation_backup_20250708_141756.txt
+            config_backup_20250708_142043.yaml
+            agent_coordination_workflow_backup_20250708_143304.yaml
             architect_config_backup_20250708_140136.yaml
+            agent_coordination_workflow_backup_20250708_142126.yaml
             maestro_config_backup_20250708_141530.yaml
+            bug_hunter_config_backup_20250708_143128.yaml
+            objective_generation_backup_20250708_143700.txt
+            bug_hunter_config_backup_20250708_143836.yaml
+            config_backup_20250708_142200.yaml
+            bug_hunter_config_backup_20250708_143515.yaml
+            config_backup_20250708_142138.yaml
+            architect_prompts_backup_20250708_143447.txt
+            architect_config_backup_20250708_144600.yaml
+            agent_coordination_workflow_backup_20250708_142323.yaml
+            config_backup_20250708_143319.yaml
+            config_backup_20250708_142957.yaml
             config_backup_20250708_135714.yaml
+            maestro_config_backup_20250708_144549.yaml
             bug_hunter_config_backup_20250708_140726.yaml
+            bug_hunter_config_backup_20250708_143617.yaml
+            config_backup_20250708_141822.yaml
+            maestro_config_backup_20250708_143028.yaml
+            config_backup_20250708_141923.yaml
+            architect_prompts_backup_20250708_143102.txt
+            maestro_config_backup_20250708_142239.yaml
             config_backup_20250708_141618.yaml
+            config_backup_20250708_142923.yaml
+            config_backup_20250708_143610.yaml
+            agent_coordination_workflow_backup_20250708_142006.yaml
+            config_backup_20250708_143714.yaml
+            config_backup_20250708_143340.yaml
+            config_backup_20250708_143234.yaml
+            bug_hunter_config_backup_20250708_141931.yaml
+            maestro_prompts_backup_20250708_142309.txt
             objective_generation_backup_20250708_140144.txt
             architect_config_backup_20250708_140751.yaml
+            objective_generation_backup_20250708_143115.txt
+            config_backup_20250708_143332.yaml
+            config_backup_20250708_143605.yaml
+            error_handling_workflow_backup_20250708_143209.yaml
+            architect_prompts_backup_20250708_143004.txt
             architect_config_backup_20250708_140737.yaml
+            maestro_prompts_backup_20250708_143036.txt
+            architect_prompts_backup_20250708_143842.txt
+            agent_coordination_workflow_backup_20250708_142931.yaml
+            config_backup_20250708_143159.yaml
             config_backup_20250708_141626.yaml
+            architect_prompts_backup_20250708_143724.txt
             config_backup_20250708_141545.yaml
+            architect_prompts_backup_20250708_141944.txt
+            config_backup_20250708_143123.yaml
+            maestro_prompts_backup_20250708_141830.txt
+            objective_generation_backup_20250708_143709.txt
+            maestro_prompts_backup_20250708_143550.txt
+            objective_generation_backup_20250708_143507.txt
+            config_backup_20250708_143541.yaml
+            bug_hunter_config_backup_20250708_143858.yaml
+            config_backup_20250708_143048.yaml
+            config_backup_20250708_143529.yaml
+            architect_prompts_backup_20250708_142338.txt
             maestro_prompts_backup_20250708_135704.txt
+            maestro_config_backup_20250708_143555.yaml
+            architect_prompts_backup_20250708_142343.txt
+            config_backup_20250708_144533.yaml
+            architect_prompts_backup_20250708_143452.txt
+            bug_hunter_config_backup_20250708_142225.yaml
             config_backup_20250708_141609.yaml
+            objective_generation_backup_20250708_144544.txt
             config_backup_20250708_140540.yaml
+            objective_generation_backup_20250708_143432.txt
+            config_backup_20250708_142035.yaml
+            maestro_config_backup_20250708_143648.yaml
+            config_backup_20250708_142947.yaml
+            architect_prompts_backup_20250708_143250.txt
             objective_generation_backup_20250708_141524.txt
+            config_backup_20250708_142028.yaml
         workflows/
+            agent_coordination_workflow.yaml
             error_handling_workflow.yaml
     logs/
         error_prevention.log
@@ -1164,6 +1285,16 @@ agente_autonomo/
   - *Get or create the global knowledge system instance.*
 - **Função:** `_safe_json_serialize(obj: Any)`
   - *Safely serialize objects to JSON-compatible format.*
+
+### Arquivo: `src/hephaestus/intelligence/evolution_analytics.py`
+- **Classe:** `EvolutionMetric`
+  - *Métrica de evolução capturada*
+- **Classe:** `EvolutionTrend`
+  - *Tendência de evolução identificada*
+- **Classe:** `EvolutionAnalytics`
+  - *Sistema de análise de evolução de longo prazo*
+- **Função:** `get_evolution_analytics(config: Dict[str, Any], logger: logging.Logger)`
+  - *Get singleton instance of Evolution Analytics*
 
 ### Arquivo: `src/hephaestus/intelligence/predictive_failure_engine.py`
 - **Classe:** `FailurePattern`

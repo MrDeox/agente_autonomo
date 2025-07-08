@@ -1,0 +1,5 @@
+expected_impact: Faster completion
+last_modified: '2025-07-08T14:37:37.833966'
+max_parallel: 11
+modification: Increase parallel execution
+parallel_execution: true

@@ -14,7 +14,7 @@ import time
 import json
 import threading
 from typing import Dict, Any, List, Optional, Set, Tuple, Callable
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, date
 from pathlib import Path
 from dataclasses import dataclass, field
 from collections import defaultdict, deque
@@ -915,13 +915,23 @@ class CollectiveIntelligenceNetwork:
         try:
             knowledge_file = self.knowledge_dir / f"{knowledge_item.knowledge_id}.json"
             with open(knowledge_file, 'w', encoding='utf-8') as f:
+                # Preparar contexto para serialização JSON
+                context_for_json = {}
+                for key, value in knowledge_item.context.items():
+                    if isinstance(value, set):
+                        context_for_json[key] = list(value)
+                    elif isinstance(value, (datetime, date)):
+                        context_for_json[key] = value.isoformat()
+                    else:
+                        context_for_json[key] = value
+                
                 data = {
                     "knowledge_id": knowledge_item.knowledge_id,
                     "knowledge_type": knowledge_item.knowledge_type.value,
                     "source_agent": knowledge_item.source_agent,
                     "title": knowledge_item.title,
                     "content": knowledge_item.content,
-                    "context": knowledge_item.context,
+                    "context": context_for_json,
                     "relevance": knowledge_item.relevance.value,
                     "confidence": knowledge_item.confidence,
                     "created_at": knowledge_item.created_at.isoformat(),

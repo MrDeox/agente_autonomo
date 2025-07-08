@@ -1,0 +1,5 @@
+behavior: strategy_selection
+change: Prefer strategies with higher success rates
+last_behavior_change: '2025-07-08T14:33:56.286984'
+strategy_preference: high_success_rate
+success_rate_threshold: 0.8

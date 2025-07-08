@@ -12,6 +12,7 @@ import re
 import asyncio
 import random
 import traceback
+import uuid
 
 from hephaestus.utils.project_scanner import update_project_manifest
 from hephaestus.core.brain import (
@@ -40,6 +41,7 @@ from .hot_reload_manager import HotReloadManager, SelfEvolutionEngine
 from hephaestus.utils.error_prevention_system import ErrorPreventionSystem, ErrorEvent, ErrorType, ErrorSeverity, validate_constructor
 from hephaestus.utils.continuous_monitor import get_continuous_monitor
 from .agents.autonomous_monitor_agent import AutonomousMonitorAgent
+from hephaestus.intelligence.evolution_analytics import get_evolution_analytics
 
 # Configuração do Logging
 logger = logging.getLogger(__name__)
@@ -274,6 +276,9 @@ class HephaestusAgent:
         # Inicializa o monitor autônomo
         self.autonomous_monitor = AutonomousMonitorAgent(config.get('autonomous_monitor', {}))
         self.monitor_task = None
+
+        # Evolution Analytics
+        self.evolution_analytics = get_evolution_analytics(config, self.logger)
 
     def _initialize_evolution_log(self):
         """Verifica e inicializa o arquivo de log de evolução com cabeçalho, se necessário."""
@@ -797,37 +802,7 @@ class HephaestusAgent:
             # Se não houver event loop, criar um novo
             asyncio.run(cycle_runner.run())
 
-    def run_continuous(self):
-        """Run the agent in continuous mode with meta-intelligence"""
-        self.logger.info("🔄 Starting Hephaestus in continuous mode")
-        
-        # Activate meta-intelligence
-        self.start_meta_intelligence()
-        
-        try:
-            while True:
-                # Run normal cycle
-                try:
-                    self.run()
-                    success = True
-                except Exception as e:
-                    self.logger.error(f"Cycle failed: {e}")
-                    success = False
-                
-                # Check if we need emergency evolution
-                if not success:
-                    self.logger.warning("Cycle failed - considering emergency evolution")
-                    failure_context = f"Cycle failure at {datetime.now().isoformat()}"
-                    self.evolution_manager.trigger_emergency_evolution(failure_context)
-                
-                # Dynamic sleep based on meta-intelligence
-                sleep_time = self._calculate_intelligent_sleep()
-                self.logger.info(f"💤 Intelligent sleep for {sleep_time:.1f} seconds")
-                time.sleep(sleep_time)
-                
-        except KeyboardInterrupt:
-            self.logger.info("🛑 Stopping continuous mode")
-            self.evolution_manager.stop_cognitive_evolution()
+
     
     def _calculate_intelligent_sleep(self) -> float:
         """Calculate sleep time based on meta-intelligence insights"""
@@ -2326,3 +2301,133 @@ class HephaestusAgent:
                 
         except Exception as e:
             return {"error": str(e)}
+
+    async def execute_cycle(self, objective: str) -> Dict[str, Any]:
+        """Execute a single evolution cycle"""
+        cycle_start_time = time.time()
+        cycle_id = str(uuid.uuid4())[:8]
+        
+        try:
+            self.logger.info(f"🚀 Starting cycle {cycle_id} with objective: {objective}")
+            
+            # Capturar métricas de início do ciclo
+            self.evolution_analytics.capture_metric(
+                "cycle_start_time", 
+                cycle_start_time,
+                {"cycle_id": cycle_id, "objective": objective}
+            )
+            
+            # ... existing code ...
+            
+            # Capturar métricas de performance
+            cycle_duration = time.time() - cycle_start_time
+            self.evolution_analytics.capture_metric(
+                "cycle_duration_seconds", 
+                cycle_duration,
+                {"cycle_id": cycle_id, "success": True}
+            )
+            
+            # Capturar métricas de sucesso
+            success_rate = 1.0 if result.get("success", False) else 0.0
+            self.evolution_analytics.capture_metric(
+                "cycle_success_rate", 
+                success_rate,
+                {"cycle_id": cycle_id}
+            )
+            
+            # Capturar métricas de agentes utilizados
+            agents_used = len(result.get("agents_used", []))
+            self.evolution_analytics.capture_metric(
+                "agents_per_cycle", 
+                agents_used,
+                {"cycle_id": cycle_id}
+            )
+            
+            # ... existing code ...
+            
+        except Exception as e:
+            # Capturar métricas de erro
+            cycle_duration = time.time() - cycle_start_time
+            self.evolution_analytics.capture_metric(
+                "cycle_duration_seconds", 
+                cycle_duration,
+                {"cycle_id": cycle_id, "success": False, "error": str(e)}
+            )
+            
+            self.evolution_analytics.capture_metric(
+                "cycle_success_rate", 
+                0.0,
+                {"cycle_id": cycle_id, "error": str(e)}
+            )
+            
+            # ... existing code ...
+    
+    async def run_continuous(self, max_cycles: int = None):
+        """Run continuous evolution cycles"""
+        cycle_count = 0
+        start_time = time.time()
+        
+        # Capturar métricas de início da sessão
+        self.evolution_analytics.capture_metric(
+            "session_start_time", 
+            start_time,
+            {"max_cycles": max_cycles}
+        )
+        
+        try:
+            while True:
+                if max_cycles and cycle_count >= max_cycles:
+                    break
+                
+                # ... existing code ...
+                
+                cycle_count += 1
+                
+                # Capturar métricas de progresso
+                self.evolution_analytics.capture_metric(
+                    "cycles_completed", 
+                    cycle_count,
+                    {"session_duration": time.time() - start_time}
+                )
+                
+                # Análise periódica de tendências
+                if cycle_count % 10 == 0:
+                    trends = self.evolution_analytics.analyze_trends(days=7)
+                    if trends:
+                        improving_trends = [t for t in trends if t.trend_type == "improving"]
+                        declining_trends = [t for t in trends if t.trend_type == "declining"]
+                        
+                        self.logger.info(f"📊 Evolution Analysis: {len(improving_trends)} improving, {len(declining_trends)} declining trends")
+                        
+                        # Alertar sobre regressões
+                        if declining_trends:
+                            self.logger.warning(f"⚠️ Detected {len(declining_trends)} declining trends: {[t.metric_name for t in declining_trends]}")
+                
+                # ... existing code ...
+                
+        except KeyboardInterrupt:
+            # Capturar métricas de fim da sessão
+            session_duration = time.time() - start_time
+            self.evolution_analytics.capture_metric(
+                "session_duration_seconds", 
+                session_duration,
+                {"cycles_completed": cycle_count, "interrupted": True}
+            )
+            
+            # Gerar relatório final
+            report = self.evolution_analytics.get_improvement_report(days=7)
+            self.logger.info(f"📊 Final Evolution Report: {report.get('improvement_score', 0):.1f}% improvement score")
+            
+            # ... existing code ...
+    
+    def get_evolution_report(self, days: int = 7) -> Dict[str, Any]:
+        """Get evolution analytics report"""
+        return self.evolution_analytics.get_improvement_report(days)
+    
+    def generate_evolution_chart(self, metric_name: str, days: int = 7) -> Optional[str]:
+        """Generate evolution chart for a metric"""
+        return self.evolution_analytics.generate_evolution_chart(metric_name, days)
+    
+    def predict_future_performance(self, metric_name: str, days_ahead: int = 7) -> Optional[Dict[str, Any]]:
+        """Predict future performance for a metric"""
+        return self.evolution_analytics.predict_future_performance(metric_name, days_ahead)

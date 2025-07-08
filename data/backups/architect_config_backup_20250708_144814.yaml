@@ -1,0 +1,5 @@
+behavior: risk_assessment
+change: More conservative patch generation
+last_behavior_change: '2025-07-08T14:48:14.413547'
+patch_generation: conservative
+risk_tolerance: conservative

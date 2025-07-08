@@ -47,3 +47,12 @@ real_time_evolution:
   max_parallel_tests: 3  # máximo de testes simultâneos
   fitness_threshold: 0.1  # limiar mínimo de fitness para deployment
   risk_threshold: 0.3  # limiar máximo de risco para deployment
+
+# Evolution Analytics Configuration
+evolution_analytics:
+  retention_days: 30
+  analysis_interval_hours: 6
+  min_data_points: 10
+  chart_generation: true
+  prediction_enabled: true
+  auto_cleanup: true

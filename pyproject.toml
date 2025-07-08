@@ -60,6 +60,8 @@ watchdog = "^6.0.0"
 httpx = "^0.28.1"
 pyjwt = "^2.10.1"
 python-multipart = "^0.0.20"
+matplotlib = "<4.0"
+numpy = "<2.0"
 
 [tool.poetry.group.dev.dependencies]
 pytest = "^8.1.1"

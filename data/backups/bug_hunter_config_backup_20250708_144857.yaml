@@ -1,0 +1,5 @@
+behavior: detection_sensitivity
+change: Increase detection threshold
+detection_threshold: 2.0000000000000004
+last_behavior_change: '2025-07-08T14:48:57.521413'
+sensitivity: high
