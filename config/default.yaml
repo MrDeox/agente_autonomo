@@ -45,8 +45,8 @@ models:
 
 # Configurações do Bug Hunter Agent
 bug_hunter:
-  scan_interval: 60  # segundos entre scans (aumentado de 30)
-  max_concurrent_fixes: 1  # máximo de correções simultâneas (reduzido de 3)
+  scan_interval: 120  # segundos entre scans (aumentado para reduzir carga)
+  max_concurrent_fixes: 1  # máximo de correções simultâneas
   auto_fix_enabled: true  # correção automática habilitada
   scan_syntax_errors: true
   scan_import_errors: true
@@ -54,27 +54,39 @@ bug_hunter:
   scan_test_failures: true
   scan_performance_issues: true
 
-# Configurações do Real-Time Evolution Engine
+# Configurações do Real-Time Evolution Engine - OTIMIZADO PARA EXECUÇÃO
 real_time_evolution:
-  enabled: true  # evolução em tempo real habilitada
-  mutation_interval: 60  # segundos entre gerações de mutação (aumentado de 30)
-  max_parallel_tests: 1  # máximo de testes simultâneos (reduzido de 3)
-  fitness_threshold: 0.1  # limiar mínimo de fitness para deployment
-  risk_threshold: 0.3  # limiar máximo de risco para deployment
+  enabled: false  # DESABILITADO temporariamente para focar em execução
+  mutation_interval: 300  # 5 minutos entre mutações (aumentado drasticamente)
+  max_parallel_tests: 1  # máximo de testes simultâneos
+  fitness_threshold: 0.5  # limiar mais alto para deployment
+  risk_threshold: 0.2  # limiar mais baixo de risco
+  evolution_cooldown: 1800  # 30 minutos de cooldown entre ciclos evolutivos
+  force_execution_mode: true  # força modo de execução em vez de evolução
 
 # Configurações de Rate Limiting para API
 rate_limiting:
   enabled: true
-  max_concurrent_llm_calls: 3  # aumentado para 3 já que agora temos modelos diferentes
-  calls_per_minute: 45  # aumentado para 45 (15 por modelo em média)
-  retry_delay_seconds: 5  # delay entre retries em caso de rate limit
+  max_concurrent_llm_calls: 2  # reduzido para estabilidade
+  calls_per_minute: 30  # reduzido para evitar rate limiting
+  retry_delay_seconds: 10  # delay maior entre retries
   exponential_backoff: true  # usar backoff exponencial
 
 # Evolution Analytics Configuration
 evolution_analytics:
-  retention_days: 30
-  analysis_interval_hours: 6
-  min_data_points: 10
-  chart_generation: true
-  prediction_enabled: true
+  retention_days: 7  # reduzido para limpeza mais frequente
+  analysis_interval_hours: 12  # análise menos frequente
+  min_data_points: 5  # menos pontos para análise
+  chart_generation: false  # desabilitado para reduzir carga
+  prediction_enabled: false  # desabilitado temporariamente
   auto_cleanup: true
+
+# NOVA CONFIGURAÇÃO: Modo de Execução Forçada
+execution_mode:
+  enabled: true
+  objective_priority: "high"  # prioridade máxima para objetivos
+  evolution_cooldown_hours: 2  # 2 horas sem evolução
+  max_objective_attempts: 3  # máximo 3 tentativas por objetivo
+  objective_timeout_minutes: 30  # timeout de 30 minutos por objetivo
+  force_simple_objectives: true  # força objetivos simples e executáveis
+  skip_complex_refactoring: true  # pula refatorações complexas temporariamente

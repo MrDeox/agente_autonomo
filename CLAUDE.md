@@ -7,22 +7,23 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 This is **Hephaestus**, a Recursive Self-Improvement (RSI) agent designed to autonomously enhance its own capabilities. Unlike traditional software development agents, Hephaestus focuses on self-analysis, identifying limitations, and generating objectives to improve its architecture and efficiency.
 
 **🎯 Recent Updates**: 
-- **Major cleanup completed**: Removed 50+ obsolete files, backup directories, and legacy code
+- **Real-Time Evolution Engine**: Implemented continuous evolution system that mutates and optimizes the system during runtime
+- **Predictive Failure Engine**: AI-powered system that predicts failures before execution and applies preventive modifications
+- **Meta-Intelligence Core**: Advanced systems for model optimization, knowledge acquisition, root cause analysis, and self-awareness
 - **Agent consolidation**: Simplified to enhanced versions only (architect_enhanced.py, maestro_enhanced.py, etc.)
 - **Startup optimization**: API server initialization reduced from 8-12s → 0.04s (99.7% improvement)
 - **Enhanced inheritance**: Fixed multiple inheritance issues in EnhancedBaseAgent
 - **Security fixes**: All API keys moved to .env file, removed hardcoded credentials
 - **System health**: Monitoring dashboard with automatic agent registration
-- **LLM management**: Centralized LLM calls with fallback support and retry logic
 
 ## Development Commands
 
 ### Package Management
 ```bash
-# Install dependencies with new structure
+# Install dependencies
 poetry install
 
-# The project is now a proper Python package named 'hephaestus'
+# The project is a proper Python package named 'hephaestus'
 # located in src/hephaestus/
 ```
 
@@ -67,12 +68,11 @@ poetry run python cli.py submit "Your objective here"
 poetry run python cli.py status
 ```
 
-**Server Mode (API access - OPTIMIZED startup):**
+**Server Mode (API access):**
 ```bash
 # Start FastAPI server with optimized parallel initialization
 poetry run python main.py
 # Then access API at http://localhost:8000/docs
-# Note: Port 8000 may be in use - check with: lsof -i :8000
 ```
 
 **MCP Server Mode:**
@@ -98,9 +98,21 @@ The system operates on a hierarchy of priorities:
 3. **Refactor with Purpose** - Code changes enable future capabilities
 4. **Execute Development Tasks** - External tasks test new capabilities
 
-### Meta-Intelligence Core
-The system features advanced meta-cognitive capabilities:
+### Meta-Intelligence Systems
 
+**Real-Time Evolution Engine** (`src/hephaestus/intelligence/real_time_evolution_engine.py`):
+- Continuous evolution during execution (not just between cycles)
+- 5 mutation types: prompt optimization, strategy adjustment, parameter tuning, workflow modification, agent behavior change
+- Parallel testing with fitness evaluation and automatic deployment
+- Anti-loop protection and emergency evolution triggers
+
+**Predictive Failure Engine** (`src/hephaestus/intelligence/predictive_failure_engine.py`):
+- Analyzes historical patterns to predict failure probability before execution
+- Applies preventive modifications to high-risk objectives
+- Continuous learning from execution feedback
+- Pattern recognition for keyword-based, complexity-based, and async-related failures
+
+**Meta-Intelligence Core Features**:
 - **Model Optimizer**: Collects performance data and generates JSONL datasets for fine-tuning
 - **Knowledge System**: Intelligent web search with credibility ranking and semantic analysis
 - **Root Cause Analyzer**: 5-layer causal analysis (Immediate → Environmental) with pattern detection
@@ -117,18 +129,16 @@ The system features advanced meta-cognitive capabilities:
 
 **Specialized Agents (`src/hephaestus/agents/`)**
 - `architect_enhanced.py`: Strategic planning and code architecture (ArchitectAgentEnhanced)
-- `maestro_enhanced.py`: Strategy selection with weighted decisions and coordination (MaestroAgentEnhanced)
+- `maestro_enhanced.py`: Strategy selection with weighted decisions (MaestroAgentEnhanced)
 - `bug_hunter_enhanced.py`: Automated bug detection and fixing (BugHunterAgentEnhanced)
-- `organizer_enhanced.py`: Project structure optimization with file analysis (OrganizerAgentEnhanced)
-- `error_detector_agent.py`: Real-time error monitoring and detection
-- `dependency_fixer_agent.py`: Automated dependency resolution
-- `cycle_monitor_agent.py`: Performance and cycle tracking
-- `agent_expansion_coordinator.py`: Dynamic agent creation and coordination
+- `organizer_enhanced.py`: Project structure optimization (OrganizerAgentEnhanced)
 - `enhanced_base.py`: Enhanced base class with proper MRO and automatic dashboard registration
 - `base.py`: Base classes and interfaces for all agents
 - `mixins.py`: Agent mixins for logging, caching, and LLM management
 
-**Meta-Intelligence (`src/hephaestus/intelligence/`)**
+**Intelligence Layer (`src/hephaestus/intelligence/`)**
+- `real_time_evolution_engine.py`: Continuous system evolution during runtime
+- `predictive_failure_engine.py`: AI-powered failure prediction and prevention
 - `model_optimizer.py`: LLM performance optimization and fine-tuning
 - `knowledge_system.py`: Advanced web search and knowledge acquisition
 - `root_cause_analyzer.py`: Deep causal analysis system
@@ -139,11 +149,10 @@ The system features advanced meta-cognitive capabilities:
 - `communication/`: Inter-agent communication
 - `orchestration/`: Asynchronous task coordination
 - `monitoring/`: Performance and health monitoring
-- `optimization/`: System optimization components
 
 **Monitoring (`src/hephaestus/monitoring/`)**
 - `unified_dashboard.py`: Real-time system health monitoring with automatic agent registration
-- Auto-tracking of agent performance and health scores (0% → 87% improvement achieved)
+- `predictive_failure_dashboard.py`: Monitoring dashboard for failure prediction system
 
 **API Interfaces (`src/hephaestus/api/`)**
 - `rest/`: FastAPI server and endpoints
@@ -160,19 +169,14 @@ The system features advanced meta-cognitive capabilities:
 - `error_handling.py`: Error management
 - `infrastructure_manager.py`: System infrastructure
 
-**Configuration (`config/`)**
-- `default.yaml`: Main configuration entry point
-- `base_config.yaml`: Base system settings
-- `models/main.yaml`: LLM model configurations
-- `validation_strategies/main.yaml`: Validation settings
-
 ### Execution Flow
 1. **Objective Generation**: Brain module analyzes codebase and generates strategic objectives
-2. **Agent Selection**: Maestro selects appropriate specialized agents
-3. **Execution**: Agents execute with real-time monitoring
-4. **Validation**: Multi-step validation including syntax, tests, and performance
-5. **Meta-Analysis**: Root cause analysis and capability assessment
-6. **Evolution**: Self-improvement based on performance data
+2. **Failure Prediction**: Predictive engine analyzes objective and applies preventive modifications
+3. **Agent Selection**: Maestro selects appropriate specialized agents
+4. **Execution**: Agents execute with real-time monitoring and evolution
+5. **Validation**: Multi-step validation including syntax, tests, and performance
+6. **Meta-Analysis**: Root cause analysis and capability assessment
+7. **Evolution**: Self-improvement based on performance data and continuous mutations
 
 ## Key Files and Patterns
 
@@ -193,23 +197,18 @@ The system features advanced meta-cognitive capabilities:
 - Reports and analysis: `data/reports/`
 - Performance metrics: `data/reports/model_performance.db`
 - Evolution tracking: `logs/evolution_log.csv`
-- Backup files: `src/hephaestus/api/rest/main.py.backup` (startup optimization backup)
+- Meta-functionalities memory: `data/memory/META_FUNCTIONALITIES_MEMORY.json`
 
-### Testing Structure (Reorganized)
+### Testing Structure
 - Unit tests: `tests/unit/`
 - Integration tests: `tests/integration/`
 - Test fixtures: `tests/fixtures/`
-
-### Scripts Organization
-- Setup scripts: `scripts/setup/`
-- Monitoring: `scripts/monitoring/`
-- Analysis tools: `scripts/analysis/`
-- Demos: `scripts/demos/`
+- Evolution engine tests: `test_real_time_evolution.py`, `test_predictive_engine.py`
 
 ## Development Guidelines
 
 ### Agent Development
-When creating new agents, prefer inheriting from `EnhancedBaseAgent` in `src/hephaestus/agents/enhanced_base.py` for modern capabilities:
+When creating new agents, prefer inheriting from `EnhancedBaseAgent` in `src/hephaestus/agents/enhanced_base.py`:
 - `execute()`: Main agent logic
 - `get_capabilities()`: List of agent capabilities  
 - `get_status()`: Current agent status
@@ -217,187 +216,122 @@ When creating new agents, prefer inheriting from `EnhancedBaseAgent` in `src/hep
 
 For basic agents, inherit from `BaseAgent` in `src/hephaestus/agents/base.py`.
 
-### Import Patterns (New Structure)
+### Meta-Intelligence Integration
+The system includes advanced meta-intelligence capabilities:
+
+**Real-Time Evolution**: 
+- Register mutation callbacks for different types of system improvements
+- Evolution runs continuously in background thread during execution
+- Mutations are tested in parallel and deployed based on fitness scores
+
+**Predictive Failure Prevention**:
+- Integrate with failure prediction in objective generation pipeline
+- System learns from execution feedback to improve predictions
+- Risk factors and preventive modifications are automatically applied
+
+### Import Patterns
 ```python
 # Core components
 from hephaestus.core import HephaestusAgent, Memory, CycleRunner
 from hephaestus.core.brain import generate_next_objective
 
-# Agents
-from hephaestus.agents import ArchitectAgent, MaestroAgent
-from hephaestus.agents.base import BaseAgent
+# Enhanced agents
+from hephaestus.agents.architect_enhanced import ArchitectAgentEnhanced
+from hephaestus.agents.maestro_enhanced import MaestroAgentEnhanced
 
-# Intelligence
-from hephaestus.intelligence import ModelOptimizer, get_knowledge_system
+# Intelligence systems
+from hephaestus.intelligence.real_time_evolution_engine import get_real_time_evolution_engine
+from hephaestus.intelligence.predictive_failure_engine import get_predictive_failure_engine
 
 # Services
 from hephaestus.services.validation import get_validation_step
 from hephaestus.utils import call_llm_with_fallback
 ```
 
-### Configuration Changes
+### Configuration Management
 - Use Hydra configuration system
-- Add new models to `config/models/`
-- Main configuration in `config/default.yaml`
-- Base settings in `config/base_config.yaml`
+- Real-time evolution engine configuration in `config/default.yaml` under `real_time_evolution`
+- Model configurations with intelligent distribution to avoid rate limiting
+- Rate limiting and execution mode configurations for optimal performance
 
-### Error Handling
-- The system has comprehensive error detection and recovery
-- Use the `ErrorPreventionSystem` for critical components
-- All agents should report errors to the central error detector
-
-### Performance Optimization
-- The `ModelOptimizer` automatically collects performance data
-- Use `@optimize_llm_call` decorator for LLM calls
-- Monitor metrics through the performance monitoring system
+### Meta-Intelligence Features
+- **Evolution Engine**: Continuously mutates and improves system during runtime
+- **Predictive Engine**: Prevents failures by analyzing patterns and modifying objectives
+- **Model Optimizer**: Automatically collects performance data for LLM fine-tuning
+- **Knowledge System**: Intelligent web search with credibility ranking
+- **Root Cause Analysis**: Deep causal analysis with 5-layer methodology
 
 ## Important Patterns
 
-### Dependency Injection
-The system uses a comprehensive dependency injection pattern via `DependencyResolver` in the services layer.
+### Real-Time Evolution Integration
+The system features a comprehensive evolution engine that:
+- Runs in background thread during execution
+- Generates 5 types of mutations (prompts, strategies, parameters, workflows, agent behaviors)
+- Tests mutations in parallel with fitness evaluation
+- Automatically deploys successful improvements
+- Includes anti-loop protection and emergency evolution
+
+### Predictive Failure Prevention
+Integration with failure prediction system:
+- Analyzes objectives before execution for failure probability
+- Applies preventive modifications to high-risk objectives
+- Learns from execution feedback to improve predictions
+- Maintains patterns database for historical analysis
 
 ### Asynchronous Operations
-Most agent operations are asynchronous. Use the `AsyncAgentOrchestrator` in `src/hephaestus/services/orchestration/` for coordinating multiple agents.
-
-**Important**: The API startup has been optimized with parallel initialization. Agents are loaded in phases:
-1. **Independent agents** (parallel): ErrorDetector, DependencyFixer, AgentExpansionCoordinator, InterfaceGenerator
+Most agent operations are asynchronous. The API startup has been optimized with parallel initialization:
+1. **Independent agents** (parallel): ErrorDetector, DependencyFixer, AgentExpansionCoordinator
 2. **Dependent agents**: HephaestusAgent, CycleMonitor
-3. **Monitoring activation**: start_monitoring() and meta-intelligence systems
-
-### Hot Reload and Self-Modification
-The system can modify its own code at runtime through components in the intelligence layer:
-- `HotReloadManager`: Real-time code reloading
-- `FlowSelfModifier`: Dynamic LLM call optimization  
-- `SelfEvolutionEngine`: Automated system evolution
+3. **Evolution systems**: Real-time evolution and predictive failure engines
+4. **Monitoring activation**: start_monitoring() and meta-intelligence systems
 
 ### Memory and Learning
-All agents should leverage the `Memory` system (`src/hephaestus/core/memory.py`) to:
-- Store successful strategies
-- Learn from failure patterns
+All agents leverage the `Memory` system (`src/hephaestus/core/memory.py`) to:
+- Store successful strategies and patterns
+- Learn from failure patterns via predictive engine
 - Maintain context across sessions
+- Support meta-functionalities tracking
 
-### Package Structure Benefits
-The new structure provides:
-- **Clear separation of concerns**: Core, agents, intelligence, services, API
-- **Better testability**: Isolated components with clear dependencies
-- **Improved maintainability**: Logical grouping of related functionality
-- **Standard Python packaging**: Follows PEP standards for distribution
-
-## Security Considerations
-
-- API endpoints are protected with JWT authentication (`src/hephaestus/api/rest/`)
-- Rate limiting is implemented
-- All configuration is validated before use
-- Error prevention system monitors for security issues
-
-## Project Structure Reorganization
-
-**✅ COMPLETED**: The project has been successfully reorganized from a chaotic structure to a professional Python package.
-
-### What Changed:
-- **Before**: 74+ files cluttered in root directory with multiple backup folders
-- **After**: Clean root with only essential files (main.py, cli.py, hephaestus_mcp_server.py, etc.)
-- **Package**: Code organized in `src/hephaestus/` following Python standards
-- **Cleanup**: Removed backup directories, obsolete files, and crypto-related modules
-- **Agent consolidation**: Only enhanced versions remain (e.g., architect_enhanced.py)
-
-### Current Structure:
-```
-agente_autonomo/
-├── 📄 main.py                    # FastAPI server entry point
-├── 📄 cli.py                     # CLI interface
-├── 📄 hephaestus_mcp_server.py   # MCP server for IDE integration
-├── 📄 README.md                  # Project documentation
-├── 📄 CLAUDE.md                  # This file
-├── 📁 src/hephaestus/            # Main Python package
-│   ├── core/                     # Core system components
-│   ├── agents/                   # Specialized agents
-│   ├── intelligence/             # Meta-intelligence systems
-│   ├── services/                 # Shared services
-│   ├── api/                      # API interfaces
-│   └── utils/                    # Utility functions
-├── 📁 config/                    # Configuration files
-├── 📁 scripts/                   # Organized scripts
-├── 📁 docs/                      # Documentation
-├── 📁 data/                      # Data, logs, reports
-└── 📁 tests/                     # Test suites
-```
-
-## Development Best Practices
-
-### Working with the New Structure
-1. **Always use the package imports**: Import from `hephaestus.*` rather than direct file paths
-2. **Respect the layer separation**: Core → Agents → Intelligence → Services → Utils
-3. **Follow the naming conventions**: Clear, descriptive names in English
-4. **Use the organized test structure**: Place tests in appropriate `tests/unit/` or `tests/integration/`
-5. **Keep the root clean**: Add new Python files to appropriate packages, not the root
-
-### Important Notes
-- This system is designed to be self-modifying and autonomous
-- The reorganized structure follows Python packaging best practices
-- All core functionality has been preserved during reorganization and cleanup
-- The system maintains extensive logs in `data/logs/` for debugging
-- Memory is persistent across sessions in `data/memory/`
-- **Cleaned structure**: All obsolete files and backups have been removed for maintainability
-
-### Getting Started
-1. Ensure all dependencies are installed: `poetry install`
-2. Test basic functionality: `poetry run python cli.py --help`
-3. Start the system: `poetry run python main.py` (server) or `poetry run python cli.py run` (CLI)
-4. Monitor logs in `data/logs/` for system behavior
-5. Check memory state in `data/memory/HEPHAESTUS_MEMORY.json`
-
-### Performance Optimizations
-- **Startup optimization**: API server initialization reduced from 8-12 seconds to 0.04 seconds through parallel agent loading
-- **Backup available**: Original startup code backed up in `src/hephaestus/api/rest/main.py.backup`
-- **Monitoring**: Use `⚡ Initialization time: X.XXs` log messages to verify optimization is working
-
-### Environment Setup
+## Environment Setup
 Set up API keys in `.env` file:
 ```bash
 GEMINI_API_KEY="your_gemini_key_here"
 OPENROUTER_API_KEY="your_openrouter_key_here"
 ```
 
-### API Usage Examples
-```bash
-# Submit objective via API
-curl -X POST "http://localhost:8000/submit_objective" -H "Content-Type: application/json" -d '{"objective": "Your objective here"}'
-
-# Check system status
-curl "http://localhost:8000/status"
-
-# Access interactive documentation
-# Open http://localhost:8000/docs in browser
-```
-
 ## Troubleshooting
 
 ### Common Issues
 
-**Port 8000 already in use:**
-```bash
-# Check what's using the port
-lsof -i :8000
-# Kill the process
-kill <PID>
-```
+**Evolution engine not working:**
+- Check `config/default.yaml` - evolution may be disabled (`enabled: false`)
+- Verify mutation callbacks are registered in agent initialization
+- Check logs for evolution loop errors
 
-**LLM configuration errors:**
-- Ensure `.env` file exists with valid API keys
-- Check `config/models/main.yaml` for model configurations
-- Verify primary/fallback model settings in `src/hephaestus/utils/config_manager.py`
+**Predictive engine issues:**
+- Verify failure patterns are loaded from `data/memory/HEPHAESTUS_MEMORY.json`
+- Check prediction logs for analysis errors
+- Ensure sufficient historical data for pattern recognition
 
 **Agent initialization errors:**
 - Enhanced agents use multiple inheritance - ensure proper MRO in `enhanced_base.py`
 - Filter kwargs appropriately when calling parent constructors
 - Check for missing dependencies in agent mixins
 
-**Import errors after cleanup:**
-- All agent imports now use enhanced versions (e.g., `ArchitectAgentEnhanced as ArchitectAgent`)
-- Update any hardcoded imports to use the new consolidated structure
+**MaestroAgent strategy selection errors:**
+- Common issue: `'MaestroAgentEnhanced' object has no attribute 'choose_strategy'`
+- Check method implementation in `maestro_enhanced.py`
+- Verify strategy selection logic and configuration
 
 ### Key Log Files
 - Main system: `data/logs/hephaestus_main.log`
 - Individual agents: `data/logs/agents/<agent_name>_agent.log`
+- Evolution engine: `data/reports/evolution_state_*.json`
 - Error prevention: `data/logs/error_prevention.log`
+- Evolution tracking: `logs/evolution_log.csv`
+
+### Meta-Intelligence Monitoring
+- Real-time evolution status via `get_evolution_status()` method
+- Predictive failure dashboard with comprehensive reports
+- Performance metrics collection and analysis
+- Automatic state persistence and recovery mechanisms

@@ -4,8 +4,10 @@
 
 agente_autonomo/
     README.md
+    setup_multiple_keys.py
     hephaestus_mcp_server.py
     cli.py
+    debug_keys.py
     poetry.lock
     main.py
     hephaestus_config.json
@@ -73,6 +75,7 @@ agente_autonomo/
                 __init__.py
                 unified_validator.py
             utils/
+                api_key_manager.py
                 __init__.py
                 json_parser.py
                 llm_manager.py
@@ -160,32 +163,44 @@ agente_autonomo/
         memory/
             HEPHAESTUS_MEMORY.json
     data/
+        execution_lock.json
         collective_intelligence/
             agents/
                 hephaestus_agent_124423607735120.json
                 hephaestus_agent_127244829982160.json
+                hephaestus_agent_130730365742800.json
+                hephaestus_agent_126280159603280.json
                 hephaestus_agent_130698451963792.json
                 hephaestus_agent_129748972437456.json
                 hephaestus_agent_135442763201808.json
                 hephaestus_agent_139396809887184.json
                 hephaestus_agent_123169772310352.json
                 hephaestus_agent_129041742934352.json
+                hephaestus_agent_139220132189904.json
                 hephaestus_agent_132641144558672.json
             insights/
             knowledge/
                 strategy_discovery_13ddf8ce.json
+                strategy_discovery_767ee161.json
                 strategy_discovery_c6d261f1.json
+                strategy_discovery_ae850502.json
                 strategy_discovery_e106bffc.json
                 strategy_discovery_539cbb83.json
                 strategy_discovery_058ea617.json
                 strategy_discovery_9db8dbd9.json
+                strategy_discovery_03f8dab4.json
                 strategy_discovery_0bb3a3d0.json
                 strategy_discovery_e59e00e2.json
                 strategy_discovery_f0329457.json
         agents/
+            bug_hunter_config_backup_20250708_155245.yaml
+            architect_config_backup_20250708_155245.yaml
             maestro_config.yaml
             bug_hunter_config.yaml
+            maestro_config_backup_20250708_155245.yaml
             architect_config.yaml
+        objectives/
+            simple_debug_objective.json
         memory/
             HEPHAESTUS_MEMORY.json
             META_FUNCTIONALITIES_MEMORY.json
@@ -246,80 +261,26 @@ agente_autonomo/
             chart_cycle_duration_seconds_7d.png
             chart_agents_per_cycle_7d.png
         backups/
-            error_handling_workflow_backup_20250708_152332.yaml
-            error_handling_workflow_backup_20250708_141936.yaml
-            objective_generation_backup_20250708_145731.txt
-            error_handling_workflow_backup_20250708_142001.yaml
-            objective_generation_backup_20250708_152044.txt
-            objective_generation_backup_20250708_151457.txt
-            objective_generation_backup_20250708_150350.txt
-            objective_generation_backup_20250708_142057.txt
-            objective_generation_backup_20250708_143407.txt
-            objective_generation_backup_20250708_143326.txt
-            objective_generation_backup_20250708_151709.txt
-            error_handling_workflow_backup_20250708_140151.yaml
-            error_handling_workflow_backup_20250708_152306.yaml
-            objective_generation_backup_20250708_145852.txt
-            objective_generation_backup_20250708_151003.txt
-            objective_generation_backup_20250708_151540.txt
-            objective_generation_backup_20250708_145934.txt
-            error_handling_workflow_backup_20250708_142938.yaml
-            objective_generation_backup_20250708_145628.txt
-            objective_generation_backup_20250708_150635.txt
-            objective_generation_backup_20250708_151556.txt
-            objective_generation_backup_20250708_151750.txt
-            error_handling_workflow_backup_20250708_142205.yaml
-            error_handling_workflow_backup_20250708_153135.yaml
-            error_handling_workflow_backup_20250708_141951.yaml
-            objective_generation_backup_20250708_141756.txt
-            objective_generation_backup_20250708_151612.txt
-            objective_generation_backup_20250708_145136.txt
-            architect_config_backup_20250708_154236.yaml
-            objective_generation_backup_20250708_143700.txt
-            objective_generation_backup_20250708_145410.txt
-            objective_generation_backup_20250708_145400.txt
-            objective_generation_backup_20250708_150126.txt
-            objective_generation_backup_20250708_145940.txt
-            objective_generation_backup_20250708_145131.txt
-            objective_generation_backup_20250708_150023.txt
-            objective_generation_backup_20250708_145033.txt
-            objective_generation_backup_20250708_150558.txt
-            objective_generation_backup_20250708_145504.txt
-            objective_generation_backup_20250708_145902.txt
-            objective_generation_backup_20250708_144649.txt
-            objective_generation_backup_20250708_150105.txt
-            error_handling_workflow_backup_20250708_153114.yaml
-            objective_generation_backup_20250708_140144.txt
-            config_backup_20250708_154231.yaml
-            objective_generation_backup_20250708_143115.txt
-            error_handling_workflow_backup_20250708_143209.yaml
-            objective_generation_backup_20250708_145726.txt
-            objective_generation_backup_20250708_145307.txt
-            objective_generation_backup_20250708_152100.txt
-            objective_generation_backup_20250708_151057.txt
-            error_handling_workflow_backup_20250708_153310.yaml
-            objective_generation_backup_20250708_150406.txt
-            objective_generation_backup_20250708_143709.txt
-            objective_generation_backup_20250708_143507.txt
-            objective_generation_backup_20250708_150701.txt
-            objective_generation_backup_20250708_145038.txt
-            error_handling_workflow_backup_20250708_152244.yaml
-            objective_generation_backup_20250708_144544.txt
-            error_handling_workflow_backup_20250708_152612.yaml
-            objective_generation_backup_20250708_143432.txt
-            objective_generation_backup_20250708_150516.txt
-            objective_generation_backup_20250708_152110.txt
-            objective_generation_backup_20250708_141524.txt
-            config_backup_20250708_154226.yaml
+            error_handling_workflow_backup_20250708_154558.yaml
+            error_handling_workflow_backup_20250708_154516.yaml
         workflows/
             agent_coordination_workflow.yaml
             error_handling_workflow.yaml
     logs/
         error_prevention.log
+        evolution_log_backup_20250708_155245.csv
         evolution_log.csv
 
 ## 2. RESUMO DAS INTERFACES (APIs Internas)
 
+
+### Arquivo: `setup_multiple_keys.py`
+- **Função:** `setup_env_template()`
+  - *Cria template do .env com múltiplas chaves*
+- **Função:** `create_key_test_script()`
+  - *Cria script de teste para múltiplas chaves*
+- **Função:** `show_providers_info()`
+  - *Mostra informações sobre os provedores*
 
 ### Arquivo: `hephaestus_mcp_server.py`
 - **Função:** `initialize_components()`
@@ -338,6 +299,8 @@ agente_autonomo/
   - *Função principal do MCP server.*
 
 ### Arquivo: `cli.py`
+
+### Arquivo: `debug_keys.py`
 
 ### Arquivo: `main.py`
 - **Função:** `main()`
@@ -895,6 +858,14 @@ agente_autonomo/
 - **Função:** `get_unified_validator()`
   - *Get the global unified validator instance.*
 
+### Arquivo: `src/hephaestus/utils/api_key_manager.py`
+- **Classe:** `APIKey`
+  - *Representa uma chave API com metadados de saúde*
+- **Classe:** `APIKeyManager`
+  - *🔑 Gerenciador de Chaves API com Redundância Inteligente*
+- **Função:** `get_api_key_manager()`
+  - *Get singleton instance of APIKeyManager*
+
 ### Arquivo: `src/hephaestus/utils/__init__.py`
 
 ### Arquivo: `src/hephaestus/utils/json_parser.py`
@@ -957,10 +928,14 @@ agente_autonomo/
   - *Factory function para criar LogCleaner*
 
 ### Arquivo: `src/hephaestus/utils/llm_client.py`
+- **Função:** `call_gemini_api_with_key(api_key: str, model: str, prompt: str, temperature: float, max_tokens: Optional[int], logger: logging.Logger)`
+  - *Calls the Google Gemini API with a specific key.*
 - **Função:** `call_gemini_api(model: str, prompt: str, temperature: float, max_tokens: Optional[int], logger: logging.Logger)`
-  - *Calls the Google Gemini API.*
+  - *Calls the Google Gemini API with automatic key management.*
+- **Função:** `call_openrouter_api_with_key(api_key: str, model: str, prompt: str, temperature: float, max_tokens: Optional[int], logger: logging.Logger)`
+  - *Calls OpenRouter API with a specific key.*
 - **Função:** `call_openrouter_api(model: str, prompt: str, temperature: float, max_tokens: Optional[int], logger: logging.Logger)`
-  - *Calls a generic OpenAI-compatible API (like OpenRouter).*
+  - *Calls OpenRouter API with automatic key management.*
 - **Função:** `call_llm_with_fallback(model_config: dict, prompt: str, temperature: float, logger: logging.Logger)`
   - *Orchestrates LLM calls with a primary and fallback model.*
 - **Função:** `call_openrouter_api_async(model: str, prompt: str, temperature: float, max_tokens: Optional[int], logger: logging.Logger)`

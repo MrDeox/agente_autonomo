@@ -2,25 +2,25 @@ agents:
   architect:
     behavior: risk_assessment
     change: More conservative patch generation
-    last_behavior_change: '2025-07-08T15:42:36.814763'
+    last_behavior_change: '2025-07-08T15:44:49.663001'
     patch_generation: conservative
     risk_tolerance: conservative
   bug_hunter:
     behavior: detection_sensitivity
     change: Increase detection threshold
-    detection_threshold: 4.999999999999998
-    last_behavior_change: '2025-07-08T15:42:47.434368'
+    detection_threshold: 5.299999999999997
+    last_behavior_change: '2025-07-08T15:46:46.595499'
     sensitivity: high
   maestro:
     behavior: strategy_selection
     change: Prefer strategies with higher success rates
-    last_behavior_change: '2025-07-08T15:23:48.528989'
+    last_behavior_change: '2025-07-08T15:47:34.419250'
     strategy_preference: high_success_rate
     success_rate_threshold: 0.8
 async:
-  timeout: 417.0
+  timeout: 188.0
 async_operations:
-  timeout: 417
+  timeout: 188
 bug_hunter:
   auto_fix_enabled: true
   max_concurrent_fixes: 3
@@ -50,11 +50,11 @@ evolution_analytics:
   prediction_enabled: true
   retention_days: 30
 llm:
-  max_tokens: 1691
-  temperature: 0.2579691464560411
+  max_tokens: 1658
+  temperature: 0.4792514039891732
 llm_calls:
-  max_tokens: 1691
-  temperature: 0.2579691464560411
+  max_tokens: 1658
+  temperature: 0.4792514039891732
 log_cleaner:
   auto_cleanup_interval_hours: 24
   backup_retention_days: 7
@@ -270,13 +270,13 @@ validation_strategies:
 workflows:
   agent_coordination:
     expected_impact: Faster completion
-    last_modified: '2025-07-08T15:33:16.223599'
-    max_parallel: 15
+    last_modified: '2025-07-08T15:46:41.285790'
+    max_parallel: 18
     modification: Increase parallel execution
     parallel_execution: true
   error_handling:
     expected_impact: Better error recovery
-    last_modified: '2025-07-08T15:33:10.914378'
+    last_modified: '2025-07-08T15:45:58.776759'
     modification: Add retry mechanism
-    retry_count: 15
+    retry_count: 19
     retry_enabled: true

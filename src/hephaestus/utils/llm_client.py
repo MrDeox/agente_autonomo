@@ -8,19 +8,85 @@ import google.generativeai as genai
 import httpx
 import asyncio
 
-# Configure Gemini client
+# Import our new API Key Manager
+try:
+    from .api_key_manager import get_api_key_manager
+    API_KEY_MANAGER_AVAILABLE = True
+except ImportError:
+    API_KEY_MANAGER_AVAILABLE = False
+    logging.warning("API Key Manager not available, falling back to single key mode")
+
+# Configure Gemini client (fallback mode)
 GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
 if GEMINI_API_KEY:
     genai.configure(api_key=GEMINI_API_KEY)
 
 # Constants
-# OPENROUTER_API_KEY = os.getenv("OPENROUTER_API_KEY") # Load JIT inside the function
 OPENROUTER_BASE_URL = "https://openrouter.ai/api/v1"
+
+def call_gemini_api_with_key(api_key: str, model: str, prompt: str, temperature: float, max_tokens: Optional[int], logger: logging.Logger) -> Tuple[Optional[str], Optional[str]]:
+    """
+    Calls the Google Gemini API with a specific key.
+    """
+    logger.info(f"Attempting to call Gemini API with model: {model}")
+    try:
+        # Configure client with specific key
+        genai.configure(api_key=api_key)
+        
+        # Model name in config is "gemini/model-name", we need to pass "model-name"
+        model_name = model.split('/')[-1]
+        gemini_model = genai.GenerativeModel(model_name)
+        generation_config = genai.types.GenerationConfig(temperature=temperature)
+        if max_tokens and max_tokens > 0:
+            generation_config.max_output_tokens = max_tokens
+
+        response = gemini_model.generate_content(prompt, generation_config=generation_config)
+        
+        if response.text:
+            logger.debug(f"Gemini API Response: {response.text}")
+            return response.text, None
+        else:
+            # Handle cases where the response might be blocked or empty
+            error_message = "Gemini API call failed: No text in response."
+            if response.prompt_feedback:
+                error_message += f" Prompt Feedback: {response.prompt_feedback}"
+            logger.error(error_message)
+            return None, error_message
+
+    except Exception as e:
+        error_details = f"Unexpected error during Gemini API call: {str(e)}\n{traceback.format_exc()}"
+        logger.error(error_details)
+        return None, error_details
 
 def call_gemini_api(model: str, prompt: str, temperature: float, max_tokens: Optional[int], logger: logging.Logger) -> Tuple[Optional[str], Optional[str]]:
     """
-    Calls the Google Gemini API.
+    Calls the Google Gemini API with automatic key management.
     """
+    if API_KEY_MANAGER_AVAILABLE:
+        manager = get_api_key_manager()
+        key = manager.get_best_key("gemini")
+        
+        if key:
+            result, error = call_gemini_api_with_key(key.key, model, prompt, temperature, max_tokens, logger)
+            
+            # Mark result in key manager
+            success = result is not None
+            manager.mark_key_result(key, success, error or "")
+            
+            if success:
+                return result, error
+            else:
+                # Try fallback if this key failed
+                logger.warning(f"Key {key.name} failed, trying fallback...")
+                fallback_key, provider = manager.get_key_with_fallback("gemini")
+                if fallback_key and provider == "gemini":
+                    result, error = call_gemini_api_with_key(fallback_key.key, model, prompt, temperature, max_tokens, logger)
+                    manager.mark_key_result(fallback_key, result is not None, error or "")
+                    return result, error
+        
+        return None, "No available Gemini API keys"
+    
+    # Fallback to single key mode
     if not GEMINI_API_KEY:
         return None, "GEMINI_API_KEY environment variable not set."
     
@@ -51,14 +117,10 @@ def call_gemini_api(model: str, prompt: str, temperature: float, max_tokens: Opt
         logger.error(error_details)
         return None, error_details
 
-def call_openrouter_api(model: str, prompt: str, temperature: float, max_tokens: Optional[int], logger: logging.Logger) -> Tuple[Optional[str], Optional[str]]:
+def call_openrouter_api_with_key(api_key: str, model: str, prompt: str, temperature: float, max_tokens: Optional[int], logger: logging.Logger) -> Tuple[Optional[str], Optional[str]]:
     """
-    Calls a generic OpenAI-compatible API (like OpenRouter).
+    Calls OpenRouter API with a specific key.
     """
-    api_key = os.getenv("OPENROUTER_API_KEY")
-    if not api_key:
-        return None, "OPENROUTER_API_KEY environment variable not set."
-
     logger.info(f"Attempting to call OpenRouter API with model: {model}")
     url = f"{OPENROUTER_BASE_URL}/chat/completions"
     headers = {
@@ -96,6 +158,41 @@ def call_openrouter_api(model: str, prompt: str, temperature: float, max_tokens:
         error_details = f"Unexpected error during OpenRouter API call: {str(e)}\n{traceback.format_exc()}"
         logger.error(error_details)
         return None, error_details
+
+def call_openrouter_api(model: str, prompt: str, temperature: float, max_tokens: Optional[int], logger: logging.Logger) -> Tuple[Optional[str], Optional[str]]:
+    """
+    Calls OpenRouter API with automatic key management.
+    """
+    if API_KEY_MANAGER_AVAILABLE:
+        manager = get_api_key_manager()
+        key = manager.get_best_key("openrouter")
+        
+        if key:
+            result, error = call_openrouter_api_with_key(key.key, model, prompt, temperature, max_tokens, logger)
+            
+            # Mark result in key manager
+            success = result is not None
+            manager.mark_key_result(key, success, error or "")
+            
+            if success:
+                return result, error
+            else:
+                # Try fallback if this key failed
+                logger.warning(f"Key {key.name} failed, trying fallback...")
+                fallback_key, provider = manager.get_key_with_fallback("openrouter")
+                if fallback_key and provider == "openrouter":
+                    result, error = call_openrouter_api_with_key(fallback_key.key, model, prompt, temperature, max_tokens, logger)
+                    manager.mark_key_result(fallback_key, result is not None, error or "")
+                    return result, error
+        
+        return None, "No available OpenRouter API keys"
+    
+    # Fallback to single key mode
+    api_key = os.getenv("OPENROUTER_API_KEY")
+    if not api_key:
+        return None, "OPENROUTER_API_KEY environment variable not set."
+
+    return call_openrouter_api_with_key(api_key, model, prompt, temperature, max_tokens, logger)
 
 def call_llm_with_fallback(model_config: dict, prompt: str, temperature: float, logger: logging.Logger) -> Tuple[Optional[str], Optional[str]]:
     """
