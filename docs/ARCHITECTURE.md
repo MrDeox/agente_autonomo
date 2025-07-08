@@ -1200,9 +1200,3 @@ agente_autonomo/
 
 ## 3. CONTEÚDO COMPLETO DOS ARQUIVOS ALVO
 
-
-### Arquivo: `agent/project_scanner.py`
-
-```
-# ARQUIVO NÃO ENCONTRADO OU NÃO PROCESSADO
-```

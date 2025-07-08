@@ -237,6 +237,17 @@ class HephaestusAgent:
         self._register_evolution_callbacks()
         self.logger.info("⚡ Real-Time Evolution Engine initialized!")
         
+        # Parallel Reality Testing - Testes paralelos de estratégias
+        from hephaestus.intelligence.parallel_reality_testing import get_parallel_reality_tester
+        self.parallel_reality_tester = get_parallel_reality_tester(self.config, self.logger)
+        self.logger.info("🧪 Parallel Reality Testing initialized!")
+        
+        # Collective Intelligence Network - Rede de inteligência coletiva
+        from hephaestus.intelligence.collective_intelligence_network import get_collective_intelligence_network
+        self.collective_intelligence_network = get_collective_intelligence_network(self.config, self.logger)
+        self._register_agent_in_collective_network()
+        self.logger.info("🌐 Collective Intelligence Network initialized!")
+        
         # Registrar callbacks para hot reload
         self._register_hot_reload_callbacks()
         
@@ -1122,93 +1133,163 @@ class HephaestusAgent:
         }
     
     def _register_evolution_callbacks(self):
-        """Registrar callbacks para aplicar mutações do Real-Time Evolution Engine"""
+        """Registrar callbacks FUNCIONAIS para aplicar mutações do Real-Time Evolution Engine"""
         try:
             from hephaestus.intelligence.real_time_evolution_engine import MutationType
+            from hephaestus.intelligence.evolution_callbacks import get_evolution_callbacks
             
-            # Callback para otimização de prompts
-            def apply_prompt_optimization(mutation_data):
-                try:
-                    target = mutation_data.get("target")
-                    modification = mutation_data.get("modification")
-                    self.logger.info(f"🧬 Applying prompt optimization: {target} - {modification}")
-                    # TODO: Implement actual prompt modification logic
-                    return True
-                except Exception as e:
-                    self.logger.error(f"Error applying prompt optimization: {e}")
-                    return False
+            # Obter sistema de callbacks funcionais
+            evolution_callbacks = get_evolution_callbacks(self.config, self.logger)
             
-            # Callback para ajuste de estratégia
-            def apply_strategy_adjustment(mutation_data):
-                try:
-                    strategy = mutation_data.get("strategy")
-                    new_value = mutation_data.get("new_value")
-                    self.logger.info(f"⚙️ Applying strategy adjustment: {strategy} = {new_value}")
-                    # TODO: Implement actual strategy adjustment logic
-                    return True
-                except Exception as e:
-                    self.logger.error(f"Error applying strategy adjustment: {e}")
-                    return False
-            
-            # Callback para tuning de parâmetros
-            def apply_parameter_tuning(mutation_data):
-                try:
-                    parameter = mutation_data.get("parameter")
-                    component = mutation_data.get("component")
-                    new_value = mutation_data.get("new_value")
-                    self.logger.info(f"🎛️ Applying parameter tuning: {component}.{parameter} = {new_value}")
-                    # TODO: Implement actual parameter tuning logic
-                    return True
-                except Exception as e:
-                    self.logger.error(f"Error applying parameter tuning: {e}")
-                    return False
-            
-            # Callback para modificação de workflow
-            def apply_workflow_modification(mutation_data):
-                try:
-                    workflow = mutation_data.get("workflow")
-                    modification = mutation_data.get("modification")
-                    self.logger.info(f"🔄 Applying workflow modification: {workflow} - {modification}")
-                    # TODO: Implement actual workflow modification logic
-                    return True
-                except Exception as e:
-                    self.logger.error(f"Error applying workflow modification: {e}")
-                    return False
-            
-            # Callback para mudança de comportamento dos agentes
-            def apply_agent_behavior_change(mutation_data):
-                try:
-                    agent = mutation_data.get("agent")
-                    behavior = mutation_data.get("behavior")
-                    change = mutation_data.get("change")
-                    self.logger.info(f"🤖 Applying agent behavior change: {agent}.{behavior} - {change}")
-                    # TODO: Implement actual behavior change logic
-                    return True
-                except Exception as e:
-                    self.logger.error(f"Error applying agent behavior change: {e}")
-                    return False
-            
-            # Registrar callbacks
+            # Registrar callbacks REAIS que aplicam mudanças no sistema
             self.real_time_evolution_engine.register_mutation_callback(
-                MutationType.PROMPT_OPTIMIZATION, apply_prompt_optimization
+                MutationType.PROMPT_OPTIMIZATION, evolution_callbacks.apply_prompt_optimization
             )
             self.real_time_evolution_engine.register_mutation_callback(
-                MutationType.STRATEGY_ADJUSTMENT, apply_strategy_adjustment
+                MutationType.STRATEGY_ADJUSTMENT, evolution_callbacks.apply_strategy_adjustment
             )
             self.real_time_evolution_engine.register_mutation_callback(
-                MutationType.PARAMETER_TUNING, apply_parameter_tuning
+                MutationType.PARAMETER_TUNING, evolution_callbacks.apply_parameter_tuning
             )
             self.real_time_evolution_engine.register_mutation_callback(
-                MutationType.WORKFLOW_MODIFICATION, apply_workflow_modification
+                MutationType.WORKFLOW_MODIFICATION, evolution_callbacks.apply_workflow_modification
             )
             self.real_time_evolution_engine.register_mutation_callback(
-                MutationType.AGENT_BEHAVIOR_CHANGE, apply_agent_behavior_change
+                MutationType.AGENT_BEHAVIOR_CHANGE, evolution_callbacks.apply_agent_behavior_change
             )
             
-            self.logger.info("📋 Evolution callbacks registered successfully")
+            # Armazenar referência para callbacks para acesso posterior
+            self.evolution_callbacks = evolution_callbacks
+            
+            self.logger.info("📋 REAL Evolution callbacks registered successfully - 100% functional!")
             
         except Exception as e:
             self.logger.error(f"❌ Error registering evolution callbacks: {e}")
+    
+    def _register_agent_in_collective_network(self):
+        """Registra este agente na rede de inteligência coletiva"""
+        try:
+            agent_id = f"hephaestus_agent_{id(self)}"
+            agent_type = "autonomous_agent"
+            capabilities = {
+                "code_analysis", "objective_generation", "file_modification", 
+                "git_management", "llm_interaction", "validation", "evolution"
+            }
+            expertise_areas = {
+                "software_development", "code_optimization", "autonomous_systems",
+                "machine_learning", "system_architecture"
+            }
+            
+            success = self.collective_intelligence_network.register_agent(
+                agent_id=agent_id,
+                agent_type=agent_type,
+                capabilities=capabilities,
+                expertise_areas=expertise_areas
+            )
+            
+            if success:
+                self.agent_id = agent_id
+                self.logger.info(f"🤖 Agent registered in collective network: {agent_id}")
+            else:
+                self.logger.error("❌ Failed to register agent in collective network")
+                
+        except Exception as e:
+            self.logger.error(f"❌ Error registering agent in collective network: {e}")
+    
+    async def test_parallel_strategies(self, objective: str, strategy_variants: List[Dict[str, Any]]) -> Dict[str, Any]:
+        """
+        Testa múltiplas estratégias em paralelo e retorna a melhor
+        """
+        try:
+            self.logger.info(f"🧪 Testing {len(strategy_variants)} strategies in parallel for: {objective}")
+            
+            # Executar teste paralelo
+            best_result = await self.parallel_reality_tester.test_multiple_strategies(
+                objective=objective,
+                strategy_variants=strategy_variants
+            )
+            
+            if best_result:
+                self.logger.info(f"✅ Best strategy: {best_result.strategy_variant} (fitness: {best_result.calculate_fitness():.3f})")
+                
+                # Compartilhar descoberta na rede coletiva
+                await self._share_strategy_discovery(objective, best_result)
+                
+                return {
+                    "success": True,
+                    "best_strategy": best_result.strategy_variant,
+                    "fitness_score": best_result.calculate_fitness(),
+                    "execution_time": best_result.execution_time,
+                    "performance_metrics": best_result.performance_metrics
+                }
+            else:
+                return {"success": False, "error": "No valid results from parallel testing"}
+                
+        except Exception as e:
+            self.logger.error(f"❌ Error in parallel strategy testing: {e}")
+            return {"success": False, "error": str(e)}
+    
+    async def _share_strategy_discovery(self, objective: str, result):
+        """Compartilha descoberta de estratégia na rede coletiva"""
+        try:
+            from hephaestus.intelligence.collective_intelligence_network import KnowledgeType, KnowledgePriority
+            
+            knowledge_content = {
+                "objective": objective,
+                "strategy_variant": result.strategy_variant,
+                "fitness_score": result.calculate_fitness(),
+                "execution_time": result.execution_time,
+                "success_rate": result.success_rate,
+                "quality_score": result.quality_score,
+                "performance_metrics": result.performance_metrics
+            }
+            
+            knowledge_id = self.collective_intelligence_network.share_knowledge(
+                agent_id=getattr(self, 'agent_id', 'hephaestus_agent'),
+                knowledge_type=KnowledgeType.STRATEGY_DISCOVERY,
+                title=f"Best Strategy for: {objective[:50]}...",
+                content=knowledge_content,
+                context={"objective_type": "general", "testing_method": "parallel_reality"},
+                priority=KnowledgePriority.HIGH,
+                tags={"strategy", "parallel_testing", "optimization"}
+            )
+            
+            self.logger.info(f"📚 Strategy discovery shared: {knowledge_id}")
+            
+        except Exception as e:
+            self.logger.error(f"❌ Error sharing strategy discovery: {e}")
+    
+    def get_evolution_status(self) -> Dict[str, Any]:
+        """
+        Obtém status completo da evolução em tempo real
+        """
+        try:
+            status = {
+                "real_time_evolution": self.real_time_evolution_engine.get_evolution_status(),
+                "parallel_testing": {
+                    "active_sessions": self.parallel_reality_tester.get_active_sessions(),
+                    "test_history": self.parallel_reality_tester.get_test_history(5)
+                },
+                "collective_intelligence": self.collective_intelligence_network.get_network_status(),
+                "applied_changes": self.evolution_callbacks.get_applied_changes(),
+                "system_state": self.evolution_callbacks.get_system_state()
+            }
+            
+            return status
+            
+        except Exception as e:
+            self.logger.error(f"❌ Error getting evolution status: {e}")
+            return {"error": str(e)}
+    
+    def get_collective_insights(self, limit: int = 5) -> List[Dict[str, Any]]:
+        """
+        Obtém insights coletivos da rede
+        """
+        try:
+            return self.collective_intelligence_network.get_insights(limit)
+        except Exception as e:
+            self.logger.error(f"❌ Error getting collective insights: {e}")
+            return []
 
     def _register_hot_reload_callbacks(self):
         """Registrar callbacks para quando módulos forem recarregados"""

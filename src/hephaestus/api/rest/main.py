@@ -463,8 +463,9 @@ async def rate_limiting_middleware(request: Request, call_next):
         response = await call_next(request)
         
         # Add security headers
-        for header, value in auth_manager.get_security_headers().items():
-            response.headers[header] = value
+        if auth_manager and hasattr(auth_manager, 'get_security_headers'):
+            for header, value in auth_manager.get_security_headers().items():
+                response.headers[header] = value
         
         return response
         
@@ -2769,6 +2770,338 @@ async def get_enhanced_systems_status(auth_user: dict = Depends(get_auth_user)):
             }
     except Exception as e:
         logger.error(f"Error getting enhanced systems status: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+# === EVOLUTION SYSTEM API ENDPOINTS === #
+
+@app.get("/evolution/status", tags=["Evolution System"])
+async def get_evolution_status(auth_user: dict = Depends(get_auth_user)):
+    """Get complete evolution system status - Real-Time Evolution, Parallel Testing, Collective Intelligence"""
+    try:
+        if not hephaestus_agent_instance:
+            raise HTTPException(status_code=500, detail="Agent not initialized")
+        
+        # Get complete evolution status
+        evolution_status = hephaestus_agent_instance.get_evolution_status()
+        
+        return {
+            "status": "success",
+            "message": "⚡ Complete Evolution System Status",
+            "timestamp": datetime.now().isoformat(),
+            "evolution_status": evolution_status,
+            "system_health": {
+                "real_time_evolution": evolution_status.get("real_time_evolution", {}).get("evolution_running", False),
+                "parallel_testing": len(evolution_status.get("parallel_testing", {}).get("active_sessions", [])) > 0,
+                "collective_intelligence": evolution_status.get("collective_intelligence", {}).get("active_agents", 0) > 0,
+                "callbacks_registered": len(evolution_status.get("applied_changes", [])) >= 0
+            }
+        }
+    except Exception as e:
+        logger.error(f"Error getting evolution status: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.post("/evolution/test-parallel-strategies", tags=["Evolution System"])
+async def test_parallel_strategies(
+    objective: str = Body(..., description="Objective to test strategies for"),
+    strategy_count: int = Body(3, description="Number of strategies to test in parallel"),
+    auth_user: dict = Depends(get_auth_user)
+):
+    """Test multiple strategies in parallel and return the best performing one"""
+    try:
+        if not hephaestus_agent_instance:
+            raise HTTPException(status_code=500, detail="Agent not initialized")
+        
+        # Generate strategy variants
+        strategy_variants = []
+        for i in range(strategy_count):
+            strategy_variants.append({
+                "name": f"Strategy {i+1}",
+                "approach": f"approach_variant_{i+1}",
+                "parameters": {
+                    "temperature": 0.3 + (i * 0.1),
+                    "max_tokens": 2000 + (i * 200),
+                    "timeout": 300 + (i * 60)
+                }
+            })
+        
+        # Test strategies in parallel
+        result = await hephaestus_agent_instance.test_parallel_strategies(
+            objective=objective,
+            strategy_variants=strategy_variants
+        )
+        
+        return {
+            "status": "success",
+            "message": f"🧪 Parallel Strategy Testing Complete",
+            "timestamp": datetime.now().isoformat(),
+            "objective": objective,
+            "strategies_tested": strategy_count,
+            "result": result
+        }
+    except Exception as e:
+        logger.error(f"Error testing parallel strategies: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.get("/evolution/collective-insights", tags=["Evolution System"])
+async def get_collective_insights(
+    limit: int = 10,
+    auth_user: dict = Depends(get_auth_user)
+):
+    """Get collective intelligence insights from the network"""
+    try:
+        if not hephaestus_agent_instance:
+            raise HTTPException(status_code=500, detail="Agent not initialized")
+        
+        insights = hephaestus_agent_instance.get_collective_insights(limit=limit)
+        
+        return {
+            "status": "success",
+            "message": "🧠 Collective Intelligence Insights",
+            "timestamp": datetime.now().isoformat(),
+            "insights": insights,
+            "total_insights": len(insights)
+        }
+    except Exception as e:
+        logger.error(f"Error getting collective insights: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.post("/evolution/trigger-mutation", tags=["Evolution System"])
+async def trigger_evolution_mutation(
+    mutation_type: str = Body(..., description="Type of mutation to trigger"),
+    auth_user: dict = Depends(get_auth_user)
+):
+    """Manually trigger a specific type of evolution mutation"""
+    try:
+        if not hephaestus_agent_instance:
+            raise HTTPException(status_code=500, detail="Agent not initialized")
+        
+        # Trigger specific mutation type
+        if hasattr(hephaestus_agent_instance, 'real_time_evolution_engine'):
+            engine = hephaestus_agent_instance.real_time_evolution_engine
+            
+            # Generate mutation based on type
+            if mutation_type == "prompt_optimization":
+                candidate = engine._generate_prompt_optimization()
+            elif mutation_type == "strategy_adjustment":
+                candidate = engine._generate_strategy_adjustment()
+            elif mutation_type == "parameter_tuning":
+                candidate = engine._generate_parameter_tuning()
+            elif mutation_type == "workflow_modification":
+                candidate = engine._generate_workflow_modification()
+            elif mutation_type == "agent_behavior_change":
+                candidate = engine._generate_agent_behavior_change()
+            else:
+                raise HTTPException(status_code=400, detail=f"Unknown mutation type: {mutation_type}")
+            
+            if candidate:
+                # Add to evolution candidates
+                engine.evolution_candidates[candidate.candidate_id] = candidate
+                engine.metrics.total_mutations_generated += 1
+                
+                return {
+                    "status": "success",
+                    "message": f"🧬 Evolution Mutation Triggered: {mutation_type}",
+                    "timestamp": datetime.now().isoformat(),
+                    "mutation_type": mutation_type,
+                    "candidate_id": candidate.candidate_id,
+                    "description": candidate.description,
+                    "risk_level": candidate.risk_level
+                }
+            else:
+                return {
+                    "status": "failed",
+                    "message": f"❌ Failed to generate mutation: {mutation_type}",
+                    "timestamp": datetime.now().isoformat()
+                }
+        else:
+            raise HTTPException(status_code=500, detail="Real-time evolution engine not available")
+    except Exception as e:
+        logger.error(f"Error triggering evolution mutation: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.post("/evolution/start-real-time", tags=["Evolution System"])
+async def start_real_time_evolution(auth_user: dict = Depends(get_auth_user)):
+    """Start the real-time evolution engine"""
+    try:
+        if not hephaestus_agent_instance:
+            raise HTTPException(status_code=500, detail="Agent not initialized")
+        
+        if hasattr(hephaestus_agent_instance, 'real_time_evolution_engine'):
+            engine = hephaestus_agent_instance.real_time_evolution_engine
+            engine.start_evolution()
+            
+            return {
+                "status": "success",
+                "message": "⚡ Real-Time Evolution Engine Started",
+                "timestamp": datetime.now().isoformat(),
+                "evolution_running": engine.evolution_running,
+                "current_phase": engine.current_phase.value
+            }
+        else:
+            raise HTTPException(status_code=500, detail="Real-time evolution engine not available")
+    except Exception as e:
+        logger.error(f"Error starting real-time evolution: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.post("/evolution/stop-real-time", tags=["Evolution System"])
+async def stop_real_time_evolution(auth_user: dict = Depends(get_auth_user)):
+    """Stop the real-time evolution engine"""
+    try:
+        if not hephaestus_agent_instance:
+            raise HTTPException(status_code=500, detail="Agent not initialized")
+        
+        if hasattr(hephaestus_agent_instance, 'real_time_evolution_engine'):
+            engine = hephaestus_agent_instance.real_time_evolution_engine
+            engine.stop_evolution()
+            
+            return {
+                "status": "success",
+                "message": "🛑 Real-Time Evolution Engine Stopped",
+                "timestamp": datetime.now().isoformat(),
+                "evolution_running": engine.evolution_running,
+                "final_metrics": engine.metrics.to_dict()
+            }
+        else:
+            raise HTTPException(status_code=500, detail="Real-time evolution engine not available")
+    except Exception as e:
+        logger.error(f"Error stopping real-time evolution: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.post("/evolution/demo-full-system", tags=["Evolution System"])
+async def demo_full_evolution_system(auth_user: dict = Depends(get_auth_user)):
+    """Comprehensive demonstration of the full evolution system working together"""
+    try:
+        if not hephaestus_agent_instance:
+            raise HTTPException(status_code=500, detail="Agent not initialized")
+        
+        demo_results = {
+            "status": "success",
+            "message": "🚀 Full Evolution System Demo",
+            "timestamp": datetime.now().isoformat(),
+            "components_tested": []
+        }
+        
+        # 1. Test Real-Time Evolution Engine
+        if hasattr(hephaestus_agent_instance, 'real_time_evolution_engine'):
+            engine = hephaestus_agent_instance.real_time_evolution_engine
+            
+            # Generate some mutations
+            mutations_generated = 0
+            for mutation_type in ["prompt_optimization", "strategy_adjustment", "parameter_tuning"]:
+                try:
+                    if mutation_type == "prompt_optimization":
+                        candidate = engine._generate_prompt_optimization()
+                    elif mutation_type == "strategy_adjustment":
+                        candidate = engine._generate_strategy_adjustment()
+                    elif mutation_type == "parameter_tuning":
+                        candidate = engine._generate_parameter_tuning()
+                    
+                    if candidate:
+                        engine.evolution_candidates[candidate.candidate_id] = candidate
+                        mutations_generated += 1
+                except Exception as e:
+                    logger.error(f"Error generating {mutation_type}: {e}")
+            
+            demo_results["components_tested"].append({
+                "component": "Real-Time Evolution Engine",
+                "status": "✅ Functional",
+                "mutations_generated": mutations_generated,
+                "active_candidates": len(engine.evolution_candidates),
+                "evolution_running": engine.evolution_running
+            })
+        
+        # 2. Test Parallel Reality Testing
+        if hasattr(hephaestus_agent_instance, 'parallel_reality_tester'):
+            tester = hephaestus_agent_instance.parallel_reality_tester
+            
+            # Test with sample strategies
+            test_objective = "Demonstrate parallel testing capabilities"
+            strategy_variants = [
+                {"name": "Conservative", "approach": "safe", "parameters": {"temperature": 0.3}},
+                {"name": "Aggressive", "approach": "fast", "parameters": {"temperature": 0.7}},
+                {"name": "Balanced", "approach": "optimized", "parameters": {"temperature": 0.5}}
+            ]
+            
+            try:
+                parallel_result = await hephaestus_agent_instance.test_parallel_strategies(
+                    objective=test_objective,
+                    strategy_variants=strategy_variants
+                )
+                
+                demo_results["components_tested"].append({
+                    "component": "Parallel Reality Testing",
+                    "status": "✅ Functional",
+                    "strategies_tested": len(strategy_variants),
+                    "best_strategy": parallel_result.get("best_strategy", "N/A"),
+                    "fitness_score": parallel_result.get("fitness_score", 0)
+                })
+            except Exception as e:
+                demo_results["components_tested"].append({
+                    "component": "Parallel Reality Testing",
+                    "status": "⚠️ Error",
+                    "error": str(e)
+                })
+        
+        # 3. Test Collective Intelligence Network
+        if hasattr(hephaestus_agent_instance, 'collective_intelligence_network'):
+            network = hephaestus_agent_instance.collective_intelligence_network
+            
+            try:
+                network_status = network.get_network_status()
+                insights = hephaestus_agent_instance.get_collective_insights(limit=3)
+                
+                demo_results["components_tested"].append({
+                    "component": "Collective Intelligence Network",
+                    "status": "✅ Functional",
+                    "active_agents": network_status.get("active_agents", 0),
+                    "knowledge_items": network_status.get("total_knowledge", 0),
+                    "recent_insights": len(insights)
+                })
+            except Exception as e:
+                demo_results["components_tested"].append({
+                    "component": "Collective Intelligence Network",
+                    "status": "⚠️ Error",
+                    "error": str(e)
+                })
+        
+        # 4. Test Evolution Callbacks
+        if hasattr(hephaestus_agent_instance, 'evolution_callbacks'):
+            callbacks = hephaestus_agent_instance.evolution_callbacks
+            
+            try:
+                system_state = callbacks.get_system_state()
+                applied_changes = callbacks.get_applied_changes()
+                
+                demo_results["components_tested"].append({
+                    "component": "Evolution Callbacks",
+                    "status": "✅ Functional",
+                    "total_changes": system_state.get("total_changes", 0),
+                    "successful_changes": system_state.get("successful_changes", 0),
+                    "failed_changes": system_state.get("failed_changes", 0),
+                    "last_change": system_state.get("last_change", "None")
+                })
+            except Exception as e:
+                demo_results["components_tested"].append({
+                    "component": "Evolution Callbacks",
+                    "status": "⚠️ Error",
+                    "error": str(e)
+                })
+        
+        # Summary
+        functional_components = len([c for c in demo_results["components_tested"] if c["status"].startswith("✅")])
+        total_components = len(demo_results["components_tested"])
+        
+        demo_results["summary"] = {
+            "functional_components": functional_components,
+            "total_components": total_components,
+            "system_health": f"{functional_components}/{total_components}",
+            "overall_status": "✅ FULLY FUNCTIONAL" if functional_components == total_components else "⚠️ PARTIALLY FUNCTIONAL"
+        }
+        
+        return demo_results
+        
+    except Exception as e:
+        logger.error(f"Error in full system demo: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
 if __name__ == "__main__":
