@@ -809,6 +809,18 @@ class RealTimeEvolutionEngine:
                     self.config["prompts"][target] = modification
                     return True
             
+            elif candidate.mutation_type == MutationType.WORKFLOW_MODIFICATION:
+                workflow = mutation_data.get("workflow")
+                modification = mutation_data.get("modification")
+                if workflow and modification:
+                    if "workflows" not in self.config:
+                        self.config["workflows"] = {}
+                    if workflow not in self.config["workflows"]:
+                        self.config["workflows"][workflow] = {}
+                    self.config["workflows"][workflow]["modification"] = modification
+                    self.config["workflows"][workflow]["last_modified"] = datetime.now().isoformat()
+                    return True
+            
             return False
             
         except Exception as e:

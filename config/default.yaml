@@ -19,20 +19,34 @@ code_analysis_thresholds:
 # Add a top-level key to confirm this file is loaded, if necessary for debugging
 config_source: "default.yaml"
 
-# Configurações dos modelos LLM
+# Configurações dos modelos LLM - Distribuição inteligente para evitar rate limiting
+# Cada agente usa um modelo diferente para maximizar throughput
 models:
-  architect_default: "deepseek/deepseek-chat-v3-0324:free"
-  maestro_default: "deepseek/deepseek-chat-v3-0324:free"
-  code_reviewer: "mistralai/mistral-7b-instruct:free"
-  log_analyzer_default: "deepseek/deepseek-chat-v3-0324:free"
-  sommelier_default: "deepseek/deepseek-chat-v3-0324:free"
-  frontend_artisan_default: "deepseek/deepseek-chat-v3-0324:free"
-  bug_hunter_default: "deepseek/deepseek-chat-v3-0324:free"
+  # Architect - Precisa de raciocínio complexo e contexto longo
+  architect_default: "deepseek/deepseek-r1-0528:free"
+  
+  # Maestro - Coordenação estratégica, precisa de boa compreensão
+  maestro_default: "mistralai/mistral-small-3.2-24b-instruct:free"
+  
+  # Code Reviewer - Análise técnica precisa
+  code_reviewer: "qwen/qwen3-14b:free"
+  
+  # Log Analyzer - Análise de padrões e logs
+  log_analyzer_default: "qwen/qwen3-8b:free"
+  
+  # Sommelier - Avaliação de qualidade
+  sommelier_default: "deepseek/deepseek-r1-0528-qwen3-8b:free"
+  
+  # Frontend Artisan - Criatividade e design
+  frontend_artisan_default: "moonshotai/kimi-dev-72b:free"
+  
+  # Bug Hunter - Detecção precisa de problemas
+  bug_hunter_default: "qwen/qwen3-32b:free"
 
 # Configurações do Bug Hunter Agent
 bug_hunter:
-  scan_interval: 30  # segundos entre scans
-  max_concurrent_fixes: 3  # máximo de correções simultâneas
+  scan_interval: 60  # segundos entre scans (aumentado de 30)
+  max_concurrent_fixes: 1  # máximo de correções simultâneas (reduzido de 3)
   auto_fix_enabled: true  # correção automática habilitada
   scan_syntax_errors: true
   scan_import_errors: true
@@ -43,10 +57,18 @@ bug_hunter:
 # Configurações do Real-Time Evolution Engine
 real_time_evolution:
   enabled: true  # evolução em tempo real habilitada
-  mutation_interval: 30  # segundos entre gerações de mutação
-  max_parallel_tests: 3  # máximo de testes simultâneos
+  mutation_interval: 60  # segundos entre gerações de mutação (aumentado de 30)
+  max_parallel_tests: 1  # máximo de testes simultâneos (reduzido de 3)
   fitness_threshold: 0.1  # limiar mínimo de fitness para deployment
   risk_threshold: 0.3  # limiar máximo de risco para deployment
+
+# Configurações de Rate Limiting para API
+rate_limiting:
+  enabled: true
+  max_concurrent_llm_calls: 3  # aumentado para 3 já que agora temos modelos diferentes
+  calls_per_minute: 45  # aumentado para 45 (15 por modelo em média)
+  retry_delay_seconds: 5  # delay entre retries em caso de rate limit
+  exponential_backoff: true  # usar backoff exponencial
 
 # Evolution Analytics Configuration
 evolution_analytics:

@@ -1,5 +1,0 @@
-behavior: detection_sensitivity
-change: Increase detection threshold
-detection_threshold: 1.4000000000000001
-last_behavior_change: '2025-07-08T14:31:28.789051'
-sensitivity: high

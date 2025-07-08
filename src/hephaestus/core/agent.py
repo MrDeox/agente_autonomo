@@ -13,6 +13,7 @@ import asyncio
 import random
 import traceback
 import uuid
+import threading
 
 from hephaestus.utils.project_scanner import update_project_manifest
 from hephaestus.core.brain import (
@@ -42,6 +43,7 @@ from hephaestus.utils.error_prevention_system import ErrorPreventionSystem, Erro
 from hephaestus.utils.continuous_monitor import get_continuous_monitor
 from .agents.autonomous_monitor_agent import AutonomousMonitorAgent
 from hephaestus.intelligence.evolution_analytics import get_evolution_analytics
+from hephaestus.utils.log_cleaner import get_log_cleaner
 
 # Configuração do Logging
 logger = logging.getLogger(__name__)
@@ -279,6 +281,15 @@ class HephaestusAgent:
 
         # Evolution Analytics
         self.evolution_analytics = get_evolution_analytics(config, self.logger)
+        
+        # Log Cleaner - Sistema de limpeza automática
+        self.log_cleaner = get_log_cleaner(config, self.logger)
+        
+        # Executar limpeza inicial
+        self.log_cleaner.schedule_cleanup()
+        
+        # Configurar limpeza automática periódica
+        self._setup_automatic_cleanup()
 
     def _initialize_evolution_log(self):
         """Verifica e inicializa o arquivo de log de evolução com cabeçalho, se necessário."""
@@ -497,7 +508,7 @@ class HephaestusAgent:
         # Re-run architect phase with the feedback
         return self._run_architect_phase()
 
-    def _run_maestro_phase(self, failed_strategy_context: Optional[Dict[str, str]] = None) -> bool:
+    async def _run_maestro_phase(self, failed_strategy_context: Optional[Dict[str, str]] = None) -> bool:
         self.logger.info("\nSolicitando decisão do MaestroAgent...")
         if not self.state.action_plan_data:
             self.logger.error("--- FALHA: Nenhum plano de ação (patches) disponível para o MaestroAgent avaliar. ---")
@@ -505,77 +516,36 @@ class HephaestusAgent:
 
         start_time = time.time()
 
-        maestro_logs = self.maestro.choose_strategy(
-            action_plan_data=self.state.action_plan_data,
-            memory_summary=self.memory.get_full_history_for_prompt(),
-            failed_strategy_context=failed_strategy_context
-        )
-
-        execution_time = time.time() - start_time
-        maestro_attempt = next((log for log in maestro_logs if log.get("success") and log.get("parsed_json")), None)
-
-        # Capturar dados de performance
-        success = bool(maestro_attempt)
-        response_content = str(maestro_attempt.get("parsed_json", {})) if maestro_attempt else "No valid response"
-        
-        self._capture_agent_performance(
-            agent_type="maestro",
-            prompt=f"Action Plan Analysis: {str(self.state.action_plan_data)[:200]}...",
-            response=response_content,
-            success=success,
-            execution_time=execution_time,
-            context_metadata={
-                "objective": self.state.current_objective,
-                "has_failed_strategy_context": bool(failed_strategy_context),
-                "available_strategies": len(self.config.get("validation_strategies", {}))
-            }
-        )
-
-        if not maestro_attempt:
-            self.logger.error("--- FALHA: MaestroAgent não retornou uma resposta JSON válida e bem-sucedida após todas as tentativas. ---")
-            raw_resp_list = [log.get('raw_response', 'No raw response') for log in maestro_logs]
-            self.logger.debug(f"Respostas brutas do MaestroAgent: {raw_resp_list}")
-            
-            # Registrar falha para análise
-            self._record_failure_for_analysis(
-                agent_type="maestro",
-                objective=self.state.current_objective or "Unknown objective",
-                error_message="No valid JSON response from MaestroAgent",
-                failure_type="validation",
-                severity=0.7
+        # Usar o método correto do MaestroAgentEnhanced
+        try:
+            # O MaestroAgentEnhanced usa select_strategy em vez de choose_strategy
+            strategy_result = await self.maestro.select_strategy(
+                objective=f"Choose strategy for: {self.state.current_objective}"
             )
             
-            fallback_strategy = self.config.get("validation_strategies", {}).get("NO_OP_STRATEGY")
-            if fallback_strategy is None:
+            if not strategy_result:
+                self.logger.error("--- FALHA: MaestroAgent não conseguiu selecionar uma estratégia. ---")
                 return False
-            self.logger.info("Usando estratégia padrão NO_OP_STRATEGY por falta de decisão válida do MaestroAgent.")
-            self.state.strategy_key = "NO_OP_STRATEGY"
+            
+            # Converter o resultado para o formato esperado
+            strategy_key = strategy_result.get('name', 'fallback')
+            confidence = strategy_result.get('confidence', 0.5)
+            
+            # Validar se a estratégia é válida
+            valid_strategies = list(self.config.get("validation_strategies", {}).keys())
+            valid_strategies.append("CAPACITATION_REQUIRED")
+            
+            if strategy_key not in valid_strategies:
+                self.logger.error(f"--- FALHA: MaestroAgent escolheu uma estratégia inválida: '{strategy_key}' ---")
+                return False
+            
+            self.logger.info(f"Estratégia escolhida pelo MaestroAgent: {strategy_key} (confiança: {confidence:.2f})")
+            self.state.strategy_key = strategy_key
             return True
-
-        decision = maestro_attempt["parsed_json"]
-        strategy_key = (decision.get("strategy_key") or "").strip()
-
-        valid_strategies = list(self.config.get("validation_strategies", {}).keys())
-        valid_strategies.append("CAPACITATION_REQUIRED")
-
-        if strategy_key not in valid_strategies:
-            self.logger.error(f"--- FALHA: MaestroAgent escolheu uma estratégia inválida ou desconhecida: '{strategy_key}' ---")
-            self.logger.debug(f"Estratégias válidas são: {valid_strategies}. Decisão do Maestro: {decision}")
             
-            # Registrar falha para análise
-            self._record_failure_for_analysis(
-                agent_type="maestro",
-                objective=self.state.current_objective or "Unknown objective",
-                error_message=f"Invalid strategy chosen: {strategy_key}",
-                failure_type="validation",
-                severity=0.6
-            )
-            
+        except Exception as e:
+            self.logger.error(f"--- FALHA: Erro ao executar MaestroAgent: {e} ---")
             return False
-
-        self.logger.info(f"Estratégia escolhida pelo MaestroAgent ({maestro_attempt.get('model', 'N/A')}): {strategy_key}")
-        self.state.strategy_key = strategy_key
-        return True
 
     def _execute_validation_strategy(self) -> None:
         strategy_key = self.state.strategy_key
@@ -2431,3 +2401,35 @@ class HephaestusAgent:
     def predict_future_performance(self, metric_name: str, days_ahead: int = 7) -> Optional[Dict[str, Any]]:
         """Predict future performance for a metric"""
         return self.evolution_analytics.predict_future_performance(metric_name, days_ahead)
+
+    def _setup_automatic_cleanup(self):
+        """Configura limpeza automática periódica"""
+        import threading
+        import time
+        
+        def cleanup_worker():
+            """Worker thread para limpeza automática"""
+            while True:
+                try:
+                    # Aguardar intervalo configurado (padrão: 24 horas)
+                    interval_hours = self.config.get("log_cleaner", {}).get("auto_cleanup_interval_hours", 24)
+                    time.sleep(interval_hours * 3600)
+                    
+                    # Executar limpeza
+                    self.logger.info("🧹 Executing scheduled cleanup...")
+                    results = self.log_cleaner.clean_all()
+                    
+                    if results["errors"]:
+                        self.logger.error(f"Cleanup errors: {results['errors']}")
+                    else:
+                        self.logger.info(f"🧹 Scheduled cleanup completed: {results['backups_cleaned']} backups, {results['logs_cleaned']} logs cleaned")
+                        
+                except Exception as e:
+                    self.logger.error(f"Cleanup worker error: {e}")
+                    time.sleep(3600)  # Aguardar 1 hora em caso de erro
+        
+        # Iniciar thread de limpeza em background
+        cleanup_thread = threading.Thread(target=cleanup_worker, daemon=True)
+        cleanup_thread.start()
+        
+        self.logger.info("🧹 Automatic cleanup scheduled")

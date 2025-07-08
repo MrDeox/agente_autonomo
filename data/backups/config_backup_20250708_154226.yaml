@@ -2,14 +2,14 @@ agents:
   architect:
     behavior: risk_assessment
     change: More conservative patch generation
-    last_behavior_change: '2025-07-08T15:42:36.814763'
+    last_behavior_change: '2025-07-08T15:33:53.423366'
     patch_generation: conservative
     risk_tolerance: conservative
   bug_hunter:
     behavior: detection_sensitivity
     change: Increase detection threshold
-    detection_threshold: 4.999999999999998
-    last_behavior_change: '2025-07-08T15:42:47.434368'
+    detection_threshold: 4.799999999999999
+    last_behavior_change: '2025-07-08T15:33:58.732195'
     sensitivity: high
   maestro:
     behavior: strategy_selection

@@ -252,14 +252,18 @@ class AsyncAgentOrchestrator:
                 )
 
         elif task.agent_type == AgentType.MAESTRO:
-            loop = asyncio.get_running_loop()
-            return await loop.run_in_executor(
-                self.executor,
-                agent.choose_strategy,
-                task.context.get('action_plan_data', {}),
-                task.context.get('memory_summary', ''),
-                task.context.get('failed_strategy_context')
-            )
+            # O MaestroAgentEnhanced usa select_strategy em vez de choose_strategy
+            if hasattr(agent, 'select_strategy') and asyncio.iscoroutinefunction(agent.select_strategy):
+                result = await agent.select_strategy(task.objective)
+                return result
+            else:
+                # Fallback para método síncrono se necessário
+                loop = asyncio.get_running_loop()
+                return await loop.run_in_executor(
+                    self.executor,
+                    agent.select_strategy,
+                    task.objective
+                )
 
         elif task.agent_type == AgentType.CODE_REVIEW:
             loop = asyncio.get_running_loop()

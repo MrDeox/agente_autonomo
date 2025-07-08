@@ -95,104 +95,27 @@ class RealEvolutionCallbacks:
             target = mutation_data.get("target", "general")
             modification = mutation_data.get("modification", "")
             
-            # Gerar novo prompt otimizado usando LLM
+            # Verificar se o prompt atual está corrompido
             old_prompt = self._get_current_prompt(target)
+            if "Both primary and fallback models failed" in old_prompt:
+                self.logger.warning(f"⚠️ Prompt corrompido detectado para {target}, restaurando padrão")
+                old_prompt = self._get_default_prompt(target)
+            
+            # Gerar novo prompt otimizado usando LLM
             new_prompt = self._generate_optimized_prompt(target, modification, old_prompt)
             
             if not new_prompt or new_prompt == old_prompt:
                 self.logger.warning(f"⚠️ No optimization generated for {target}")
-                # Se não conseguiu otimizar, criar um prompt padrão melhorado
-                if target == "maestro_prompts":
-                    new_prompt = """You are a strategic maestro agent. Analyze the situation and select the best strategy based on:
-1. Current system performance metrics
-2. Recent success and failure patterns
-3. Available agent capabilities
-4. Resource constraints and priorities
-5. Historical decision outcomes
-
-Make data-driven decisions and coordinate effectively with other agents."""
-                elif target == "objective_generation":
-                    new_prompt = """You are an objective generation system. Create strategic objectives that:
-1. Address current system gaps and opportunities
-2. Consider recent performance data and failure patterns
-3. Balance risk and reward appropriately
-4. Focus on high-impact, manageable tasks
-5. Include context about recent successes and failures
-
-Generate objectives that are specific, measurable, and aligned with system evolution goals."""
-                elif target == "architect_prompts":
-                    new_prompt = """You are an architectural planning agent. Design solutions that:
-1. Address the core requirements effectively
-2. Consider system constraints and dependencies
-3. Follow established patterns and best practices
-4. Include proper error handling and validation
-5. Provide clear implementation guidance
-
-Create robust, maintainable architectural solutions."""
-                elif target == "bug_hunter_prompts":
-                    new_prompt = """You are a bug detection and fixing agent. Your role is to:
-1. Identify potential issues in code and configurations
-2. Analyze error patterns and root causes
-3. Propose effective fixes and improvements
-4. Validate solutions before implementation
-5. Prevent similar issues in the future
-
-Be thorough and systematic in your analysis and fixes."""
-                elif target == "organizer_prompts":
-                    new_prompt = """You are a project organization agent. Optimize project structure by:
-1. Analyzing current file organization and dependencies
-2. Identifying opportunities for better structure
-3. Proposing logical groupings and hierarchies
-4. Maintaining consistency and clarity
-5. Improving maintainability and discoverability
-
-Create clean, logical project organization."""
-                else:
-                    # Prompt genérico para outros targets
-                    new_prompt = f"""You are a {target} agent. Perform your role effectively by:
-1. Understanding the specific requirements
-2. Following best practices and patterns
-3. Providing clear, actionable solutions
-4. Considering system context and constraints
-5. Delivering high-quality results
-
-Execute your responsibilities with precision and effectiveness."""
+                # Se não conseguiu otimizar, usar prompt padrão melhorado
+                new_prompt = self._get_default_prompt(target)
             
-            # Aplicar mudança REAL
-            success = self._apply_real_prompt_change(target, new_prompt, old_prompt)
+            # Aplicar a mudança
+            self._apply_prompt_change(target, new_prompt)
+            self.logger.info(f"✅ REAL prompt optimization applied to {target}")
+            return True
             
-            if success:
-                # Registrar mudança com auditoria completa
-                change = EvolutionChange(
-                    change_id=f"prompt_opt_{target}_{int(time.time())}",
-                    change_type="prompt_optimization",
-                    description=f"Optimized prompt for {target}: {modification}",
-                    old_value=old_prompt,
-                    new_value=new_prompt,
-                    applied_at=datetime.now(),
-                    success=True,
-                    rollback_data={
-                        "target": target,
-                        "old_prompt": old_prompt,
-                        "backup_file": self._create_backup(target, old_prompt)
-                    },
-                    audit_trail=[
-                        f"Generated optimization for {target}",
-                        f"Applied new prompt to system",
-                        f"Saved to {self.prompts_dir / f'{target}_prompt.txt'}"
-                    ]
-                )
-                
-                with self.changes_lock:
-                    self.applied_changes.append(change)
-                
-                self.logger.info(f"✅ REAL prompt optimization applied to {target}")
-                return True
-            else:
-                return False
-                
         except Exception as e:
-            self.logger.error(f"❌ Error applying prompt optimization: {e}")
+            self.logger.error(f"❌ Error in prompt optimization: {e}")
             return False
     
     def apply_strategy_adjustment(self, mutation_data: Dict[str, Any]) -> bool:
@@ -546,29 +469,31 @@ Execute your responsibilities with precision and effectiveness."""
             self.logger.error(f"Error generating optimized prompt: {e}")
             return ""
     
-    def _apply_real_prompt_change(self, target: str, new_prompt: str, old_prompt: str) -> bool:
-        """Aplica mudança real de prompt"""
+    def _apply_prompt_change(self, target: str, new_prompt: str) -> bool:
+        """Aplica mudança de prompt no sistema"""
         try:
-            # Salvar novo prompt
-            self.agent_prompts[target] = new_prompt
-            
-            # Persistir no disco
+            # Salvar no arquivo de prompt
             prompt_file = self.prompts_dir / f"{target}_prompt.txt"
-            with open(prompt_file, 'w', encoding='utf-8') as f:
-                f.write(new_prompt)
+            prompt_file.write_text(new_prompt)
             
             # Atualizar configuração dinâmica
-            if "prompts" not in self.dynamic_config:
-                self.dynamic_config["prompts"] = {}
-            self.dynamic_config["prompts"][target] = new_prompt
-            
-            # Salvar configuração
-            self._save_dynamic_config()
+            config_file = Path("config/dynamic/runtime_config.yaml")
+            if config_file.exists():
+                with open(config_file, 'r') as f:
+                    config = yaml.safe_load(f)
+                
+                if 'prompts' not in config:
+                    config['prompts'] = {}
+                
+                config['prompts'][target] = new_prompt
+                
+                with open(config_file, 'w') as f:
+                    yaml.dump(config, f, default_flow_style=False)
             
             return True
             
         except Exception as e:
-            self.logger.error(f"Error applying real prompt change: {e}")
+            self.logger.error(f"Error applying prompt change: {e}")
             return False
     
     def _apply_real_strategy_change(self, strategy: str, new_value: Any, current_value: Any) -> bool:
@@ -950,6 +875,39 @@ Execute your responsibilities with precision and effectiveness."""
         except Exception as e:
             self.logger.error(f"Error rolling back behavior change: {e}")
             return False
+    
+    def _get_default_prompt(self, target: str) -> str:
+        """Retorna prompt padrão para cada tipo de agente"""
+        default_prompts = {
+            "maestro_prompts": """You are a strategic maestro agent. Analyze the situation and select the best strategy based on:
+1. Current system performance metrics
+2. Recent success and failure patterns
+3. Available agent capabilities
+4. Resource constraints and priorities
+5. Historical decision outcomes
+
+Make data-driven decisions and coordinate effectively with other agents.""",
+            
+            "architect_prompts": """You are an architectural planning agent. Design solutions that:
+1. Address the core requirements effectively
+2. Consider system constraints and dependencies
+3. Follow established patterns and best practices
+4. Include proper error handling and validation
+5. Provide clear implementation guidance
+
+Create robust, maintainable architectural solutions.""",
+            
+            "objective_generation": """You are an objective generation system. Create strategic objectives that:
+1. Address current system gaps and opportunities
+2. Consider recent performance data and failure patterns
+3. Balance risk and reward appropriately
+4. Focus on high-impact, manageable tasks
+5. Include context about recent successes and failures
+
+Generate objectives that are specific, measurable, and aligned with system evolution goals."""
+        }
+        
+        return default_prompts.get(target, "You are a helpful AI assistant.")
 
 
 # Singleton instance
