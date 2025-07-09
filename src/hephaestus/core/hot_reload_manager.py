@@ -71,14 +71,20 @@ class HotReloadManager:
     
     def start_watching(self, directory: str):
         """Iniciar monitoramento REAL de arquivos."""
+        if self.watching:
+            self.logger.info(f"⚠️ Já está monitorando {directory}")
+            return True
+            
         try:
             handler = ModuleReloadHandler(self)
             self.file_observer.schedule(handler, directory, recursive=True)
             self.file_observer.start()
             self.watching = True
             self.logger.info(f"👁️ Monitoramento de arquivos iniciado: {directory}")
+            return True
         except Exception as e:
             self.logger.error(f"❌ Erro iniciando monitoramento: {e}")
+            return False
     
     def stop_watching(self):
         """Parar monitoramento."""
