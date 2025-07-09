@@ -400,10 +400,11 @@ workflows:
     retry_enabled: true
   validation_pipeline:
     expected_impact: Reduce validation failures
-    last_modified: '2025-07-08T22:39:07.947565'
+    last_modified: '2025-07-08T22:43:34.390098'
     modification: Add pre-validation step
     pre_validation: true
     validation_steps:
+    - pre_validation
     - pre_validation
     - pre_validation
     - pre_validation
