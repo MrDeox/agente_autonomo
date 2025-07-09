@@ -1,0 +1,399 @@
+agents:
+  architect:
+    behavior: risk_assessment
+    change: More conservative patch generation
+    last_behavior_change: '2025-07-08T23:00:43.577056'
+    patch_generation: conservative
+    risk_tolerance: conservative
+  bug_hunter:
+    behavior: detection_sensitivity
+    change: Increase detection threshold
+    detection_threshold: 8.399999999999986
+    last_behavior_change: '2025-07-08T22:59:34.920968'
+    sensitivity: high
+  maestro:
+    behavior: strategy_selection
+    change: Prefer strategies with higher success rates
+    last_behavior_change: '2025-07-08T22:57:27.012121'
+    strategy_preference: high_success_rate
+    success_rate_threshold: 0.8
+async:
+  timeout: 427.0
+async_operations:
+  timeout: 427
+autonomous_capability_expansion:
+  auto_implementation_enabled: true
+  autonomous_learning_enabled: true
+  blueprint_generation_enabled: true
+  capability_synthesis_enabled: true
+  complexity_threshold: 0.8
+  discovery_interval: 7200
+  dynamic_agent_creation: true
+  enabled: true
+  exponential_expansion_enabled: true
+  gap_analysis_enabled: true
+  impact_threshold: 0.5
+  max_concurrent_expansions: 3
+  self_discovery_enabled: true
+  success_probability_threshold: 0.6
+bug_hunter:
+  auto_fix_enabled: true
+  max_concurrent_fixes: 3
+  scan_import_errors: true
+  scan_interval: 30
+  scan_log_errors: true
+  scan_performance_issues: true
+  scan_syntax_errors: true
+  scan_test_failures: true
+code_analysis_thresholds:
+  file_loc: 300
+  function_cc: 10
+  function_loc: 50
+config_source: default.yaml
+cycle:
+  delay_seconds: 0.5
+cycle_delay_seconds: 0.5
+default_model_settings:
+  max_tokens: -1
+  temperature: 0.3
+degenerative_loop_threshold: 2
+dynamic_agent_dna:
+  cognitive_genetics_enabled: true
+  darwinian_evolution_enabled: true
+  enabled: true
+  fitness_based_selection: true
+  fitness_threshold: 0.6
+  generation_interval: 3600
+  genetic_diversity_target: 0.7
+  genetic_reproduction_enabled: true
+  mutation_evolution_enabled: true
+  mutation_rate: 0.1
+  natural_selection_enabled: true
+  population_dynamics_enabled: true
+  population_size: 50
+  reproduction_rate: 0.2
+  selection_pressure: 0.3
+  speciation_enabled: true
+evolution_analytics:
+  analysis_interval_hours: 6
+  auto_cleanup: true
+  chart_generation: true
+  min_data_points: 10
+  prediction_enabled: true
+  retention_days: 30
+execution_mode:
+  enabled: true
+  evolution_cooldown_hours: 2
+  force_simple_objectives: true
+  max_objective_attempts: 3
+  objective_priority: high
+  objective_timeout_minutes: 30
+  skip_complex_refactoring: true
+llm:
+  max_tokens: 2892
+  temperature: 0.21421064524846975
+llm_calls:
+  max_tokens: 2892
+  temperature: 0.21421064524846975
+log_cleaner:
+  auto_cleanup_interval_hours: 24
+  backup_retention_days: 7
+  log_retention_days: 30
+  max_backup_files: 50
+  max_log_size_mb: 100
+log_level: INFO
+loop_detection:
+  threshold: 2
+max_retries: 3
+memory_file_path: reports/memory/HEPHAESTUS_MEMORY.json
+meta_learning:
+  adaptive_memory_enabled: true
+  adaptive_rate_enabled: true
+  base_learning_rate: 0.1
+  bias_detection_enabled: true
+  continuous_optimization: true
+  enabled: true
+  max_learning_events: 1000
+  memory_retention_threshold: 0.3
+  pattern_detection_threshold: 5
+  transfer_learning_enabled: true
+meta_objective_generator:
+  auto_capability_assessment: true
+  capability_analysis_interval: 1800
+  context_awareness_level: high
+  creativity_boost_factor: 1.2
+  enabled: true
+  generation_interval: 600
+  improvement_threshold: 0.1
+  max_concurrent_objectives: 5
+  objective_evolution_enabled: true
+  pattern_detection_threshold: 3
+  pattern_learning_enabled: true
+  quality_threshold: 0.7
+  recursive_depth: 3
+  strategic_planning_enabled: true
+models:
+  architect_default: deepseek/deepseek-chat-v3-0324:free
+  bug_hunter_default: deepseek/deepseek-chat-v3-0324:free
+  capacitation_generator:
+    _target_: builtins.dict
+    fallback: mistralai/mistral-7b-instruct:free
+    max_tokens: -1
+    primary: deepseek/deepseek-chat-v3-0324:free
+    temperature: 0.3
+  code_reviewer: mistralai/mistral-7b-instruct:free
+  debt_hunter_default:
+    _target_: builtins.dict
+    fallback: mistralai/mistral-7b-instruct:free
+    max_tokens: -1
+    primary: qwen/qwen3-0.6b-04-28:free
+    temperature: 0.3
+  error_analyzer:
+    _target_: builtins.dict
+    fallback: mistralai/mistral-7b-instruct:free
+    max_tokens: -1
+    primary: deepseek/deepseek-chat-v3-0324:free
+    temperature: 0.3
+  frontend_artisan_default: deepseek/deepseek-chat-v3-0324:free
+  log_analyzer_default: deepseek/deepseek-chat-v3-0324:free
+  maestro_default: deepseek/deepseek-chat-v3-0324:free
+  objective_generator:
+    _target_: builtins.dict
+    fallback: mistralai/mistral-7b-instruct:free
+    max_tokens: -1
+    primary: deepseek/deepseek-chat-v3-0324:free
+    temperature: 0.3
+  sommelier_default: deepseek/deepseek-chat-v3-0324:free
+parallel_reality:
+  early_termination_threshold: 0.2
+  enabled: true
+  historical_optimization: true
+  learning_enabled: true
+  max_parallel_tests: 3
+  max_session_time: 300
+  min_execution_time: 10
+  resource_monitoring: true
+  strategy_types:
+  - conservative
+  - aggressive
+  - balanced
+  - experimental
+  - optimized
+  winner_selection_interval: 30
+prompts:
+  architect_prompts: 'You are an architectural planning agent. Design solutions that:
+
+    1. Address the core requirements effectively
+
+    2. Consider system constraints and dependencies
+
+    3. Follow established patterns and best practices
+
+    4. Include proper error handling and validation
+
+    5. Provide clear implementation guidance
+
+
+    Create robust, maintainable architectural solutions.'
+  maestro_prompts: 'You are a strategic maestro agent. Analyze the situation and select
+    the best strategy based on:
+
+    1. Current system performance metrics
+
+    2. Recent success and failure patterns
+
+    3. Available agent capabilities
+
+    4. Resource constraints and priorities
+
+    5. Historical decision outcomes
+
+
+    Make data-driven decisions and coordinate effectively with other agents.'
+  objective_generation: Both primary and fallback models failed or are not configured.
+rate_limiting:
+  calls_per_minute: 30
+  enabled: true
+  exponential_backoff: true
+  max_concurrent_llm_calls: 2
+  retry_delay_seconds: 5
+real_time_evolution:
+  enabled: true
+  fitness_threshold: 0.1
+  max_parallel_tests: 3
+  mutation_interval: 30
+  risk_threshold: 0.3
+self_awareness:
+  bias_correction_enabled: true
+  bias_detection_enabled: true
+  cognitive_load_monitoring: true
+  continuous_monitoring: true
+  decision_quality_tracking: true
+  enabled: true
+  fatigue_detection_enabled: true
+  max_state_history: 1000
+  metacognitive_awareness: true
+  personality_evolution_enabled: true
+  reflection_interval: 300
+  self_optimization_triggers: true
+  state_monitoring_interval: 60
+  wellness_threshold: 0.4
+strategy:
+  cycle_delay_seconds: 0.5
+  degenerative_loop_threshold: 2
+  validation_retries: 2
+temporal_intelligence:
+  analysis_interval: 1800
+  correlation_analysis_enabled: true
+  cyclical_pattern_detection: true
+  enabled: true
+  future_prediction_enabled: true
+  historical_learning_enabled: true
+  max_historical_events: 10000
+  pattern_confidence_threshold: 0.6
+  pattern_detection_threshold: 3
+  prediction_horizon_days: 7
+  predictive_optimization: true
+  proactive_planning_enabled: true
+  temporal_context_awareness: true
+  temporal_decision_making: true
+  temporal_memory_enabled: true
+  trend_analysis_enabled: true
+timeout_seconds: 30
+validation:
+  retries: 2
+validation_retries: 2
+validation_strategies:
+  AUTO_CORRECTION_STRATEGY:
+    sanity_check_step: run_pytest
+    steps:
+    - validate_syntax
+    - PatchApplicatorStep
+    - run_pytest
+  BENCHMARK_ONLY:
+    sanity_check_step: run_pytest
+    steps:
+    - run_benchmark_validation
+    - PatchApplicatorStep
+  CAPABILITY_EXPANSION:
+    sanity_check_step: skip_sanity_check
+    steps:
+    - validate_syntax
+    - PatchApplicatorStep
+  CONFIG_SYNTAX_CHECK:
+    sanity_check_step: skip_sanity_check
+    steps:
+    - ValidateJsonSyntax
+  CONFIG_UPDATE_STRATEGY:
+    sanity_check_step: check_file_existence
+    steps:
+    - ValidateJsonSyntax
+    - PatchApplicatorStep
+  CREATE_NEW_TEST_FILE_STRATEGY:
+    sanity_check_step: run_pytest_new_file
+    steps:
+    - validate_syntax
+    - run_pytest_new_file
+    - PatchApplicatorStep
+  CYCLOMATIC_COMPLEXITY_CHECK:
+    description: "Bloqueia patches com complexidade ciclom\xE1tica acima de 30"
+    name: CYCLOMATIC_COMPLEXITY_CHECK
+    threshold: 30
+  DISCARD:
+    sanity_check_step: skip_sanity_check
+    steps: []
+  DOC_UPDATE_STRATEGY:
+    sanity_check_step: check_file_existence
+    steps:
+    - validate_syntax
+    - PatchApplicatorStep
+    - check_file_existence
+  EVOLUTION_PERMISSIVE:
+    sanity_check_step: skip_sanity_check
+    steps:
+    - validate_syntax
+    - PatchApplicatorStep
+  FULL_VALIDATION:
+    sanity_check_step: run_pytest
+    steps:
+    - validate_syntax
+    - ValidateJsonSyntax
+    - run_pytest
+    - run_benchmark_validation
+    - PatchApplicatorStep
+  INNOVATION_STRATEGY:
+    sanity_check_step: skip_sanity_check
+    steps:
+    - validate_syntax
+    - PatchApplicatorStep
+  NEW_FEATURE_STRATEGY:
+    sanity_check_step: check_file_existence
+    steps:
+    - validate_syntax
+    - PatchApplicatorStep
+  SYNTAX_AND_PYTEST:
+    sanity_check_step: run_pytest
+    steps:
+    - validate_syntax
+    - run_pytest
+    - PatchApplicatorStep
+  SYNTAX_ONLY:
+    sanity_check_step: skip_sanity_check
+    steps:
+    - validate_syntax
+    - PatchApplicatorStep
+  TEST_FIX_STRATEGY:
+    sanity_check_step: run_pytest
+    steps:
+    - validate_syntax
+    - PatchApplicatorStep
+  parameters:
+    comprehensive_pre_validation:
+      additionalProperties: false
+      required:
+      - agent
+      schema:
+        additionalProperties: false
+        properties:
+          agent:
+            additionalProperties: false
+            properties:
+              validation:
+                additionalProperties: false
+                properties: null
+                required: []
+                type: object
+            required:
+            - validation
+            type: object
+        required:
+        - agent
+        type: object
+      type: object
+workflows:
+  agent_coordination:
+    expected_impact: Faster completion
+    last_modified: '2025-07-08T23:01:52.797912'
+    max_parallel: 44
+    modification: Increase parallel execution
+    parallel_execution: true
+  error_handling:
+    expected_impact: Better error recovery
+    last_modified: '2025-07-08T23:02:03.424575'
+    modification: Add retry mechanism
+    retry_count: 39
+    retry_enabled: true
+  validation_pipeline:
+    expected_impact: Reduce validation failures
+    last_modified: '2025-07-08T22:51:19.217860'
+    modification: Add pre-validation step
+    pre_validation: true
+    validation_steps:
+    - pre_validation
+    - pre_validation
+    - pre_validation
+    - pre_validation
+    - pre_validation
+    - pre_validation
+    - pre_validation
+    - pre_validation
