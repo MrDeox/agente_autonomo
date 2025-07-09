@@ -36,6 +36,7 @@ from hephaestus.intelligence.knowledge_system import AdvancedKnowledgeSystem, ge
 from hephaestus.intelligence.root_cause_analyzer import RootCauseAnalyzer, get_root_cause_analyzer
 from hephaestus.intelligence.self_awareness_core import SelfAwarenessCore, get_self_awareness_core
 from hephaestus.intelligence.meta_objective_generator import MetaObjectiveGenerator, get_meta_objective_generator
+from hephaestus.intelligence.temporal_intelligence import TemporalIntelligence, get_temporal_intelligence
 from hephaestus.utils.infrastructure_manager import InfrastructureManager, get_infrastructure_manager
 from hephaestus.services.communication.inter_agent import get_inter_agent_communication
 from hephaestus.agents.swarm_coordinator_agent import SwarmCoordinatorAgent
@@ -111,6 +112,8 @@ class HephaestusAgent:
         self.self_awareness_core = get_self_awareness_core(self.config, self.logger)
         
         self.meta_objective_generator = get_meta_objective_generator(self.config, self.logger)
+        
+        self.temporal_intelligence = get_temporal_intelligence(self.config, self.logger)
         
         self.infrastructure_manager = get_infrastructure_manager(self.logger)
         
