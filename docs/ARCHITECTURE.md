@@ -123,6 +123,7 @@ agente_autonomo/
                 self_awareness_core.py
                 evolution_analytics.py
                 parallel_reality_tester.py
+                temporal_intelligence.py
                 predictive_failure_engine.py
                 meta_core.py
                 meta_learning_intelligence.py
@@ -317,42 +318,92 @@ agente_autonomo/
             chart_cycle_duration_seconds_7d.png
             chart_agents_per_cycle_7d.png
         backups/
+            config_backup_20250708_222438.yaml
+            config_backup_20250708_222415.yaml
             config_backup_20250708_221716.yaml
             maestro_config_backup_20250708_221722.yaml
+            config_backup_20250708_222305.yaml
+            maestro_config_backup_20250708_222443.yaml
+            config_backup_20250708_222127.yaml
+            config_backup_20250708_222038.yaml
+            error_handling_workflow_backup_20250708_222410.yaml
+            validation_pipeline_workflow_backup_20250708_222155.yaml
+            bug_hunter_config_backup_20250708_222111.yaml
             architect_config_backup_20250708_221944.yaml
+            agent_coordination_workflow_backup_20250708_222049.yaml
+            config_backup_20250708_222343.yaml
+            config_backup_20250708_222300.yaml
+            config_backup_20250708_222549.yaml
+            config_backup_20250708_222359.yaml
+            config_backup_20250708_222505.yaml
             agent_coordination_workflow_backup_20250708_221638.yaml
             agent_coordination_workflow_backup_20250708_221632.yaml
+            config_backup_20250708_222244.yaml
             config_backup_20250708_221806.yaml
+            config_backup_20250708_222138.yaml
             config_backup_20250708_221911.yaml
+            validation_pipeline_workflow_backup_20250708_222217.yaml
             bug_hunter_config_backup_20250708_221538.yaml
+            config_backup_20250708_222054.yaml
+            config_backup_20250708_222144.yaml
+            config_backup_20250708_222510.yaml
             architect_config_backup_20250708_221933.yaml
             error_handling_workflow_backup_20250708_154558.yaml
+            config_backup_20250708_222527.yaml
+            maestro_config_backup_20250708_222349.yaml
+            config_backup_20250708_222206.yaml
+            config_backup_20250708_222532.yaml
             config_backup_20250708_221744.yaml
             config_backup_20250708_221828.yaml
+            config_backup_20250708_222222.yaml
+            config_backup_20250708_222117.yaml
+            config_backup_20250708_222033.yaml
             config_backup_20250708_221438.yaml
+            config_backup_20250708_222233.yaml
+            config_backup_20250708_222255.yaml
             config_backup_20250708_221454.yaml
             config_backup_20250708_221554.yaml
+            architect_config_backup_20250708_222338.yaml
             architect_config_backup_20250708_222005.yaml
             config_backup_20250708_221559.yaml
             config_backup_20250708_221812.yaml
+            config_backup_20250708_222333.yaml
             agent_coordination_workflow_backup_20250708_221855.yaml
             config_backup_20250708_221605.yaml
+            config_backup_20250708_222516.yaml
+            config_backup_20250708_222122.yaml
             architect_config_backup_20250708_221954.yaml
+            config_backup_20250708_222311.yaml
             config_backup_20250708_221733.yaml
             bug_hunter_config_backup_20250708_221833.yaml
+            maestro_config_backup_20250708_222327.yaml
+            config_backup_20250708_222105.yaml
             architect_config_backup_20250708_221516.yaml
+            architect_config_backup_20250708_222249.yaml
+            config_backup_20250708_222133.yaml
+            config_backup_20250708_222027.yaml
             config_backup_20250708_221621.yaml
             bug_hunter_config_backup_20250708_221849.yaml
             config_backup_20250708_221627.yaml
             architect_config_backup_20250708_221839.yaml
             config_backup_20250708_221510.yaml
+            architect_config_backup_20250708_222044.yaml
+            config_backup_20250708_222454.yaml
+            config_backup_20250708_222448.yaml
             config_backup_20250708_221616.yaml
             agent_coordination_workflow_backup_20250708_221938.yaml
             config_backup_20250708_221800.yaml
             config_backup_20250708_221949.yaml
             maestro_config_backup_20250708_221727.yaml
+            config_backup_20250708_222316.yaml
+            config_backup_20250708_222432.yaml
+            maestro_config_backup_20250708_222211.yaml
             config_backup_20250708_221449.yaml
             architect_config_backup_20250708_221711.yaml
+            config_backup_20250708_222200.yaml
+            config_backup_20250708_222100.yaml
+            bug_hunter_config_backup_20250708_222149.yaml
+            config_backup_20250708_222500.yaml
             error_handling_workflow_backup_20250708_154516.yaml
             config_backup_20250708_221928.yaml
             config_backup_20250708_221700.yaml
@@ -361,6 +412,7 @@ agente_autonomo/
             architect_config_backup_20250708_221738.yaml
             config_backup_20250708_221443.yaml
         workflows/
+            validation_pipeline_workflow.yaml
             agent_coordination_workflow.yaml
             error_handling_workflow.yaml
     logs/
@@ -1377,6 +1429,24 @@ agente_autonomo/
   - *🧪 Parallel Reality Testing System*
 - **Função:** `get_parallel_reality_tester(config: Dict[str, Any], logger: logging.Logger)`
   - *Get singleton instance of ParallelRealityTester*
+
+### Arquivo: `src/hephaestus/intelligence/temporal_intelligence.py`
+- **Classe:** `TemporalPerspective(Enum)`
+  - *Perspectivas temporais do sistema*
+- **Classe:** `TemporalScope(Enum)`
+  - *Escopo temporal de análise*
+- **Classe:** `PredictionConfidence(Enum)`
+  - *Níveis de confiança nas predições*
+- **Classe:** `TemporalPattern`
+  - *Padrão identificado na linha temporal*
+- **Classe:** `FuturePrediction`
+  - *Predição sobre eventos/necessidades futuras*
+- **Classe:** `TemporalContext`
+  - *Contexto temporal completo para tomada de decisões*
+- **Classe:** `TemporalIntelligence`
+  - *🕐 Temporal Intelligence System - Consciência temporal completa*
+- **Função:** `get_temporal_intelligence(config: Dict[str, Any], logger: logging.Logger)`
+  - *Get singleton instance of TemporalIntelligence*
 
 ### Arquivo: `src/hephaestus/intelligence/predictive_failure_engine.py`
 - **Classe:** `FailurePattern`
