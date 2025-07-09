@@ -876,6 +876,179 @@ class MetaLearningIntelligence:
             "transfer_learning_enabled": self.transfer_learning_enabled
         }
     
+    def record_system_learning_event(self, 
+                                   event_type: str,
+                                   agent_name: str, 
+                                   task_description: str,
+                                   success: bool,
+                                   execution_time: float,
+                                   error_info: Dict[str, Any] = None) -> bool:
+        """Registra evento de aprendizado baseado em execução real do sistema"""
+        try:
+            # Mapear evento para tipo de aprendizado
+            learning_type_mapping = {
+                "execution_success": LearningType.PERFORMANCE_IMPROVEMENT,
+                "execution_failure": LearningType.ERROR_CORRECTION,
+                "strategy_change": LearningType.STRATEGY_OPTIMIZATION,
+                "pattern_detected": LearningType.PATTERN_RECOGNITION,
+                "bias_corrected": LearningType.BIAS_CORRECTION,
+                "knowledge_transferred": LearningType.KNOWLEDGE_TRANSFER
+            }
+            
+            learning_type = learning_type_mapping.get(event_type, LearningType.PERFORMANCE_IMPROVEMENT)
+            
+            # Mapear agente para contexto
+            context_mapping = {
+                "architect": LearningContext.STRATEGY_SELECTION,
+                "maestro": LearningContext.DECISION_MAKING,
+                "bug_hunter": LearningContext.ERROR_HANDLING,
+                "organizer": LearningContext.PERFORMANCE_OPTIMIZATION
+            }
+            
+            context = context_mapping.get(agent_name, LearningContext.OBJECTIVE_EXECUTION)
+            
+            # Calcular performance baseada no sucesso e tempo
+            if success:
+                # Performance alta se sucesso rápido, média se lento
+                performance_before = 0.5
+                if execution_time <= 1.0:
+                    performance_after = 0.9
+                elif execution_time <= 5.0:
+                    performance_after = 0.7
+                else:
+                    performance_after = 0.6
+            else:
+                # Performance baixa em falhas
+                performance_before = 0.6
+                performance_after = 0.2
+            
+            # Determinar qualidade do feedback
+            feedback_quality = 0.9 if success else 0.7
+            if error_info and "error_type" in error_info:
+                feedback_quality = 0.8  # Erro com informação detalhada
+            
+            # Gerar conhecimento baseado no evento
+            if success:
+                knowledge_gained = f"Successful {event_type} by {agent_name}: {task_description[:50]}"
+            else:
+                error_type = error_info.get("error_type", "unknown") if error_info else "unknown"
+                knowledge_gained = f"Failed {event_type} by {agent_name}: {error_type} error"
+            
+            # Registrar evento de aprendizado
+            self.record_learning_event(
+                learning_type=learning_type,
+                context=context,
+                trigger=f"real_system_{event_type}",
+                input_data={
+                    "agent_name": agent_name,
+                    "task_description": task_description,
+                    "execution_time": execution_time,
+                    "system_generated": True,
+                    "timestamp": datetime.now().isoformat()
+                },
+                knowledge_gained=knowledge_gained,
+                performance_before=performance_before,
+                performance_after=performance_after,
+                feedback_quality=feedback_quality
+            )
+            
+            self.logger.debug(f"📚 System learning event recorded: {event_type} by {agent_name}")
+            return True
+            
+        except Exception as e:
+            self.logger.error(f"❌ Error recording system learning event: {e}")
+            return False
+    
+    def analyze_agent_learning_patterns(self, agent_name: str) -> Dict[str, Any]:
+        """Analisa padrões de aprendizado específicos de um agente"""
+        agent_events = [
+            event for event in self.learning_events 
+            if event.input_data.get("agent_name") == agent_name
+        ]
+        
+        if not agent_events:
+            return {"agent_name": agent_name, "events_count": 0}
+        
+        # Calcular métricas de aprendizado do agente
+        success_rate = len([e for e in agent_events if e.performance_after > e.performance_before]) / len(agent_events)
+        avg_improvement = statistics.mean([e.performance_after - e.performance_before for e in agent_events])
+        learning_speed = statistics.mean([e.time_to_learn for e in agent_events])
+        
+        # Identificar tipos de aprendizado mais efetivos
+        effectiveness_by_type = defaultdict(list)
+        for event in agent_events:
+            effectiveness_by_type[event.learning_type.value].append(event.calculate_learning_gain())
+        
+        best_learning_types = []
+        for learning_type, gains in effectiveness_by_type.items():
+            avg_gain = statistics.mean(gains)
+            if avg_gain > 0.2:  # Threshold para efetividade
+                best_learning_types.append((learning_type, avg_gain))
+        
+        best_learning_types.sort(key=lambda x: x[1], reverse=True)
+        
+        return {
+            "agent_name": agent_name,
+            "events_count": len(agent_events),
+            "success_rate": success_rate,
+            "average_improvement": avg_improvement,
+            "learning_speed": learning_speed,
+            "best_learning_types": best_learning_types[:3],
+            "recent_performance": [e.performance_after for e in agent_events[-10:]]
+        }
+    
+    def get_system_learning_recommendations(self) -> List[Dict[str, Any]]:
+        """Gera recomendações de aprendizado baseadas em dados reais do sistema"""
+        recommendations = []
+        
+        # Analisar eventos recentes (última hora)
+        recent_cutoff = datetime.now() - timedelta(hours=1)
+        recent_events = [
+            event for event in self.learning_events 
+            if hasattr(event, 'timestamp') and 
+            datetime.fromisoformat(event.input_data.get("timestamp", "1970-01-01")) > recent_cutoff
+        ]
+        
+        if not recent_events:
+            return recommendations
+        
+        # Identificar agentes com performance baixa
+        agent_performance = defaultdict(list)
+        for event in recent_events:
+            agent_name = event.input_data.get("agent_name")
+            if agent_name:
+                agent_performance[agent_name].append(event.performance_after)
+        
+        for agent_name, performances in agent_performance.items():
+            avg_performance = statistics.mean(performances)
+            if avg_performance < 0.5:  # Performance baixa
+                recommendations.append({
+                    "type": "agent_improvement",
+                    "agent": agent_name,
+                    "current_performance": avg_performance,
+                    "recommendation": f"Consider additional training or strategy adjustment for {agent_name}",
+                    "priority": "high" if avg_performance < 0.3 else "medium"
+                })
+        
+        # Identificar padrões de falha frequentes
+        failure_patterns = defaultdict(int)
+        for event in recent_events:
+            if event.performance_after < event.performance_before:
+                failure_type = event.learning_type.value
+                failure_patterns[failure_type] += 1
+        
+        for failure_type, count in failure_patterns.items():
+            if count >= 3:  # Falhas frequentes
+                recommendations.append({
+                    "type": "pattern_improvement",
+                    "pattern": failure_type,
+                    "frequency": count,
+                    "recommendation": f"Focus on improving {failure_type} capabilities",
+                    "priority": "high" if count >= 5 else "medium"
+                })
+        
+        return recommendations
+
     def shutdown(self):
         """Encerra o sistema"""
         

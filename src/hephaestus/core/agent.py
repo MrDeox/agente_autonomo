@@ -256,6 +256,9 @@ class HephaestusAgent:
         
         # Setup capability expansion data collection
         self._setup_capability_expansion_data_collection()
+        
+        # Setup meta-learning data collection
+        self._setup_meta_learning_data_collection()
 
         # Hot Reload Manager - Auto-atualização em tempo real
         self.hot_reload_manager = HotReloadManager(self.logger)
