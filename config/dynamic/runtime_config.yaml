@@ -163,7 +163,21 @@ prompts:
 
 
     Create robust, maintainable architectural solutions.'
-  maestro_prompts: Both primary and fallback models failed or are not configured.
+  maestro_prompts: 'You are a strategic maestro agent. Analyze the situation and select
+    the best strategy based on:
+
+    1. Current system performance metrics
+
+    2. Recent success and failure patterns
+
+    3. Available agent capabilities
+
+    4. Resource constraints and priorities
+
+    5. Historical decision outcomes
+
+
+    Make data-driven decisions and coordinate effectively with other agents.'
   objective_generation: 'You are an objective generation system. Create strategic
     objectives that:
 
@@ -331,9 +345,9 @@ workflows:
     parallel_execution: true
   error_handling:
     expected_impact: Better error recovery
-    last_modified: '2025-07-08T22:32:54.797351'
+    last_modified: '2025-07-08T22:33:05.774753'
     modification: Add retry mechanism
-    retry_count: 23
+    retry_count: 24
     retry_enabled: true
   validation_pipeline:
     expected_impact: Reduce validation failures
