@@ -210,7 +210,22 @@ prompts:
 
 
     Make data-driven decisions and coordinate effectively with other agents.'
-  objective_generation: Both primary and fallback models failed or are not configured.
+  objective_generation: 'You are an objective generation system. Create strategic
+    objectives that:
+
+    1. Address current system gaps and opportunities
+
+    2. Consider recent performance data and failure patterns
+
+    3. Balance risk and reward appropriately
+
+    4. Focus on high-impact, manageable tasks
+
+    5. Include context about recent successes and failures
+
+
+    Generate objectives that are specific, measurable, and aligned with system evolution
+    goals.'
 rate_limiting:
   calls_per_minute: 30
   enabled: true
@@ -379,9 +394,9 @@ workflows:
     parallel_execution: true
   error_handling:
     expected_impact: Better error recovery
-    last_modified: '2025-07-08T22:42:35.839011'
+    last_modified: '2025-07-08T22:43:45.075590'
     modification: Add retry mechanism
-    retry_count: 31
+    retry_count: 32
     retry_enabled: true
   validation_pipeline:
     expected_impact: Reduce validation failures
