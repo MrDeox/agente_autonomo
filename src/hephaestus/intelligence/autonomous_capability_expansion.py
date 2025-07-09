@@ -200,6 +200,9 @@ class AutonomousCapabilityExpansion:
             self.logger.info(f"🎯 Active domains: {list(self.capability_map.keys())}")
         else:
             self.logger.info("⚠️ Autonomous Capability Expansion disabled in configuration")
+        
+        # Sistema de coleta de dados reais
+        self._setup_real_data_collection()
     
     def discover_capability_gaps(self) -> List[CapabilityGap]:
         """Descobre lacunas de capacidade através de análise sistemática"""
