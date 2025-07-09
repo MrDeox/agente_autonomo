@@ -197,6 +197,7 @@ agente_autonomo/
                 hephaestus_agent_123283764277712.json
                 hephaestus_agent_125576807409232.json
                 hephaestus_agent_123169772310352.json
+                hephaestus_agent_138225092982032.json
                 hephaestus_agent_131515852781136.json
                 hephaestus_agent_123338135004624.json
                 hephaestus_agent_129041742934352.json
@@ -221,6 +222,7 @@ agente_autonomo/
                 strategy_discovery_e106bffc.json
                 strategy_discovery_a28125aa.json
                 strategy_discovery_fa9dc1d0.json
+                strategy_discovery_c4a8133c.json
                 strategy_discovery_539cbb83.json
                 strategy_discovery_058ea617.json
                 strategy_discovery_9db8dbd9.json
@@ -316,7 +318,9 @@ agente_autonomo/
             chart_agents_per_cycle_7d.png
         backups/
             error_handling_workflow_backup_20250708_154558.yaml
+            config_backup_20250708_221438.yaml
             error_handling_workflow_backup_20250708_154516.yaml
+            config_backup_20250708_221443.yaml
         workflows/
             agent_coordination_workflow.yaml
             error_handling_workflow.yaml
