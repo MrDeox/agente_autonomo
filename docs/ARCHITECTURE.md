@@ -334,8 +334,10 @@ agente_autonomo/
             config_backup_20250708_223550.yaml
             config_backup_20250708_225233.yaml
             agent_coordination_workflow_backup_20250708_224707.yaml
+            maestro_config_backup_20250708_225727.yaml
             config_backup_20250708_225217.yaml
             config_backup_20250708_225441.yaml
+            config_backup_20250708_225732.yaml
             agent_coordination_workflow_backup_20250708_224329.yaml
             maestro_config_backup_20250708_224537.yaml
             error_handling_workflow_backup_20250708_222410.yaml
@@ -343,11 +345,13 @@ agente_autonomo/
             architect_config_backup_20250708_225052.yaml
             maestro_config_backup_20250708_223820.yaml
             architect_config_backup_20250708_224553.yaml
+            config_backup_20250708_225721.yaml
             bug_hunter_config_backup_20250708_224054.yaml
             config_backup_20250708_225103.yaml
             config_backup_20250708_224844.yaml
             config_backup_20250708_225239.yaml
             config_backup_20250708_224219.yaml
+            config_backup_20250708_225742.yaml
             architect_config_backup_20250708_225404.yaml
             bug_hunter_config_backup_20250708_224307.yaml
             maestro_config_backup_20250708_225124.yaml
@@ -393,6 +397,8 @@ agente_autonomo/
             config_backup_20250708_225327.yaml
             maestro_config_backup_20250708_224011.yaml
             architect_config_backup_20250708_224110.yaml
+            architect_config_backup_20250708_225847.yaml
+            config_backup_20250708_225809.yaml
             bug_hunter_config_backup_20250708_224619.yaml
             config_backup_20250708_223918.yaml
             error_handling_workflow_backup_20250708_223305.yaml
@@ -415,6 +421,7 @@ agente_autonomo/
             maestro_config_backup_20250708_225551.yaml
             validation_pipeline_workflow_backup_20250708_224334.yaml
             validation_pipeline_workflow_backup_20250708_224926.yaml
+            config_backup_20250708_225700.yaml
             config_backup_20250708_225321.yaml
             config_backup_20250708_224038.yaml
             config_backup_20250708_225639.yaml
@@ -445,6 +452,7 @@ agente_autonomo/
             config_backup_20250708_224734.yaml
             config_backup_20250708_224241.yaml
             error_handling_workflow_backup_20250708_224115.yaml
+            agent_coordination_workflow_backup_20250708_225753.yaml
             error_handling_workflow_backup_20250708_222838.yaml
             config_backup_20250708_225311.yaml
             error_handling_workflow_backup_20250708_224235.yaml
@@ -460,6 +468,7 @@ agente_autonomo/
             config_backup_20250708_224510.yaml
             bug_hunter_config_backup_20250708_224635.yaml
             config_backup_20250708_224302.yaml
+            bug_hunter_config_backup_20250708_225820.yaml
         workflows/
             validation_pipeline_workflow.yaml
             agent_coordination_workflow.yaml
