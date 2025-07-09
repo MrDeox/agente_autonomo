@@ -2,7 +2,7 @@ agents:
   architect:
     behavior: risk_assessment
     change: More conservative patch generation
-    last_behavior_change: '2025-07-08T22:55:29.746377'
+    last_behavior_change: '2025-07-08T22:58:47.047922'
     patch_generation: conservative
     risk_tolerance: conservative
   bug_hunter:
@@ -181,7 +181,20 @@ parallel_reality:
   - optimized
   winner_selection_interval: 30
 prompts:
-  architect_prompts: Both primary and fallback models failed or are not configured.
+  architect_prompts: 'You are an architectural planning agent. Design solutions that:
+
+    1. Address the core requirements effectively
+
+    2. Consider system constraints and dependencies
+
+    3. Follow established patterns and best practices
+
+    4. Include proper error handling and validation
+
+    5. Provide clear implementation guidance
+
+
+    Create robust, maintainable architectural solutions.'
   maestro_prompts: 'You are a strategic maestro agent. Analyze the situation and select
     the best strategy based on:
 
@@ -197,7 +210,22 @@ prompts:
 
 
     Make data-driven decisions and coordinate effectively with other agents.'
-  objective_generation: Both primary and fallback models failed or are not configured.
+  objective_generation: 'You are an objective generation system. Create strategic
+    objectives that:
+
+    1. Address current system gaps and opportunities
+
+    2. Consider recent performance data and failure patterns
+
+    3. Balance risk and reward appropriately
+
+    4. Focus on high-impact, manageable tasks
+
+    5. Include context about recent successes and failures
+
+
+    Generate objectives that are specific, measurable, and aligned with system evolution
+    goals.'
 rate_limiting:
   calls_per_minute: 30
   enabled: true
