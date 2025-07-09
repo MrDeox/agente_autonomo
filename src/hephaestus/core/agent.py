@@ -1055,10 +1055,20 @@ class HephaestusAgent:
     def disable_real_time_evolution(self):
         """Desabilitar evolução em tempo real"""
         if self.real_time_evolution_enabled:
-            self.hot_reload_manager.stop_hot_reload()
-            self.real_time_evolution_enabled = False
-            self.logger.info("⏸️ Real-time evolution disabled")
-            return True
+            try:
+                # Parar watching
+                self.hot_reload_manager.stop_watching()
+                
+                # Parar evolução automática
+                self.self_evolution_engine.stop_evolution()
+                
+                self.real_time_evolution_enabled = False
+                self.logger.info("⏸️ Real-time evolution disabled")
+                return True
+                
+            except Exception as e:
+                self.logger.error(f"❌ Failed to disable real-time evolution: {e}")
+                return False
         return False
     
     def self_modify_code(self, module_name: str, new_code: str):
