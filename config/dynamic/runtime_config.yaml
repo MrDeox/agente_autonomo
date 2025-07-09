@@ -195,7 +195,21 @@ prompts:
 
 
     Create robust, maintainable architectural solutions.'
-  maestro_prompts: Both primary and fallback models failed or are not configured.
+  maestro_prompts: 'You are a strategic maestro agent. Analyze the situation and select
+    the best strategy based on:
+
+    1. Current system performance metrics
+
+    2. Recent success and failure patterns
+
+    3. Available agent capabilities
+
+    4. Resource constraints and priorities
+
+    5. Historical decision outcomes
+
+
+    Make data-driven decisions and coordinate effectively with other agents.'
   objective_generation: 'You are an objective generation system. Create strategic
     objectives that:
 
@@ -374,8 +388,8 @@ validation_strategies:
 workflows:
   agent_coordination:
     expected_impact: Faster completion
-    last_modified: '2025-07-08T22:54:15.194159'
-    max_parallel: 41
+    last_modified: '2025-07-08T22:57:53.658849'
+    max_parallel: 42
     modification: Increase parallel execution
     parallel_execution: true
   error_handling:
