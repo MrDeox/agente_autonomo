@@ -21,6 +21,21 @@ async:
   timeout: 340.0
 async_operations:
   timeout: 340
+autonomous_capability_expansion:
+  auto_implementation_enabled: true
+  autonomous_learning_enabled: true
+  blueprint_generation_enabled: true
+  capability_synthesis_enabled: true
+  complexity_threshold: 0.8
+  discovery_interval: 7200
+  dynamic_agent_creation: true
+  enabled: true
+  exponential_expansion_enabled: true
+  gap_analysis_enabled: true
+  impact_threshold: 0.5
+  max_concurrent_expansions: 3
+  self_discovery_enabled: true
+  success_probability_threshold: 0.6
 bug_hunter:
   auto_fix_enabled: true
   max_concurrent_fixes: 3
@@ -42,6 +57,23 @@ default_model_settings:
   max_tokens: -1
   temperature: 0.3
 degenerative_loop_threshold: 2
+dynamic_agent_dna:
+  cognitive_genetics_enabled: true
+  darwinian_evolution_enabled: true
+  enabled: true
+  fitness_based_selection: true
+  fitness_threshold: 0.6
+  generation_interval: 3600
+  genetic_diversity_target: 0.7
+  genetic_reproduction_enabled: true
+  mutation_evolution_enabled: true
+  mutation_rate: 0.1
+  natural_selection_enabled: true
+  population_dynamics_enabled: true
+  population_size: 50
+  reproduction_rate: 0.2
+  selection_pressure: 0.3
+  speciation_enabled: true
 evolution_analytics:
   analysis_interval_hours: 6
   auto_cleanup: true
@@ -225,6 +257,23 @@ strategy:
   cycle_delay_seconds: 0.5
   degenerative_loop_threshold: 2
   validation_retries: 2
+temporal_intelligence:
+  analysis_interval: 1800
+  correlation_analysis_enabled: true
+  cyclical_pattern_detection: true
+  enabled: true
+  future_prediction_enabled: true
+  historical_learning_enabled: true
+  max_historical_events: 10000
+  pattern_confidence_threshold: 0.6
+  pattern_detection_threshold: 3
+  prediction_horizon_days: 7
+  predictive_optimization: true
+  proactive_planning_enabled: true
+  temporal_context_awareness: true
+  temporal_decision_making: true
+  temporal_memory_enabled: true
+  trend_analysis_enabled: true
 timeout_seconds: 30
 validation:
   retries: 2
