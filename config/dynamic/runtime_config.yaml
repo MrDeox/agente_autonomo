@@ -8,8 +8,8 @@ agents:
   bug_hunter:
     behavior: detection_sensitivity
     change: Increase detection threshold
-    detection_threshold: 7.599999999999989
-    last_behavior_change: '2025-07-08T22:46:35.758509'
+    detection_threshold: 7.699999999999989
+    last_behavior_change: '2025-07-08T22:48:49.351004'
     sensitivity: high
   maestro:
     behavior: strategy_selection
