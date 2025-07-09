@@ -2895,5 +2895,86 @@ class HephaestusAgent:
         # Preservar o método original para evitar multiple wrapping
         agent.execute_capability_wrapped = original_execute
         agent.execute = capability_expansion_wrapper
+    
+    def _setup_meta_learning_data_collection(self):
+        """Configura coleta de dados para Meta-Learning"""
+        self.logger.info("🧠 Setting up meta-learning data collection...")
+        
+        # Wrap métodos para coletar dados de aprendizado
+        self._wrap_agents_for_meta_learning()
+        
+        self.logger.info("✅ Meta-learning data collection configured")
+    
+    def _wrap_agents_for_meta_learning(self):
+        """Envolve agentes para coletar dados de aprendizado"""
+        agents_to_wrap = []
+        
+        if hasattr(self, 'architect') and self.architect:
+            agents_to_wrap.append(("architect", self.architect))
+            
+        if hasattr(self, 'maestro') and self.maestro:
+            agents_to_wrap.append(("maestro", self.maestro))
+            
+        if hasattr(self, 'bug_hunter') and self.bug_hunter:
+            agents_to_wrap.append(("bug_hunter", self.bug_hunter))
+            
+        if hasattr(self, 'organizer') and self.organizer:
+            agents_to_wrap.append(("organizer", self.organizer))
+        
+        for agent_name, agent_instance in agents_to_wrap:
+            if hasattr(agent_instance, 'execute'):
+                self._wrap_agent_for_meta_learning(agent_instance, agent_name)
+    
+    def _wrap_agent_for_meta_learning(self, agent, agent_name: str):
+        """Envolve um agente para coletar dados de meta-aprendizado"""
+        if not agent or not hasattr(agent, 'execute'):
+            return
+            
+        # Obter método original (pode já estar wrapped múltiplas vezes)
+        original_execute = getattr(agent, 'execute_meta_learning_wrapped', None) or agent.execute
+        
+        def meta_learning_wrapper(*args, **kwargs):
+            start_time = time.time()
+            success = False
+            error_info = None
+            
+            try:
+                result = original_execute(*args, **kwargs)
+                execution_time = time.time() - start_time
+                success = True
+                
+                # Registrar evento de aprendizado por sucesso
+                self.meta_learning_intelligence.record_system_learning_event(
+                    event_type="execution_success",
+                    agent_name=agent_name,
+                    task_description=str(args[0])[:100] if args else "agent_execution",
+                    success=True,
+                    execution_time=execution_time
+                )
+                
+                return result
+                
+            except Exception as e:
+                execution_time = time.time() - start_time
+                error_info = {
+                    "error_type": type(e).__name__,
+                    "error_message": str(e)[:100]
+                }
+                
+                # Registrar evento de aprendizado por falha
+                self.meta_learning_intelligence.record_system_learning_event(
+                    event_type="execution_failure",
+                    agent_name=agent_name,
+                    task_description=str(args[0])[:100] if args else "agent_execution",
+                    success=False,
+                    execution_time=execution_time,
+                    error_info=error_info
+                )
+                
+                raise  # Re-raise the exception
+        
+        # Preservar o método original para evitar multiple wrapping
+        agent.execute_meta_learning_wrapped = original_execute
+        agent.execute = meta_learning_wrapper
         
         self.logger.info("🧹 Automatic cleanup scheduled")
