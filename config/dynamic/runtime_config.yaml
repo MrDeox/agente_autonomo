@@ -8,8 +8,8 @@ agents:
   bug_hunter:
     behavior: detection_sensitivity
     change: Increase detection threshold
-    detection_threshold: 6.299999999999994
-    last_behavior_change: '2025-07-08T22:30:22.832446'
+    detection_threshold: 6.399999999999993
+    last_behavior_change: '2025-07-08T22:30:45.082688'
     sensitivity: high
   maestro:
     behavior: strategy_selection
@@ -178,7 +178,22 @@ prompts:
 
 
     Make data-driven decisions and coordinate effectively with other agents.'
-  objective_generation: Both primary and fallback models failed or are not configured.
+  objective_generation: 'You are an objective generation system. Create strategic
+    objectives that:
+
+    1. Address current system gaps and opportunities
+
+    2. Consider recent performance data and failure patterns
+
+    3. Balance risk and reward appropriately
+
+    4. Focus on high-impact, manageable tasks
+
+    5. Include context about recent successes and failures
+
+
+    Generate objectives that are specific, measurable, and aligned with system evolution
+    goals.'
 rate_limiting:
   calls_per_minute: 30
   enabled: true
