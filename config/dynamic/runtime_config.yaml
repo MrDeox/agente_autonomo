@@ -14,7 +14,7 @@ agents:
   maestro:
     behavior: strategy_selection
     change: Prefer strategies with higher success rates
-    last_behavior_change: '2025-07-08T22:38:20.035163'
+    last_behavior_change: '2025-07-08T22:40:11.982743'
     strategy_preference: high_success_rate
     success_rate_threshold: 0.8
 async:
@@ -181,7 +181,20 @@ parallel_reality:
   - optimized
   winner_selection_interval: 30
 prompts:
-  architect_prompts: Both primary and fallback models failed or are not configured.
+  architect_prompts: 'You are an architectural planning agent. Design solutions that:
+
+    1. Address the core requirements effectively
+
+    2. Consider system constraints and dependencies
+
+    3. Follow established patterns and best practices
+
+    4. Include proper error handling and validation
+
+    5. Provide clear implementation guidance
+
+
+    Create robust, maintainable architectural solutions.'
   maestro_prompts: 'You are a strategic maestro agent. Analyze the situation and select
     the best strategy based on:
 
