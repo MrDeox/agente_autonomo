@@ -2603,5 +2603,199 @@ class HephaestusAgent:
                         raise
                 
                 self.meta_objective_generator.generate_objectives = objective_wrapper
+    
+    def _register_agents_in_dna_system(self):
+        """Registra agentes reais no sistema DNA para evolução genética"""
+        self.logger.info("🧬 Registering real agents in DNA system...")
+        
+        # Definir características base para cada tipo de agente
+        agent_characteristics = {
+            "architect": {
+                "strategy": 0.7,        # Alta estratégia
+                "behavior": 0.6,        # Comportamento estruturado  
+                "creativity": 0.8,      # Alta criatividade
+                "risk_tolerance": 0.4,  # Baixa tolerância a risco
+                "decision": 0.7,        # Boas decisões
+                "adaptation": 0.5       # Adaptação moderada
+            },
+            "maestro": {
+                "strategy": 0.9,        # Estratégia máxima
+                "behavior": 0.8,        # Comportamento de liderança
+                "creativity": 0.6,      # Criatividade moderada
+                "risk_tolerance": 0.7,  # Tolerância moderada a risco
+                "decision": 0.9,        # Excelentes decisões
+                "adaptation": 0.8       # Alta adaptação
+            },
+            "bug_hunter": {
+                "strategy": 0.6,        # Estratégia focada
+                "behavior": 0.9,        # Comportamento meticuloso
+                "creativity": 0.4,      # Baixa criatividade
+                "risk_tolerance": 0.2,  # Muito baixa tolerância a risco
+                "decision": 0.8,        # Boas decisões
+                "adaptation": 0.6       # Adaptação moderada
+            },
+            "organizer": {
+                "strategy": 0.8,        # Boa estratégia
+                "behavior": 0.9,        # Comportamento organizacional
+                "creativity": 0.5,      # Criatividade moderada
+                "risk_tolerance": 0.3,  # Baixa tolerância a risco
+                "decision": 0.7,        # Boas decisões
+                "adaptation": 0.7       # Boa adaptação
+            }
+        }
+        
+        # Registrar cada agente no sistema DNA
+        agents_to_register = []
+        
+        if hasattr(self, 'architect') and self.architect:
+            agents_to_register.append(("architect", self.architect))
+            
+        if hasattr(self, 'maestro') and self.maestro:
+            agents_to_register.append(("maestro", self.maestro))
+            
+        if hasattr(self, 'bug_hunter') and self.bug_hunter:
+            agents_to_register.append(("bug_hunter", self.bug_hunter))
+            
+        if hasattr(self, 'organizer') and self.organizer:
+            agents_to_register.append(("organizer", self.organizer))
+        
+        # Registrar agentes no sistema DNA
+        for agent_type, agent_instance in agents_to_register:
+            if agent_type in agent_characteristics:
+                dna = self.dynamic_agent_dna.register_agent_type(
+                    agent_type, 
+                    agent_characteristics[agent_type]
+                )
+                
+                if dna:
+                    self.logger.info(f"✅ Agent {agent_type} registered in DNA system with ID: {dna.dna_id}")
+                    
+                    # Adicionar hook para capturar performance real
+                    self._add_dna_performance_hook(agent_instance, agent_type, dna.dna_id)
+                else:
+                    self.logger.warning(f"⚠️ Failed to register agent {agent_type} in DNA system")
+        
+        self.logger.info(f"🧬 Registered {len(agents_to_register)} agents in DNA system")
+    
+    def _add_dna_performance_hook(self, agent, agent_type: str, dna_id: str):
+        """Adiciona hook para capturar performance real do agente para o sistema DNA"""
+        if not agent or not hasattr(agent, 'execute'):
+            return
+            
+        original_execute = getattr(agent, 'execute_with_dna_tracking', None) or agent.execute
+        
+        def dna_performance_wrapper(*args, **kwargs):
+            start_time = time.time()
+            success = False
+            error_count = 0
+            
+            try:
+                result = original_execute(*args, **kwargs)
+                execution_time = time.time() - start_time
+                success = True
+                
+                # Calcular fitness baseado em performance real
+                fitness_score = self._calculate_fitness_score(
+                    execution_time=execution_time,
+                    success=success,
+                    agent_type=agent_type,
+                    result=result
+                )
+                
+                # Registrar fitness no DNA
+                self.dynamic_agent_dna.record_agent_performance(
+                    agent_type=agent_type,
+                    dna_id=dna_id,
+                    fitness_score=fitness_score,
+                    performance_data={
+                        "execution_time": execution_time,
+                        "success": success,
+                        "timestamp": datetime.now().isoformat(),
+                        "task_complexity": self._estimate_task_complexity(args, kwargs)
+                    }
+                )
+                
+                return result
+                
+            except Exception as e:
+                execution_time = time.time() - start_time
+                error_count = 1
+                
+                # Fitness baixo para falhas
+                fitness_score = 0.1
+                
+                # Registrar fitness de falha
+                self.dynamic_agent_dna.record_agent_performance(
+                    agent_type=agent_type,
+                    dna_id=dna_id,
+                    fitness_score=fitness_score,
+                    performance_data={
+                        "execution_time": execution_time,
+                        "success": False,
+                        "error": str(e),
+                        "error_type": type(e).__name__,
+                        "timestamp": datetime.now().isoformat()
+                    }
+                )
+                
+                raise  # Re-raise the exception
+        
+        agent.execute_with_dna_tracking = dna_performance_wrapper
+        agent.execute = dna_performance_wrapper
+    
+    def _calculate_fitness_score(self, execution_time: float, success: bool, 
+                               agent_type: str, result: Any) -> float:
+        """Calcula score de fitness baseado em performance real"""
+        if not success:
+            return 0.1
+        
+        # Score base de sucesso
+        fitness = 0.5
+        
+        # Bonus por velocidade (score melhor para execução mais rápida)
+        if execution_time <= 1.0:
+            fitness += 0.3
+        elif execution_time <= 5.0:
+            fitness += 0.2
+        elif execution_time <= 10.0:
+            fitness += 0.1
+        
+        # Bonus específico por tipo de agente
+        if agent_type == "architect" and result:
+            # Arquiteto: bonus por qualidade do plano
+            if hasattr(result, 'plan') or 'plan' in str(result):
+                fitness += 0.2
+        elif agent_type == "maestro" and result:
+            # Maestro: bonus por coordenação efetiva
+            if hasattr(result, 'strategy') or 'strategy' in str(result):
+                fitness += 0.2
+        elif agent_type == "bug_hunter" and result:
+            # Bug Hunter: bonus por bugs encontrados/corrigidos
+            if hasattr(result, 'bugs_fixed') or 'bug' in str(result).lower():
+                fitness += 0.2
+        elif agent_type == "organizer" and result:
+            # Organizer: bonus por organização efetiva
+            if hasattr(result, 'organized') or 'organized' in str(result).lower():
+                fitness += 0.2
+        
+        # Normalizar para 0-1
+        return min(1.0, max(0.0, fitness))
+    
+    def _estimate_task_complexity(self, args: tuple, kwargs: dict) -> float:
+        """Estima complexidade da tarefa baseada nos argumentos"""
+        complexity = 0.5  # Base
+        
+        # Complexidade baseada no tamanho dos argumentos
+        total_arg_length = sum(len(str(arg)) for arg in args)
+        total_kwarg_length = sum(len(str(v)) for v in kwargs.values())
+        
+        if total_arg_length + total_kwarg_length > 1000:
+            complexity += 0.3
+        elif total_arg_length + total_kwarg_length > 500:
+            complexity += 0.2
+        elif total_arg_length + total_kwarg_length > 100:
+            complexity += 0.1
+        
+        return min(1.0, complexity)
         
         self.logger.info("🧹 Automatic cleanup scheduled")
