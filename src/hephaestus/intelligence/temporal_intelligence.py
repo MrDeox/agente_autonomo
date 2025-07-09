@@ -354,10 +354,35 @@ class TemporalIntelligence:
             # Atualizar memória temporal por escopo
             self._update_temporal_memory(event)
             
+            # Salvar dados imediatamente para persistência
+            self._save_temporal_data()
+            
             return True
             
         except Exception as e:
             self.logger.error(f"❌ Error recording temporal event: {e}")
+            return False
+    
+    def record_real_system_event(self, event_type: str, result: Any, metrics: Dict[str, Any] = None) -> bool:
+        """Registra eventos reais do sistema em execução"""
+        try:
+            event_data = {
+                "result": str(result)[:200] if result else "no_result",  # Limitar tamanho
+                "success": getattr(result, 'success', True) if hasattr(result, 'success') else True,
+                "execution_time": metrics.get("execution_time", 0) if metrics else 0,
+                "system_metrics": {
+                    "timestamp": datetime.now().isoformat(),
+                    "event_source": "real_system"
+                }
+            }
+            
+            if metrics:
+                event_data["performance_metrics"] = metrics
+                
+            return self.record_temporal_event(event_type, event_data)
+            
+        except Exception as e:
+            self.logger.error(f"❌ Error recording real system event: {e}")
             return False
     
     def _filter_events_by_scope(self, scope: TemporalScope) -> List[Dict[str, Any]]:
