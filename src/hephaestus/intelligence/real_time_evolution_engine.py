@@ -1092,6 +1092,24 @@ class RealTimeEvolutionEngine:
             ]
             
             if not ready_for_deployment:
+                # Log detailed reason why no candidates are ready
+                total_candidates = len(self.evolution_candidates)
+                tested_candidates = len([c for c in self.evolution_candidates.values() if c.tested_at])
+                fitness_failed = len([c for c in self.evolution_candidates.values() if c.tested_at and c.fitness_score <= self.fitness_threshold])
+                risk_failed = len([c for c in self.evolution_candidates.values() if c.tested_at and c.risk_level >= self.risk_threshold])
+                
+                self.logger.warning(f"🚫 No candidates ready for deployment:")
+                self.logger.warning(f"  📊 Total candidates: {total_candidates}")
+                self.logger.warning(f"  🧪 Tested candidates: {tested_candidates}")
+                self.logger.warning(f"  ❌ Failed fitness threshold ({self.fitness_threshold}): {fitness_failed}")
+                self.logger.warning(f"  ⚠️ Failed risk threshold ({self.risk_threshold}): {risk_failed}")
+                
+                if tested_candidates > 0:
+                    best_fitness = max([c.fitness_score for c in self.evolution_candidates.values() if c.tested_at])
+                    worst_risk = max([c.risk_level for c in self.evolution_candidates.values() if c.tested_at])
+                    self.logger.warning(f"  🎯 Best fitness achieved: {best_fitness:.3f} (threshold: {self.fitness_threshold})")
+                    self.logger.warning(f"  ⚠️ Highest risk: {worst_risk:.3f} (threshold: {self.risk_threshold})")
+                
                 return
             
             # Sort by fitness and deploy the best one
@@ -1154,9 +1172,12 @@ class RealTimeEvolutionEngine:
                 else:
                     self.logger.warning(f"❌ Failed to apply mutation: {candidate.description}")
             else:
-                # For now, just log (in real implementation, would apply actual changes)
-                self.logger.info(f"📝 Simulated deployment: {candidate.description}")
-                return True
+                # No callback registered - this means evolution is disabled!
+                self.logger.error(f"🚫 EVOLUTION DISABLED: No deployment callback registered for {candidate.mutation_type.value}")
+                self.logger.error(f"   Mutation would be: {candidate.description}")
+                self.logger.error(f"   Fitness: {candidate.fitness_score:.3f}, Risk: {candidate.risk_level:.3f}")
+                self.logger.error(f"   🔧 FIX: Register deployment callbacks to enable real evolution!")
+                return False
             
         except Exception as e:
             self.logger.error(f"Error deploying mutation: {e}")

@@ -177,11 +177,13 @@ agente_autonomo/
                 hephaestus_agent_130662635941712.json
                 hephaestus_agent_126302631188496.json
                 hephaestus_agent_136018006606288.json
+                hephaestus_agent_130114010357968.json
                 hephaestus_agent_127244829982160.json
                 hephaestus_agent_137408510679952.json
                 hephaestus_agent_130730365742800.json
                 hephaestus_agent_137304120246224.json
                 hephaestus_agent_134188832802064.json
+                hephaestus_agent_128298663626256.json
                 hephaestus_agent_134198072856208.json
                 hephaestus_agent_126280159603280.json
                 hephaestus_agent_130698451963792.json
@@ -222,6 +224,8 @@ agente_autonomo/
                 strategy_discovery_539cbb83.json
                 strategy_discovery_058ea617.json
                 strategy_discovery_9db8dbd9.json
+                strategy_discovery_54524758.json
+                strategy_discovery_2984dcdd.json
                 strategy_discovery_03f8dab4.json
                 strategy_discovery_39760a01.json
                 strategy_discovery_f6232653.json
