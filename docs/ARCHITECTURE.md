@@ -124,6 +124,7 @@ agente_autonomo/
                 evolution_analytics.py
                 parallel_reality_tester.py
                 temporal_intelligence.py
+                autonomous_capability_expansion.py
                 predictive_failure_engine.py
                 meta_core.py
                 meta_learning_intelligence.py
@@ -191,6 +192,7 @@ agente_autonomo/
                 hephaestus_agent_130698451963792.json
                 hephaestus_agent_132721687100368.json
                 hephaestus_agent_132305318048144.json
+                hephaestus_agent_139590335551632.json
                 hephaestus_agent_126569939634000.json
                 hephaestus_agent_123950374728656.json
                 hephaestus_agent_129748972437456.json
@@ -203,6 +205,7 @@ agente_autonomo/
                 hephaestus_agent_131515852781136.json
                 hephaestus_agent_123338135004624.json
                 hephaestus_agent_129041742934352.json
+                hephaestus_agent_125875676556112.json
                 hephaestus_agent_124203824008784.json
                 hephaestus_agent_139220132189904.json
                 hephaestus_agent_132641144558672.json
@@ -214,6 +217,7 @@ agente_autonomo/
                 strategy_discovery_13ddf8ce.json
                 strategy_discovery_767ee161.json
                 strategy_discovery_23817242.json
+                strategy_discovery_7d527eb5.json
                 strategy_discovery_67d55065.json
                 strategy_discovery_57f200e2.json
                 strategy_discovery_cedd7679.json
@@ -236,6 +240,7 @@ agente_autonomo/
                 strategy_discovery_496dcb64.json
                 strategy_discovery_33311d83.json
                 strategy_discovery_38cc52a2.json
+                strategy_discovery_1d7db60c.json
                 strategy_discovery_706eb9c4.json
                 strategy_discovery_10c4cf55.json
                 strategy_discovery_0bb3a3d0.json
@@ -310,8 +315,10 @@ agente_autonomo/
                 testenhanced_agent.log
                 architectagentenhanced_agent.log
         intelligence/
+            capability_expansion/
             meta_objectives/
                 meta_objective_data.json
+            dna/
             temporal/
                 temporal_data.json
         evolution_analytics/
@@ -321,145 +328,19 @@ agente_autonomo/
             chart_cycle_duration_seconds_7d.png
             chart_agents_per_cycle_7d.png
         backups/
-            bug_hunter_config_backup_20250708_223022.yaml
-            config_backup_20250708_222438.yaml
-            config_backup_20250708_222415.yaml
-            config_backup_20250708_221716.yaml
-            config_backup_20250708_222849.yaml
-            maestro_config_backup_20250708_221722.yaml
-            config_backup_20250708_223101.yaml
-            config_backup_20250708_222305.yaml
-            bug_hunter_config_backup_20250708_222659.yaml
-            maestro_config_backup_20250708_222443.yaml
-            config_backup_20250708_222844.yaml
-            config_backup_20250708_222127.yaml
-            maestro_config_backup_20250708_223028.yaml
-            config_backup_20250708_222955.yaml
-            config_backup_20250708_222901.yaml
-            config_backup_20250708_222038.yaml
-            config_backup_20250708_222816.yaml
+            error_handling_workflow_backup_20250708_223254.yaml
+            config_backup_20250708_223550.yaml
             error_handling_workflow_backup_20250708_222410.yaml
             validation_pipeline_workflow_backup_20250708_222155.yaml
-            bug_hunter_config_backup_20250708_222111.yaml
-            architect_config_backup_20250708_221944.yaml
-            agent_coordination_workflow_backup_20250708_222049.yaml
-            config_backup_20250708_222749.yaml
-            config_backup_20250708_222343.yaml
-            config_backup_20250708_222300.yaml
-            config_backup_20250708_222549.yaml
-            config_backup_20250708_222359.yaml
             validation_pipeline_workflow_backup_20250708_223112.yaml
-            config_backup_20250708_222922.yaml
-            config_backup_20250708_222505.yaml
-            agent_coordination_workflow_backup_20250708_221638.yaml
-            agent_coordination_workflow_backup_20250708_221632.yaml
-            config_backup_20250708_222244.yaml
-            config_backup_20250708_221806.yaml
-            config_backup_20250708_222138.yaml
-            config_backup_20250708_221911.yaml
             validation_pipeline_workflow_backup_20250708_222217.yaml
-            config_backup_20250708_223107.yaml
-            bug_hunter_config_backup_20250708_223045.yaml
-            bug_hunter_config_backup_20250708_221538.yaml
-            config_backup_20250708_222054.yaml
-            config_backup_20250708_222710.yaml
-            config_backup_20250708_222811.yaml
-            config_backup_20250708_222144.yaml
-            config_backup_20250708_222510.yaml
-            architect_config_backup_20250708_221933.yaml
-            config_backup_20250708_222721.yaml
             error_handling_workflow_backup_20250708_154558.yaml
-            config_backup_20250708_222527.yaml
-            maestro_config_backup_20250708_222349.yaml
-            config_backup_20250708_222206.yaml
-            config_backup_20250708_222532.yaml
-            agent_coordination_workflow_backup_20250708_222605.yaml
-            config_backup_20250708_223012.yaml
-            config_backup_20250708_221744.yaml
-            config_backup_20250708_221828.yaml
-            config_backup_20250708_222222.yaml
-            config_backup_20250708_222117.yaml
-            config_backup_20250708_222033.yaml
-            config_backup_20250708_221438.yaml
-            config_backup_20250708_222233.yaml
-            config_backup_20250708_222255.yaml
-            config_backup_20250708_221454.yaml
-            config_backup_20250708_221554.yaml
-            architect_config_backup_20250708_222638.yaml
-            architect_config_backup_20250708_222338.yaml
-            agent_coordination_workflow_backup_20250708_222944.yaml
-            architect_config_backup_20250708_222005.yaml
-            config_backup_20250708_221559.yaml
-            config_backup_20250708_221812.yaml
-            agent_coordination_workflow_backup_20250708_222754.yaml
-            config_backup_20250708_222726.yaml
-            architect_config_backup_20250708_222855.yaml
-            config_backup_20250708_222333.yaml
+            error_handling_workflow_backup_20250708_223305.yaml
             error_handling_workflow_backup_20250708_222621.yaml
-            agent_coordination_workflow_backup_20250708_221855.yaml
-            config_backup_20250708_221605.yaml
-            config_backup_20250708_222516.yaml
-            config_backup_20250708_222122.yaml
-            config_backup_20250708_222928.yaml
-            config_backup_20250708_222805.yaml
-            architect_config_backup_20250708_221954.yaml
-            bug_hunter_config_backup_20250708_222632.yaml
-            bug_hunter_config_backup_20250708_222643.yaml
-            config_backup_20250708_222311.yaml
-            agent_coordination_workflow_backup_20250708_222743.yaml
-            config_backup_20250708_221733.yaml
-            bug_hunter_config_backup_20250708_221833.yaml
-            maestro_config_backup_20250708_222327.yaml
-            config_backup_20250708_222105.yaml
-            architect_config_backup_20250708_221516.yaml
-            architect_config_backup_20250708_222249.yaml
-            config_backup_20250708_222133.yaml
-            config_backup_20250708_222912.yaml
-            config_backup_20250708_222027.yaml
-            maestro_config_backup_20250708_222715.yaml
-            config_backup_20250708_222738.yaml
-            config_backup_20250708_221621.yaml
-            bug_hunter_config_backup_20250708_221849.yaml
-            config_backup_20250708_221627.yaml
-            architect_config_backup_20250708_221839.yaml
-            config_backup_20250708_221510.yaml
-            architect_config_backup_20250708_222044.yaml
-            config_backup_20250708_222454.yaml
-            config_backup_20250708_222448.yaml
-            config_backup_20250708_222616.yaml
-            config_backup_20250708_221616.yaml
-            agent_coordination_workflow_backup_20250708_221938.yaml
-            config_backup_20250708_221800.yaml
-            config_backup_20250708_221949.yaml
-            config_backup_20250708_222654.yaml
-            config_backup_20250708_222559.yaml
-            config_backup_20250708_223122.yaml
-            maestro_config_backup_20250708_221727.yaml
-            config_backup_20250708_222316.yaml
-            config_backup_20250708_222800.yaml
-            config_backup_20250708_222432.yaml
-            maestro_config_backup_20250708_222211.yaml
-            config_backup_20250708_223128.yaml
+            config_backup_20250708_223534.yaml
+            architect_config_backup_20250708_223540.yaml
             error_handling_workflow_backup_20250708_222838.yaml
-            config_backup_20250708_221449.yaml
-            architect_config_backup_20250708_221711.yaml
-            config_backup_20250708_222917.yaml
-            config_backup_20250708_222200.yaml
-            config_backup_20250708_222100.yaml
-            config_backup_20250708_223050.yaml
-            bug_hunter_config_backup_20250708_222149.yaml
-            config_backup_20250708_222500.yaml
             error_handling_workflow_backup_20250708_154516.yaml
-            config_backup_20250708_222832.yaml
-            config_backup_20250708_221928.yaml
-            config_backup_20250708_221700.yaml
-            bug_hunter_config_backup_20250708_221543.yaml
-            agent_coordination_workflow_backup_20250708_221548.yaml
-            architect_config_backup_20250708_221738.yaml
-            config_backup_20250708_222610.yaml
-            config_backup_20250708_221443.yaml
-            config_backup_20250708_222649.yaml
-            maestro_config_backup_20250708_222934.yaml
         workflows/
             validation_pipeline_workflow.yaml
             agent_coordination_workflow.yaml
@@ -1496,6 +1377,22 @@ agente_autonomo/
   - *🕐 Temporal Intelligence System - Consciência temporal completa*
 - **Função:** `get_temporal_intelligence(config: Dict[str, Any], logger: logging.Logger)`
   - *Get singleton instance of TemporalIntelligence*
+
+### Arquivo: `src/hephaestus/intelligence/autonomous_capability_expansion.py`
+- **Classe:** `CapabilityDomain(Enum)`
+  - *Domínios de capacidade*
+- **Classe:** `ExpansionStrategy(Enum)`
+  - *Estratégias de expansão*
+- **Classe:** `CapabilityGap`
+  - *Lacuna de capacidade identificada*
+- **Classe:** `CapabilityBlueprint`
+  - *Blueprint para nova capacidade*
+- **Classe:** `ExpansionResult`
+  - *Resultado de uma expansão de capacidade*
+- **Classe:** `AutonomousCapabilityExpansion`
+  - *🚀 Autonomous Capability Expansion - Expansão exponencial de capacidades*
+- **Função:** `get_autonomous_capability_expansion(config: Dict[str, Any], logger: logging.Logger)`
+  - *Get singleton instance of AutonomousCapabilityExpansion*
 
 ### Arquivo: `src/hephaestus/intelligence/predictive_failure_engine.py`
 - **Classe:** `FailurePattern`
