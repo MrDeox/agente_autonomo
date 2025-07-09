@@ -37,6 +37,7 @@ from hephaestus.intelligence.root_cause_analyzer import RootCauseAnalyzer, get_r
 from hephaestus.intelligence.self_awareness_core import SelfAwarenessCore, get_self_awareness_core
 from hephaestus.intelligence.meta_objective_generator import MetaObjectiveGenerator, get_meta_objective_generator
 from hephaestus.intelligence.temporal_intelligence import TemporalIntelligence, get_temporal_intelligence
+from hephaestus.intelligence.dynamic_agent_dna import DynamicAgentDNA, get_dynamic_agent_dna
 from hephaestus.utils.infrastructure_manager import InfrastructureManager, get_infrastructure_manager
 from hephaestus.services.communication.inter_agent import get_inter_agent_communication
 from hephaestus.agents.swarm_coordinator_agent import SwarmCoordinatorAgent
