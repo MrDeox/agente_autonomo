@@ -247,6 +247,9 @@ class HephaestusAgent:
         self.logger.info("🔍 Knowledge system ready for intelligent search")
         self.logger.info("⚡ Root cause analysis will detect failure patterns")
         self.logger.info("🧬 Self-awareness core monitoring cognitive state")
+        
+        # Register for real-time event collection
+        self._setup_real_time_event_collection()
 
         # Hot Reload Manager - Auto-atualização em tempo real
         self.hot_reload_manager = HotReloadManager(self.logger)
