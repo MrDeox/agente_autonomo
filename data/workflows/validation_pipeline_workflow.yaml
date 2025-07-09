@@ -1,0 +1,6 @@
+expected_impact: Reduce validation failures
+last_modified: '2025-07-08T22:21:55.151318'
+modification: Add pre-validation step
+pre_validation: true
+validation_steps:
+- pre_validation
