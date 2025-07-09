@@ -57,8 +57,8 @@ bug_hunter:
 # Configurações do Real-Time Evolution Engine - BALANCEADO PARA EXECUÇÃO + EVOLUÇÃO
 real_time_evolution:
   enabled: true  # ✅ HABILITADO - LLM funcionando agora!
-  mutation_interval: 120  # 2 minutos entre mutações (mais ativo)
-  max_parallel_tests: 2  # máximo de testes simultâneos (mais eficiente)
+  mutation_interval: 600  # 10 minutos entre mutações (mais controlado)
+  max_parallel_tests: 1  # máximo de testes simultâneos (controlado)
   fitness_threshold: 0.25  # limiar realista para deployment (25%+ de melhoria)
   risk_threshold: 0.35  # limiar moderado de risco (máx 35% de risco)
   evolution_cooldown: 300  # 5 minutos de cooldown entre ciclos evolutivos
