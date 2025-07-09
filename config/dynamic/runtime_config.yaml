@@ -181,7 +181,20 @@ parallel_reality:
   - optimized
   winner_selection_interval: 30
 prompts:
-  architect_prompts: Both primary and fallback models failed or are not configured.
+  architect_prompts: 'You are an architectural planning agent. Design solutions that:
+
+    1. Address the core requirements effectively
+
+    2. Consider system constraints and dependencies
+
+    3. Follow established patterns and best practices
+
+    4. Include proper error handling and validation
+
+    5. Provide clear implementation guidance
+
+
+    Create robust, maintainable architectural solutions.'
   maestro_prompts: 'You are a strategic maestro agent. Analyze the situation and select
     the best strategy based on:
 
@@ -375,8 +388,8 @@ validation_strategies:
 workflows:
   agent_coordination:
     expected_impact: Faster completion
-    last_modified: '2025-07-08T22:50:36.288061'
-    max_parallel: 39
+    last_modified: '2025-07-08T22:53:59.221057'
+    max_parallel: 40
     modification: Increase parallel execution
     parallel_execution: true
   error_handling:
