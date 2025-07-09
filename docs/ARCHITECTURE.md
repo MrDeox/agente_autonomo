@@ -317,9 +317,48 @@ agente_autonomo/
             chart_cycle_duration_seconds_7d.png
             chart_agents_per_cycle_7d.png
         backups/
+            config_backup_20250708_221716.yaml
+            maestro_config_backup_20250708_221722.yaml
+            architect_config_backup_20250708_221944.yaml
+            agent_coordination_workflow_backup_20250708_221638.yaml
+            agent_coordination_workflow_backup_20250708_221632.yaml
+            config_backup_20250708_221806.yaml
+            config_backup_20250708_221911.yaml
+            bug_hunter_config_backup_20250708_221538.yaml
+            architect_config_backup_20250708_221933.yaml
             error_handling_workflow_backup_20250708_154558.yaml
+            config_backup_20250708_221744.yaml
+            config_backup_20250708_221828.yaml
             config_backup_20250708_221438.yaml
+            config_backup_20250708_221454.yaml
+            config_backup_20250708_221554.yaml
+            architect_config_backup_20250708_222005.yaml
+            config_backup_20250708_221559.yaml
+            config_backup_20250708_221812.yaml
+            agent_coordination_workflow_backup_20250708_221855.yaml
+            config_backup_20250708_221605.yaml
+            architect_config_backup_20250708_221954.yaml
+            config_backup_20250708_221733.yaml
+            bug_hunter_config_backup_20250708_221833.yaml
+            architect_config_backup_20250708_221516.yaml
+            config_backup_20250708_221621.yaml
+            bug_hunter_config_backup_20250708_221849.yaml
+            config_backup_20250708_221627.yaml
+            architect_config_backup_20250708_221839.yaml
+            config_backup_20250708_221510.yaml
+            config_backup_20250708_221616.yaml
+            agent_coordination_workflow_backup_20250708_221938.yaml
+            config_backup_20250708_221800.yaml
+            config_backup_20250708_221949.yaml
+            maestro_config_backup_20250708_221727.yaml
+            config_backup_20250708_221449.yaml
+            architect_config_backup_20250708_221711.yaml
             error_handling_workflow_backup_20250708_154516.yaml
+            config_backup_20250708_221928.yaml
+            config_backup_20250708_221700.yaml
+            bug_hunter_config_backup_20250708_221543.yaml
+            agent_coordination_workflow_backup_20250708_221548.yaml
+            architect_config_backup_20250708_221738.yaml
             config_backup_20250708_221443.yaml
         workflows/
             agent_coordination_workflow.yaml
