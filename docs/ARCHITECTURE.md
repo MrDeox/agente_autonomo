@@ -127,6 +127,7 @@ agente_autonomo/
                 predictive_failure_engine.py
                 meta_core.py
                 meta_learning_intelligence.py
+                dynamic_agent_dna.py
             services/
                 __init__.py
                 communication/
@@ -311,6 +312,8 @@ agente_autonomo/
         intelligence/
             meta_objectives/
                 meta_objective_data.json
+            temporal/
+                temporal_data.json
         evolution_analytics/
             metrics_history.json
             chart_cycle_success_rate_7d.png
@@ -318,23 +321,35 @@ agente_autonomo/
             chart_cycle_duration_seconds_7d.png
             chart_agents_per_cycle_7d.png
         backups/
+            bug_hunter_config_backup_20250708_223022.yaml
             config_backup_20250708_222438.yaml
             config_backup_20250708_222415.yaml
             config_backup_20250708_221716.yaml
+            config_backup_20250708_222849.yaml
             maestro_config_backup_20250708_221722.yaml
+            config_backup_20250708_223101.yaml
             config_backup_20250708_222305.yaml
+            bug_hunter_config_backup_20250708_222659.yaml
             maestro_config_backup_20250708_222443.yaml
+            config_backup_20250708_222844.yaml
             config_backup_20250708_222127.yaml
+            maestro_config_backup_20250708_223028.yaml
+            config_backup_20250708_222955.yaml
+            config_backup_20250708_222901.yaml
             config_backup_20250708_222038.yaml
+            config_backup_20250708_222816.yaml
             error_handling_workflow_backup_20250708_222410.yaml
             validation_pipeline_workflow_backup_20250708_222155.yaml
             bug_hunter_config_backup_20250708_222111.yaml
             architect_config_backup_20250708_221944.yaml
             agent_coordination_workflow_backup_20250708_222049.yaml
+            config_backup_20250708_222749.yaml
             config_backup_20250708_222343.yaml
             config_backup_20250708_222300.yaml
             config_backup_20250708_222549.yaml
             config_backup_20250708_222359.yaml
+            validation_pipeline_workflow_backup_20250708_223112.yaml
+            config_backup_20250708_222922.yaml
             config_backup_20250708_222505.yaml
             agent_coordination_workflow_backup_20250708_221638.yaml
             agent_coordination_workflow_backup_20250708_221632.yaml
@@ -343,16 +358,23 @@ agente_autonomo/
             config_backup_20250708_222138.yaml
             config_backup_20250708_221911.yaml
             validation_pipeline_workflow_backup_20250708_222217.yaml
+            config_backup_20250708_223107.yaml
+            bug_hunter_config_backup_20250708_223045.yaml
             bug_hunter_config_backup_20250708_221538.yaml
             config_backup_20250708_222054.yaml
+            config_backup_20250708_222710.yaml
+            config_backup_20250708_222811.yaml
             config_backup_20250708_222144.yaml
             config_backup_20250708_222510.yaml
             architect_config_backup_20250708_221933.yaml
+            config_backup_20250708_222721.yaml
             error_handling_workflow_backup_20250708_154558.yaml
             config_backup_20250708_222527.yaml
             maestro_config_backup_20250708_222349.yaml
             config_backup_20250708_222206.yaml
             config_backup_20250708_222532.yaml
+            agent_coordination_workflow_backup_20250708_222605.yaml
+            config_backup_20250708_223012.yaml
             config_backup_20250708_221744.yaml
             config_backup_20250708_221828.yaml
             config_backup_20250708_222222.yaml
@@ -363,17 +385,28 @@ agente_autonomo/
             config_backup_20250708_222255.yaml
             config_backup_20250708_221454.yaml
             config_backup_20250708_221554.yaml
+            architect_config_backup_20250708_222638.yaml
             architect_config_backup_20250708_222338.yaml
+            agent_coordination_workflow_backup_20250708_222944.yaml
             architect_config_backup_20250708_222005.yaml
             config_backup_20250708_221559.yaml
             config_backup_20250708_221812.yaml
+            agent_coordination_workflow_backup_20250708_222754.yaml
+            config_backup_20250708_222726.yaml
+            architect_config_backup_20250708_222855.yaml
             config_backup_20250708_222333.yaml
+            error_handling_workflow_backup_20250708_222621.yaml
             agent_coordination_workflow_backup_20250708_221855.yaml
             config_backup_20250708_221605.yaml
             config_backup_20250708_222516.yaml
             config_backup_20250708_222122.yaml
+            config_backup_20250708_222928.yaml
+            config_backup_20250708_222805.yaml
             architect_config_backup_20250708_221954.yaml
+            bug_hunter_config_backup_20250708_222632.yaml
+            bug_hunter_config_backup_20250708_222643.yaml
             config_backup_20250708_222311.yaml
+            agent_coordination_workflow_backup_20250708_222743.yaml
             config_backup_20250708_221733.yaml
             bug_hunter_config_backup_20250708_221833.yaml
             maestro_config_backup_20250708_222327.yaml
@@ -381,7 +414,10 @@ agente_autonomo/
             architect_config_backup_20250708_221516.yaml
             architect_config_backup_20250708_222249.yaml
             config_backup_20250708_222133.yaml
+            config_backup_20250708_222912.yaml
             config_backup_20250708_222027.yaml
+            maestro_config_backup_20250708_222715.yaml
+            config_backup_20250708_222738.yaml
             config_backup_20250708_221621.yaml
             bug_hunter_config_backup_20250708_221849.yaml
             config_backup_20250708_221627.yaml
@@ -390,27 +426,40 @@ agente_autonomo/
             architect_config_backup_20250708_222044.yaml
             config_backup_20250708_222454.yaml
             config_backup_20250708_222448.yaml
+            config_backup_20250708_222616.yaml
             config_backup_20250708_221616.yaml
             agent_coordination_workflow_backup_20250708_221938.yaml
             config_backup_20250708_221800.yaml
             config_backup_20250708_221949.yaml
+            config_backup_20250708_222654.yaml
+            config_backup_20250708_222559.yaml
+            config_backup_20250708_223122.yaml
             maestro_config_backup_20250708_221727.yaml
             config_backup_20250708_222316.yaml
+            config_backup_20250708_222800.yaml
             config_backup_20250708_222432.yaml
             maestro_config_backup_20250708_222211.yaml
+            config_backup_20250708_223128.yaml
+            error_handling_workflow_backup_20250708_222838.yaml
             config_backup_20250708_221449.yaml
             architect_config_backup_20250708_221711.yaml
+            config_backup_20250708_222917.yaml
             config_backup_20250708_222200.yaml
             config_backup_20250708_222100.yaml
+            config_backup_20250708_223050.yaml
             bug_hunter_config_backup_20250708_222149.yaml
             config_backup_20250708_222500.yaml
             error_handling_workflow_backup_20250708_154516.yaml
+            config_backup_20250708_222832.yaml
             config_backup_20250708_221928.yaml
             config_backup_20250708_221700.yaml
             bug_hunter_config_backup_20250708_221543.yaml
             agent_coordination_workflow_backup_20250708_221548.yaml
             architect_config_backup_20250708_221738.yaml
+            config_backup_20250708_222610.yaml
             config_backup_20250708_221443.yaml
+            config_backup_20250708_222649.yaml
+            maestro_config_backup_20250708_222934.yaml
         workflows/
             validation_pipeline_workflow.yaml
             agent_coordination_workflow.yaml
@@ -1491,6 +1540,22 @@ agente_autonomo/
   - *🧠 Meta-Learning Intelligence System*
 - **Função:** `get_meta_learning_intelligence(config: Dict[str, Any], logger: logging.Logger)`
   - *Get singleton instance of MetaLearningIntelligence*
+
+### Arquivo: `src/hephaestus/intelligence/dynamic_agent_dna.py`
+- **Classe:** `GeneType(Enum)`
+  - *Tipos de genes cognitivos*
+- **Classe:** `SelectionPressure(Enum)`
+  - *Pressões de seleção natural*
+- **Classe:** `CognitiveGene`
+  - *Gene cognitivo individual*
+- **Classe:** `AgentDNA`
+  - *DNA cognitivo completo de um agente*
+- **Classe:** `PopulationStats`
+  - *Estatísticas da população*
+- **Classe:** `DynamicAgentDNA`
+  - *🧬 Dynamic Agent DNA System - Evolução darwiniana para agentes*
+- **Função:** `get_dynamic_agent_dna(config: Dict[str, Any], logger: logging.Logger)`
+  - *Get singleton instance of DynamicAgentDNA*
 
 ### Arquivo: `src/hephaestus/services/__init__.py`
 
