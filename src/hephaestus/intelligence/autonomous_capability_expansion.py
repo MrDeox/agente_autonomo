@@ -218,19 +218,23 @@ class AutonomousCapabilityExpansion:
             domain_gaps = self._analyze_domain_coverage()
             gaps.extend(domain_gaps)
             
-            # 2. Analisar padrões de falha
-            failure_gaps = self._analyze_failure_patterns()
+            # 2. Analisar padrões de falha REAIS
+            failure_gaps = self._analyze_failure_patterns_real()
             gaps.extend(failure_gaps)
             
-            # 3. Analisar demandas não atendidas
-            demand_gaps = self._analyze_unmet_demands()
+            # 3. Analisar performance real dos agentes
+            performance_gaps = self._analyze_agent_performance_real()
+            gaps.extend(performance_gaps)
+            
+            # 4. Analisar demandas não atendidas REAIS
+            demand_gaps = self._analyze_unmet_demands_real()
             gaps.extend(demand_gaps)
             
-            # 4. Analisar oportunidades de síntese
+            # 5. Analisar oportunidades de síntese
             synthesis_gaps = self._analyze_synthesis_opportunities()
             gaps.extend(synthesis_gaps)
             
-            # 5. Filtrar e priorizar gaps
+            # 6. Filtrar e priorizar gaps
             validated_gaps = self._validate_and_prioritize_gaps(gaps)
             
             # Atualizar gaps identificados
@@ -967,6 +971,158 @@ class AutonomousCapabilityExpansion:
             )[:5]
         }
     
+    def _setup_real_data_collection(self):
+        """Configura coleta de dados reais do sistema"""
+        self.logger.info("📊 Setting up real data collection for capability expansion...")
+        
+        # Estruturas para dados reais
+        self.real_failure_patterns = defaultdict(int)
+        self.real_performance_issues = defaultdict(list)
+        self.real_agent_capabilities = defaultdict(set)
+        self.real_success_rates = defaultdict(list)
+        
+        self.logger.info("✅ Real data collection configured")
+    
+    def record_real_system_event(self, event_type: str, domain: str, success: bool, 
+                                details: Dict[str, Any] = None) -> bool:
+        """Registra eventos reais do sistema para análise de gaps"""
+        try:
+            details = details or {}
+            
+            # Registrar padrões de falha
+            if not success:
+                failure_key = f"{domain}_{event_type}"
+                self.real_failure_patterns[failure_key] += 1
+                
+                # Registrar detalhes da falha
+                if "execution_time" in details:
+                    self.real_performance_issues[failure_key].append(details["execution_time"])
+            
+            # Registrar capacidades de agentes
+            if "agent_name" in details:
+                agent_name = details["agent_name"]
+                self.real_agent_capabilities[agent_name].add(f"{domain}_{event_type}")
+                
+                # Registrar taxa de sucesso
+                self.real_success_rates[agent_name].append(1.0 if success else 0.0)
+                
+                # Limitar histórico (últimos 100 registros)
+                if len(self.real_success_rates[agent_name]) > 100:
+                    self.real_success_rates[agent_name] = self.real_success_rates[agent_name][-100:]
+            
+            # Salvar dados periodicamente
+            if random.random() < 0.1:  # 10% chance de salvar
+                self._save_expansion_data()
+            
+            return True
+            
+        except Exception as e:
+            self.logger.error(f"❌ Error recording system event: {e}")
+            return False
+    
+    def _analyze_failure_patterns_real(self) -> List[CapabilityGap]:
+        """Analisa padrões de falha REAIS para identificar gaps"""
+        gaps = []
+        
+        # Usar dados reais de falha coletados
+        for failure_pattern, count in self.real_failure_patterns.items():
+            if count >= 3:  # Mínimo de 3 falhas para considerar um gap
+                domain_str, event_type = failure_pattern.split("_", 1)
+                
+                try:
+                    domain = CapabilityDomain(domain_str)
+                except ValueError:
+                    continue
+                
+                # Calcular severidade baseada na frequência
+                severity = min(1.0, count / 10.0)
+                
+                gap = CapabilityGap(
+                    gap_id=f"real_failure_gap_{failure_pattern}_{int(time.time())}",
+                    domain=domain,
+                    description=f"Real failure pattern detected: {event_type} in {domain_str}",
+                    severity=severity,
+                    impact_potential=0.8,
+                    complexity=0.6,
+                    current_coverage=0.3,  # Baixa cobertura se há falhas frequentes
+                    required_capabilities=[f"{event_type}_specialist", f"{domain_str}_error_handler"]
+                )
+                gaps.append(gap)
+        
+        return gaps
+    
+    def _analyze_agent_performance_real(self) -> List[CapabilityGap]:
+        """Analisa performance real dos agentes para identificar gaps"""
+        gaps = []
+        
+        for agent_name, success_rates in self.real_success_rates.items():
+            if len(success_rates) >= 5:  # Mínimo de 5 registros
+                avg_success_rate = statistics.mean(success_rates)
+                
+                if avg_success_rate < 0.7:  # Taxa de sucesso baixa
+                    # Determinar domínio baseado nas capacidades do agente
+                    agent_capabilities = self.real_agent_capabilities.get(agent_name, set())
+                    
+                    # Inferir domínio mais comum
+                    domain_counts = defaultdict(int)
+                    for cap in agent_capabilities:
+                        for domain in CapabilityDomain:
+                            if domain.value in cap:
+                                domain_counts[domain] += 1
+                    
+                    if domain_counts:
+                        primary_domain = max(domain_counts.items(), key=lambda x: x[1])[0]
+                        
+                        gap = CapabilityGap(
+                            gap_id=f"real_performance_gap_{agent_name}_{int(time.time())}",
+                            domain=primary_domain,
+                            description=f"Low performance in {agent_name}: {avg_success_rate:.2f} success rate",
+                            severity=1.0 - avg_success_rate,
+                            impact_potential=0.9,
+                            complexity=0.5,
+                            current_coverage=avg_success_rate,
+                            required_capabilities=[f"{agent_name}_enhancement", f"{primary_domain.value}_optimization"]
+                        )
+                        gaps.append(gap)
+        
+        return gaps
+    
+    def _analyze_unmet_demands_real(self) -> List[CapabilityGap]:
+        """Analisa demandas não atendidas baseado em dados reais"""
+        gaps = []
+        
+        # Analisar padrões de falha para identificar demandas não atendidas
+        domain_failure_counts = defaultdict(int)
+        
+        for failure_pattern, count in self.real_failure_patterns.items():
+            domain_str = failure_pattern.split("_")[0]
+            try:
+                domain = CapabilityDomain(domain_str)
+                domain_failure_counts[domain] += count
+            except ValueError:
+                continue
+        
+        # Identificar domínios com alta demanda não atendida
+        for domain, failure_count in domain_failure_counts.items():
+            if failure_count >= 5:  # Alta demanda
+                current_capabilities = len(self.capability_map.get(domain, []))
+                demand_coverage = current_capabilities / max(1, failure_count / 2)  # Ratio coverage/demand
+                
+                if demand_coverage < 0.5:  # Demanda não atendida
+                    gap = CapabilityGap(
+                        gap_id=f"real_demand_gap_{domain.value}_{int(time.time())}",
+                        domain=domain,
+                        description=f"High unmet demand in {domain.value}: {failure_count} failures vs {current_capabilities} capabilities",
+                        severity=min(1.0, failure_count / 10.0),
+                        impact_potential=0.85,
+                        complexity=0.7,
+                        current_coverage=demand_coverage,
+                        required_capabilities=[f"{domain.value}_demand_handler", f"{domain.value}_capacity_expander"]
+                    )
+                    gaps.append(gap)
+        
+        return gaps
+
     def shutdown(self):
         """Encerra sistema de expansão"""
         self.logger.info("🛑 Shutting down Autonomous Capability Expansion...")
