@@ -64,7 +64,7 @@ real_time_evolution:
   evolution_cooldown: 300  # 5 minutos de cooldown entre ciclos evolutivos
   force_execution_mode: false  # permite evolução controlada
   execution_priority: true  # prioriza execução sobre evolução
-  max_mutations_per_hour: 10  # limite mais alto - 10 mutações por hora
+  max_mutations_per_hour: 3  # limite controlado - 3 mutações por hora
   require_success_before_mutation: false  # permite mutação mesmo com falhas
 
 # Configurações de Rate Limiting para API - OTIMIZADO PARA MÚLTIPLAS CHAVES
