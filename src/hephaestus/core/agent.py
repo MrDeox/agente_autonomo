@@ -1021,10 +1021,35 @@ class HephaestusAgent:
     def enable_real_time_evolution(self):
         """Habilitar evolução em tempo real"""
         if not self.real_time_evolution_enabled:
-            if self.hot_reload_manager.start_hot_reload():
+            try:
+                # Iniciar watching dos módulos do projeto
+                src_path = str(Path("src/hephaestus").absolute())
+                self.hot_reload_manager.start_watching(src_path)
+                
+                # Adicionar módulos principais para watch
+                main_modules = [
+                    "hephaestus.core.agent",
+                    "hephaestus.agents.architect",
+                    "hephaestus.agents.maestro",
+                    "hephaestus.agents.bug_hunter",
+                    "hephaestus.agents.organizer"
+                ]
+                
+                for module_name in main_modules:
+                    self.hot_reload_manager.add_module(module_name)
+                
+                # Iniciar evolução automática
+                self.self_evolution_engine.start_evolution()
+                
                 self.real_time_evolution_enabled = True
                 self.logger.info("🚀 Real-time evolution enabled!")
+                self.logger.info(f"📁 Watching directory: {src_path}")
+                self.logger.info(f"📋 Watching {len(main_modules)} core modules")
                 return True
+                
+            except Exception as e:
+                self.logger.error(f"❌ Failed to enable real-time evolution: {e}")
+                return False
         return False
     
     def disable_real_time_evolution(self):
