@@ -186,6 +186,23 @@ dynamic_agent_dna:
   cognitive_genetics_enabled: true  # genética cognitiva avançada
   fitness_based_selection: true  # seleção baseada em fitness real
 
+# Configurações do Autonomous Capability Expansion - 9ª META-FUNCIONALIDADE
+autonomous_capability_expansion:
+  enabled: true  # ✅ HABILITADO - Sistema de expansão exponencial de capacidades
+  discovery_interval: 7200  # 2 horas entre ciclos de descoberta automática
+  max_concurrent_expansions: 3  # máximo de expansões simultâneas
+  complexity_threshold: 0.8  # limiar máximo de complexidade (80%)
+  success_probability_threshold: 0.6  # limiar mínimo de probabilidade de sucesso (60%)
+  impact_threshold: 0.5  # limiar mínimo de impacto esperado (50%)
+  auto_implementation_enabled: true  # implementação automática de capacidades
+  gap_analysis_enabled: true  # análise automática de lacunas de capacidade
+  blueprint_generation_enabled: true  # geração automática de blueprints
+  dynamic_agent_creation: true  # criação dinâmica de novos agentes especializados
+  self_discovery_enabled: true  # auto-descoberta de domínios não explorados
+  exponential_expansion_enabled: true  # expansão exponencial de habilidades
+  autonomous_learning_enabled: true  # aprendizado autônomo de novas competências
+  capability_synthesis_enabled: true  # síntese de capacidades existentes em novas
+
 # NOVA CONFIGURAÇÃO: Modo de Execução Forçada
 execution_mode:
   enabled: true
