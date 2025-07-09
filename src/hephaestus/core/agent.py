@@ -253,6 +253,9 @@ class HephaestusAgent:
         
         # Register real agents in DNA system
         self._register_agents_in_dna_system()
+        
+        # Setup capability expansion data collection
+        self._setup_capability_expansion_data_collection()
 
         # Hot Reload Manager - Auto-atualização em tempo real
         self.hot_reload_manager = HotReloadManager(self.logger)
