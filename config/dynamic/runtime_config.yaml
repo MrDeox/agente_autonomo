@@ -2,7 +2,7 @@ agents:
   architect:
     behavior: risk_assessment
     change: More conservative patch generation
-    last_behavior_change: '2025-07-08T22:15:16.548447'
+    last_behavior_change: '2025-07-08T22:17:11.613233'
     patch_generation: conservative
     risk_tolerance: conservative
   bug_hunter:
@@ -178,7 +178,22 @@ prompts:
 
 
     Make data-driven decisions and coordinate effectively with other agents.'
-  objective_generation: Both primary and fallback models failed or are not configured.
+  objective_generation: 'You are an objective generation system. Create strategic
+    objectives that:
+
+    1. Address current system gaps and opportunities
+
+    2. Consider recent performance data and failure patterns
+
+    3. Balance risk and reward appropriately
+
+    4. Focus on high-impact, manageable tasks
+
+    5. Include context about recent successes and failures
+
+
+    Generate objectives that are specific, measurable, and aligned with system evolution
+    goals.'
 rate_limiting:
   calls_per_minute: 30
   enabled: true
