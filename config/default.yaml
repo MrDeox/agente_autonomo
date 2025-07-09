@@ -167,6 +167,25 @@ temporal_intelligence:
   predictive_optimization: true  # otimização baseada em predições futuras
   temporal_context_awareness: true  # consciência completa do contexto temporal
 
+# Configurações do Dynamic Agent DNA System - 8ª META-FUNCIONALIDADE
+dynamic_agent_dna:
+  enabled: true  # ✅ HABILITADO - Sistema de evolução darwiniana para agentes
+  population_size: 50  # tamanho máximo da população por tipo de agente
+  mutation_rate: 0.1  # taxa de mutação genética (10%)
+  selection_pressure: 0.3  # pressão de seleção natural (30% dos menos aptos eliminados)
+  reproduction_rate: 0.2  # taxa de reprodução sexual (20% da população)
+  generation_interval: 3600  # intervalo entre gerações em segundos (1 hora)
+  fitness_threshold: 0.6  # limiar mínimo de fitness para sobrevivência
+  genetic_diversity_target: 0.7  # objetivo de diversidade genética (70%)
+  natural_selection_enabled: true  # seleção natural baseada em performance
+  genetic_reproduction_enabled: true  # reprodução sexual entre agentes
+  mutation_evolution_enabled: true  # evolução através de mutações
+  speciation_enabled: true  # criação de novas espécies híbridas
+  population_dynamics_enabled: true  # dinâmica populacional complexa
+  darwinian_evolution_enabled: true  # evolução darwiniana completa
+  cognitive_genetics_enabled: true  # genética cognitiva avançada
+  fitness_based_selection: true  # seleção baseada em fitness real
+
 # NOVA CONFIGURAÇÃO: Modo de Execução Forçada
 execution_mode:
   enabled: true
