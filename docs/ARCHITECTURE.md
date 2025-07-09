@@ -329,18 +329,33 @@ agente_autonomo/
             chart_agents_per_cycle_7d.png
         backups/
             error_handling_workflow_backup_20250708_223254.yaml
+            bug_hunter_config_backup_20250708_223836.yaml
             config_backup_20250708_223550.yaml
             error_handling_workflow_backup_20250708_222410.yaml
             validation_pipeline_workflow_backup_20250708_222155.yaml
+            maestro_config_backup_20250708_223820.yaml
             validation_pipeline_workflow_backup_20250708_223112.yaml
+            config_backup_20250708_223612.yaml
             validation_pipeline_workflow_backup_20250708_222217.yaml
+            config_backup_20250708_223758.yaml
             error_handling_workflow_backup_20250708_154558.yaml
+            config_backup_20250708_223705.yaml
+            config_backup_20250708_223748.yaml
+            config_backup_20250708_223804.yaml
+            config_backup_20250708_223918.yaml
             error_handling_workflow_backup_20250708_223305.yaml
             error_handling_workflow_backup_20250708_222621.yaml
+            config_backup_20250708_223644.yaml
             config_backup_20250708_223534.yaml
             architect_config_backup_20250708_223540.yaml
+            architect_config_backup_20250708_223700.yaml
+            error_handling_workflow_backup_20250708_223929.yaml
+            config_backup_20250708_223923.yaml
+            validation_pipeline_workflow_backup_20250708_223907.yaml
             error_handling_workflow_backup_20250708_222838.yaml
+            config_backup_20250708_223913.yaml
             error_handling_workflow_backup_20250708_154516.yaml
+            config_backup_20250708_223830.yaml
         workflows/
             validation_pipeline_workflow.yaml
             agent_coordination_workflow.yaml
