@@ -292,6 +292,13 @@ class HephaestusAgent:
         
         self.logger.info("🔄 Hot Reload capabilities initialized!")
         
+        # Auto-ativar real-time evolution se configurado
+        if self.config.get("real_time_evolution", {}).get("enabled", False):
+            if self.enable_real_time_evolution():
+                self.logger.info("✅ Real-time evolution auto-enabled from configuration!")
+            else:
+                self.logger.warning("⚠️ Failed to auto-enable real-time evolution")
+        
         # Initialize optimized pipeline
         self.use_optimized_pipeline = use_optimized_pipeline
         self.optimized_pipeline = None
