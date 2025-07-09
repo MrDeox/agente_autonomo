@@ -10,7 +10,7 @@ from functools import wraps
 from contextlib import asynccontextmanager
 import logging
 
-from hephaestus.utils.llm_client import call_llm_api, call_llm_with_fallback
+from hephaestus.utils.llm_client import call_llm_api, call_llm_with_fallback, call_llm_with_fallback_async
 from hephaestus.utils.json_parser import parse_json_response
 from hephaestus.utils.intelligent_cache import IntelligentCache
 from hephaestus.utils.metrics_collector import MetricsCollector
@@ -55,8 +55,9 @@ class LLMCallManager:
             Tuple of (response, error_message)
         """
         # Use defaults if not provided
-        temperature = temperature or self.default_settings['temperature']
-        max_retries = max_retries or self.default_settings['max_retries']
+        temperature = temperature if temperature is not None else self.default_settings['temperature']
+        max_retries = max_retries if max_retries is not None else self.default_settings['max_retries']
+        fallback_models = fallback_models if fallback_models is not None else []
         
         # Generate cache key if not provided
         if cache_key is None and self.default_settings['cache_enabled']:
@@ -206,8 +207,8 @@ class LLMCallManager:
     async def _make_llm_call(self, prompt: str, temperature: float, **kwargs) -> Tuple[Optional[str], Optional[str]]:
         """Make the actual LLM call."""
         try:
-            # Use existing LLM client with correct signature
-            return call_llm_with_fallback(
+            # Use async version of LLM client
+            return await call_llm_with_fallback_async(
                 model_config=self.model_config,
                 prompt=prompt,
                 temperature=temperature,
@@ -219,7 +220,7 @@ class LLMCallManager:
     async def _make_llm_call_with_config(self, prompt: str, temperature: float, config: Dict[str, Any], **kwargs) -> Tuple[Optional[str], Optional[str]]:
         """Make LLM call with specific config."""
         try:
-            return call_llm_with_fallback(
+            return await call_llm_with_fallback_async(
                 model_config=config,
                 prompt=prompt,
                 temperature=temperature,
@@ -302,7 +303,7 @@ def llm_call_with_metrics(func: Callable) -> Callable:
     return wrapper
 
 
-def llm_call_with_retry(max_retries: int = 3, fallback_models: List[str] = None):
+def llm_call_with_retry(max_retries: int = 3, fallback_models: Optional[List[str]] = None):
     """Decorator to automatically add retry logic to LLM call methods."""
     
     def decorator(func: Callable) -> Callable:
@@ -311,7 +312,7 @@ def llm_call_with_retry(max_retries: int = 3, fallback_models: List[str] = None)
             if hasattr(self, 'llm_manager'):
                 # Use the agent's LLM manager
                 kwargs['max_retries'] = max_retries
-                kwargs['fallback_models'] = fallback_models
+                kwargs['fallback_models'] = fallback_models or []
             
             return await func(self, *args, **kwargs)
         

@@ -175,44 +175,66 @@ agente_autonomo/
             agents/
                 hephaestus_agent_124423607735120.json
                 hephaestus_agent_130662635941712.json
+                hephaestus_agent_126302631188496.json
                 hephaestus_agent_136018006606288.json
                 hephaestus_agent_127244829982160.json
                 hephaestus_agent_137408510679952.json
                 hephaestus_agent_130730365742800.json
+                hephaestus_agent_137304120246224.json
+                hephaestus_agent_134188832802064.json
+                hephaestus_agent_134198072856208.json
                 hephaestus_agent_126280159603280.json
                 hephaestus_agent_130698451963792.json
                 hephaestus_agent_132721687100368.json
+                hephaestus_agent_132305318048144.json
                 hephaestus_agent_126569939634000.json
+                hephaestus_agent_123950374728656.json
                 hephaestus_agent_129748972437456.json
                 hephaestus_agent_135442763201808.json
                 hephaestus_agent_139396809887184.json
                 hephaestus_agent_123283764277712.json
+                hephaestus_agent_125576807409232.json
                 hephaestus_agent_123169772310352.json
+                hephaestus_agent_131515852781136.json
+                hephaestus_agent_123338135004624.json
                 hephaestus_agent_129041742934352.json
                 hephaestus_agent_124203824008784.json
                 hephaestus_agent_139220132189904.json
                 hephaestus_agent_132641144558672.json
+                hephaestus_agent_132442195839952.json
+                hephaestus_agent_139334092803024.json
             insights/
             knowledge/
+                strategy_discovery_df51ad30.json
                 strategy_discovery_13ddf8ce.json
                 strategy_discovery_767ee161.json
                 strategy_discovery_23817242.json
+                strategy_discovery_67d55065.json
                 strategy_discovery_57f200e2.json
                 strategy_discovery_cedd7679.json
                 strategy_discovery_c6d261f1.json
+                strategy_discovery_d509214e.json
                 strategy_discovery_3c2f012c.json
                 strategy_discovery_ae850502.json
                 strategy_discovery_e106bffc.json
                 strategy_discovery_a28125aa.json
+                strategy_discovery_fa9dc1d0.json
                 strategy_discovery_539cbb83.json
                 strategy_discovery_058ea617.json
                 strategy_discovery_9db8dbd9.json
                 strategy_discovery_03f8dab4.json
+                strategy_discovery_39760a01.json
+                strategy_discovery_f6232653.json
                 strategy_discovery_496dcb64.json
+                strategy_discovery_33311d83.json
+                strategy_discovery_38cc52a2.json
                 strategy_discovery_706eb9c4.json
+                strategy_discovery_10c4cf55.json
                 strategy_discovery_0bb3a3d0.json
                 strategy_discovery_e59e00e2.json
+                strategy_discovery_af629508.json
                 strategy_discovery_f0329457.json
+                strategy_discovery_62e281e2.json
         agents/
             bug_hunter_config_backup_20250708_155245.yaml
             architect_config_backup_20250708_155245.yaml
@@ -913,6 +935,8 @@ agente_autonomo/
 ### Arquivo: `src/hephaestus/utils/json_parser.py`
 - **Função:** `_fix_common_json_errors(json_string: str, logger: logging.Logger)`
   - *Tenta corrigir erros comuns de JSON gerado por LLM.*
+- **Função:** `_extract_json_from_response(raw_str: str, logger: logging.Logger)`
+  - *Extract JSON content from various response formats.*
 - **Função:** `parse_json_response(raw_str: str, logger: logging.Logger)`
   - *Analyzes a raw string to find and parse a JSON object, cleaning and fixing it as needed.*
 
@@ -921,7 +945,7 @@ agente_autonomo/
   - *Manages LLM calls with standardized retry, caching, and metrics.*
 - **Função:** `llm_call_with_metrics(func: Callable)`
   - *Decorator to automatically add metrics to LLM call methods.*
-- **Função:** `llm_call_with_retry(max_retries: int=3, fallback_models: List[str]=None)`
+- **Função:** `llm_call_with_retry(max_retries: int=3, fallback_models: Optional[List[str]]=None)`
   - *Decorator to automatically add retry logic to LLM call methods.*
 
 ### Arquivo: `src/hephaestus/utils/agent_factory.py`

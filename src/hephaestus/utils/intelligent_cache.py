@@ -51,9 +51,21 @@ class IntelligentCache:
         if not self.access_times:
             return
         
-        lru_key = min(self.access_times, key=self.access_times.get)
+        lru_key = min(self.access_times.keys(), key=lambda k: self.access_times[k])
         del self.cache[lru_key]
         del self.access_times[lru_key]
+    
+    def clear(self) -> None:
+        """Limpar todo o cache"""
+        self.cache.clear()
+        self.access_times.clear()
+    
+    def delete(self, key: str) -> None:
+        """Deletar um item específico do cache"""
+        if key in self.cache:
+            del self.cache[key]
+        if key in self.access_times:
+            del self.access_times[key]
 
 # Cache global
 _global_cache = IntelligentCache()

@@ -52,8 +52,55 @@ def _fix_common_json_errors(json_string: str, logger: logging.Logger) -> str:
     # Remove espaços extras antes de vírgulas e chaves
     corrected_string = re.sub(r'\s+([,}\]])', r'\1', corrected_string)
     
+    # Corrige strings não terminadas - adiciona aspas de fechamento se necessário
+    def fix_unterminated_strings(match):
+        content = match.group(1)
+        # Se a string não termina com aspas, adiciona
+        if not content.endswith('"'):
+            logger.warning(f"JSON parser: Found unterminated string, adding closing quote")
+            return f'"{content}"'
+        return match.group(0)
+    
+    # Procura por strings que começam com aspas mas podem não terminar
+    corrected_string = re.sub(r'"([^"]*(?:\\.[^"]*)*)"?', fix_unterminated_strings, corrected_string)
+    
+    # Remove vírgulas extras antes de chaves de fechamento
+    corrected_string = re.sub(r',(\s*[}\]])', r'\1', corrected_string)
+    
+    # Corrige arrays e objetos malformados
+    corrected_string = re.sub(r'\[\s*,', '[', corrected_string)  # Remove vírgula inicial em arrays
+    corrected_string = re.sub(r'{\s*,', '{', corrected_string)   # Remove vírgula inicial em objetos
+    
     logger.info(f"JSON parser: Applied fixes to JSON string")
     return corrected_string
+
+def _extract_json_from_response(raw_str: str, logger: logging.Logger) -> str:
+    """
+    Extract JSON content from various response formats.
+    """
+    if not raw_str or not raw_str.strip():
+        return ""
+    
+    # Remove markdown code blocks
+    if raw_str.startswith('```json'):
+        content = raw_str.lstrip('```json').rstrip('```')
+    elif raw_str.startswith('```'):
+        content = raw_str.lstrip('```').rstrip('```')
+    else:
+        content = raw_str
+    
+    # Try to find JSON object with regex
+    match = re.search(r'\{.*\}', content, re.DOTALL)
+    if match:
+        return match.group(0)
+    
+    # If no JSON object found, try to find array
+    match = re.search(r'\[.*\]', content, re.DOTALL)
+    if match:
+        return match.group(0)
+    
+    # Fallback: return the cleaned content
+    return content.strip()
 
 def parse_json_response(raw_str: str, logger: logging.Logger) -> Tuple[Optional[Dict[str, Any]], Optional[str]]:
     """
@@ -67,22 +114,9 @@ def parse_json_response(raw_str: str, logger: logging.Logger) -> Tuple[Optional[
     if logger: 
         logger.debug(f"parse_json_response: Raw response before cleaning: {raw_str[:300]}...")
 
-    # Use regex to find the main JSON block. This is more robust.
-    # It looks for a string that starts with { and ends with }, accounting for nesting.
-    match = re.search(r'\{.*\}', raw_str, re.DOTALL)
+    # Extract JSON content
+    clean_content = _extract_json_from_response(raw_str, logger)
     
-    if match:
-        clean_content = match.group(0)
-    else:
-        # Fallback for code blocks without a perfect match
-        clean_content = raw_str.strip()
-        if clean_content.startswith('```json'):
-            clean_content = clean_content.lstrip('```json').rstrip('```')
-        elif clean_content.startswith('```'):
-            clean_content = clean_content.lstrip('```').rstrip('```')
-    
-    clean_content = clean_content.strip()
-
     if not clean_content:
         if logger:
             logger.error("parse_json_response: Content became empty after cleaning and extraction.")
@@ -100,10 +134,35 @@ def parse_json_response(raw_str: str, logger: logging.Logger) -> Tuple[Optional[
             logger.info("Attempting to parse with fixed JSON string...")
             return json.loads(corrected_json_str), None
         except json.JSONDecodeError as e2:
-            error_message = f"Erro ao decodificar JSON mesmo após tentativa de correção: {e2}."
-            if logger: 
-                logger.error(f"parse_json_response: {error_message}. Resposta original (parcial): {raw_str[:200]}")
-            return None, error_message
+            # Attempt 3: More aggressive fixes
+            logger.warning(f"Second parsing attempt failed: {e2}. Applying aggressive fixes...")
+            
+            # Try to fix more complex issues
+            aggressive_fixes = corrected_json_str
+            
+            # Remove any trailing commas
+            aggressive_fixes = re.sub(r',(\s*[}\]])', r'\1', aggressive_fixes)
+            
+            # Try to balance braces and brackets
+            open_braces = aggressive_fixes.count('{')
+            close_braces = aggressive_fixes.count('}')
+            open_brackets = aggressive_fixes.count('[')
+            close_brackets = aggressive_fixes.count(']')
+            
+            # Add missing closing braces/brackets
+            if open_braces > close_braces:
+                aggressive_fixes += '}' * (open_braces - close_braces)
+            if open_brackets > close_brackets:
+                aggressive_fixes += ']' * (open_brackets - close_brackets)
+            
+            try:
+                logger.info("Attempting to parse with aggressive fixes...")
+                return json.loads(aggressive_fixes), None
+            except json.JSONDecodeError as e3:
+                error_message = f"Erro ao decodificar JSON mesmo após tentativas de correção: {e3}."
+                if logger: 
+                    logger.error(f"parse_json_response: {error_message}. Resposta original (parcial): {raw_str[:200]}")
+                return None, error_message
     except Exception as e:
         error_message = f"Erro inesperado ao processar JSON: {str(e)}"
         if logger:
