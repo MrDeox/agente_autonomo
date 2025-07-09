@@ -2800,5 +2800,97 @@ class HephaestusAgent:
             complexity += 0.1
         
         return min(1.0, complexity)
+    
+    def _setup_capability_expansion_data_collection(self):
+        """Configura coleta de dados para Capability Expansion"""
+        self.logger.info("🚀 Setting up capability expansion data collection...")
+        
+        # Mapeamento de agentes para domínios
+        self.agent_domain_mapping = {
+            "architect": "planning",
+            "maestro": "intelligence", 
+            "bug_hunter": "analysis",
+            "organizer": "optimization"
+        }
+        
+        # Wrap métodos para coletar dados reais
+        self._wrap_agents_for_capability_expansion()
+        
+        self.logger.info("✅ Capability expansion data collection configured")
+    
+    def _wrap_agents_for_capability_expansion(self):
+        """Envolve agentes para coletar dados para capability expansion"""
+        agents_to_wrap = []
+        
+        if hasattr(self, 'architect') and self.architect:
+            agents_to_wrap.append(("architect", self.architect))
+            
+        if hasattr(self, 'maestro') and self.maestro:
+            agents_to_wrap.append(("maestro", self.maestro))
+            
+        if hasattr(self, 'bug_hunter') and self.bug_hunter:
+            agents_to_wrap.append(("bug_hunter", self.bug_hunter))
+            
+        if hasattr(self, 'organizer') and self.organizer:
+            agents_to_wrap.append(("organizer", self.organizer))
+        
+        for agent_name, agent_instance in agents_to_wrap:
+            if hasattr(agent_instance, 'execute'):
+                self._wrap_agent_for_capability_expansion(agent_instance, agent_name)
+    
+    def _wrap_agent_for_capability_expansion(self, agent, agent_name: str):
+        """Envolve um agente para coletar dados para capability expansion"""
+        if not agent or not hasattr(agent, 'execute'):
+            return
+            
+        # Obter método original (pode já estar wrapped)
+        original_execute = getattr(agent, 'execute_capability_wrapped', None) or agent.execute
+        domain = self.agent_domain_mapping.get(agent_name, "unknown")
+        
+        def capability_expansion_wrapper(*args, **kwargs):
+            start_time = time.time()
+            success = False
+            
+            try:
+                result = original_execute(*args, **kwargs)
+                execution_time = time.time() - start_time
+                success = True
+                
+                # Registrar evento no sistema de capability expansion
+                self.autonomous_capability_expansion.record_real_system_event(
+                    event_type=f"{agent_name}_execution",
+                    domain=domain,
+                    success=True,
+                    details={
+                        "agent_name": agent_name,
+                        "execution_time": execution_time,
+                        "task_args": str(args)[:100] if args else "no_args",
+                        "result_size": len(str(result)) if result else 0
+                    }
+                )
+                
+                return result
+                
+            except Exception as e:
+                execution_time = time.time() - start_time
+                
+                # Registrar falha no sistema de capability expansion
+                self.autonomous_capability_expansion.record_real_system_event(
+                    event_type=f"{agent_name}_failure",
+                    domain=domain,
+                    success=False,
+                    details={
+                        "agent_name": agent_name,
+                        "execution_time": execution_time,
+                        "error_type": type(e).__name__,
+                        "error_message": str(e)[:100]
+                    }
+                )
+                
+                raise  # Re-raise the exception
+        
+        # Preservar o método original para evitar multiple wrapping
+        agent.execute_capability_wrapped = original_execute
+        agent.execute = capability_expansion_wrapper
         
         self.logger.info("🧹 Automatic cleanup scheduled")
