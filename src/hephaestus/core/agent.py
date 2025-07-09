@@ -116,6 +116,8 @@ class HephaestusAgent:
         
         self.temporal_intelligence = get_temporal_intelligence(self.config, self.logger)
         
+        self.dynamic_agent_dna = get_dynamic_agent_dna(self.config, self.logger)
+        
         self.infrastructure_manager = get_infrastructure_manager(self.logger)
         
         # Inicializar Collective Intelligence Network (temporariamente desabilitado)
