@@ -2451,5 +2451,154 @@ class HephaestusAgent:
         # Iniciar thread de limpeza em background
         cleanup_thread = threading.Thread(target=cleanup_worker, daemon=True)
         cleanup_thread.start()
+    
+    def _setup_real_time_event_collection(self):
+        """Configura coleta de eventos reais para Temporal Intelligence"""
+        self.logger.info("🕐 Setting up real-time event collection for Temporal Intelligence...")
+        
+        # Hook para capturar eventos de execução de agentes
+        self._hook_agent_execution_events()
+        
+        # Hook para capturar eventos do sistema
+        self._hook_system_events()
+        
+        self.logger.info("✅ Real-time event collection configured for Temporal Intelligence")
+    
+    def _hook_agent_execution_events(self):
+        """Configura hooks para eventos de execução dos agentes"""
+        # Wrapper para capturar eventos dos agentes
+        if hasattr(self, 'architect') and self.architect:
+            self._wrap_agent_for_temporal_events(self.architect, "architect")
+        
+        if hasattr(self, 'maestro') and self.maestro:
+            self._wrap_agent_for_temporal_events(self.maestro, "maestro")
+            
+        if hasattr(self, 'bug_hunter') and self.bug_hunter:
+            self._wrap_agent_for_temporal_events(self.bug_hunter, "bug_hunter")
+            
+        if hasattr(self, 'organizer') and self.organizer:
+            self._wrap_agent_for_temporal_events(self.organizer, "organizer")
+    
+    def _wrap_agent_for_temporal_events(self, agent, agent_name: str):
+        """Envolve um agente para capturar seus eventos"""
+        if not agent or not hasattr(agent, 'execute'):
+            return
+            
+        original_execute = agent.execute
+        
+        def execute_wrapper(*args, **kwargs):
+            start_time = time.time()
+            try:
+                result = original_execute(*args, **kwargs)
+                execution_time = time.time() - start_time
+                
+                # Registrar evento na Temporal Intelligence
+                self.temporal_intelligence.record_real_system_event(
+                    f"{agent_name}_execution",
+                    result,
+                    {
+                        "execution_time": execution_time,
+                        "agent_name": agent_name,
+                        "success": True,
+                        "arguments": str(args)[:100] if args else "no_args"
+                    }
+                )
+                
+                return result
+                
+            except Exception as e:
+                execution_time = time.time() - start_time
+                
+                # Registrar evento de falha
+                self.temporal_intelligence.record_real_system_event(
+                    f"{agent_name}_failure",
+                    str(e),
+                    {
+                        "execution_time": execution_time,
+                        "agent_name": agent_name,
+                        "success": False,
+                        "error_type": type(e).__name__
+                    }
+                )
+                
+                raise  # Re-raise the exception
+        
+        agent.execute = execute_wrapper
+    
+    def _hook_system_events(self):
+        """Configura hooks para eventos do sistema"""
+        # Hook para ciclos de execução
+        original_run_single_cycle = getattr(self, 'run_single_cycle', None)
+        if original_run_single_cycle:
+            def cycle_wrapper(*args, **kwargs):
+                start_time = time.time()
+                try:
+                    result = original_run_single_cycle(*args, **kwargs)
+                    execution_time = time.time() - start_time
+                    
+                    self.temporal_intelligence.record_real_system_event(
+                        "system_cycle",
+                        result,
+                        {
+                            "execution_time": execution_time,
+                            "cycle_success": True
+                        }
+                    )
+                    
+                    return result
+                    
+                except Exception as e:
+                    execution_time = time.time() - start_time
+                    
+                    self.temporal_intelligence.record_real_system_event(
+                        "system_cycle_failure",
+                        str(e),
+                        {
+                            "execution_time": execution_time,
+                            "cycle_success": False,
+                            "error_type": type(e).__name__
+                        }
+                    )
+                    
+                    raise
+            
+            self.run_single_cycle = cycle_wrapper
+        
+        # Hook para geração de objetivos
+        if hasattr(self, 'meta_objective_generator') and self.meta_objective_generator:
+            original_generate = getattr(self.meta_objective_generator, 'generate_objectives', None)
+            if original_generate:
+                def objective_wrapper(*args, **kwargs):
+                    start_time = time.time()
+                    try:
+                        result = original_generate(*args, **kwargs)
+                        execution_time = time.time() - start_time
+                        
+                        self.temporal_intelligence.record_real_system_event(
+                            "objective_generation",
+                            len(result) if isinstance(result, list) else 1,
+                            {
+                                "execution_time": execution_time,
+                                "objectives_generated": len(result) if isinstance(result, list) else 1
+                            }
+                        )
+                        
+                        return result
+                        
+                    except Exception as e:
+                        execution_time = time.time() - start_time
+                        
+                        self.temporal_intelligence.record_real_system_event(
+                            "objective_generation_failure",
+                            str(e),
+                            {
+                                "execution_time": execution_time,
+                                "error_type": type(e).__name__
+                            }
+                        )
+                        
+                        raise
+                
+                self.meta_objective_generator.generate_objectives = objective_wrapper
         
         self.logger.info("🧹 Automatic cleanup scheduled")
