@@ -14,7 +14,7 @@ agents:
   maestro:
     behavior: strategy_selection
     change: Prefer strategies with higher success rates
-    last_behavior_change: '2025-07-08T22:24:43.489030'
+    last_behavior_change: '2025-07-08T22:27:15.760726'
     strategy_preference: high_success_rate
     success_rate_threshold: 0.8
 async:
