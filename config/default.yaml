@@ -148,6 +148,25 @@ meta_objective_generator:
   context_awareness_level: "high"  # nível de consciência contextual (low/medium/high)
   creativity_boost_factor: 1.2  # fator de aumento de criatividade
 
+# Configurações do Temporal Intelligence - 7ª META-FUNCIONALIDADE
+temporal_intelligence:
+  enabled: true  # ✅ HABILITADO - Sistema de consciência temporal completa
+  analysis_interval: 1800  # 30 minutos entre análises temporais automáticas
+  pattern_detection_threshold: 3  # mínimo de eventos para detectar padrões temporais
+  prediction_horizon_days: 7  # horizonte de predição em dias
+  max_historical_events: 10000  # máximo de eventos históricos em memória
+  pattern_confidence_threshold: 0.6  # limiar de confiança para validar padrões (60%)
+  temporal_memory_enabled: true  # sistema de memória temporal inteligente
+  proactive_planning_enabled: true  # planejamento proativo baseado em predições
+  historical_learning_enabled: true  # aprendizado contínuo de padrões históricos
+  future_prediction_enabled: true  # predição de necessidades e oportunidades futuras
+  cyclical_pattern_detection: true  # detecção de padrões cíclicos
+  trend_analysis_enabled: true  # análise de tendências temporais
+  correlation_analysis_enabled: true  # análise de correlações temporais entre eventos
+  temporal_decision_making: true  # tomada de decisão considerando linha temporal completa
+  predictive_optimization: true  # otimização baseada em predições futuras
+  temporal_context_awareness: true  # consciência completa do contexto temporal
+
 # NOVA CONFIGURAÇÃO: Modo de Execução Forçada
 execution_mode:
   enabled: true
