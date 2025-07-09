@@ -398,6 +398,52 @@ class DynamicAgentDNA:
         
         return best_dna
     
+    def record_agent_performance(self, agent_type: str, dna_id: str, fitness_score: float, 
+                               performance_data: Dict[str, Any]) -> bool:
+        """Registra performance real de um agente para evolução genética"""
+        if not self.enabled:
+            return False
+        
+        try:
+            # Encontrar o DNA específico
+            population = self.agent_populations.get(agent_type, [])
+            target_dna = None
+            
+            for dna in population:
+                if dna.dna_id == dna_id:
+                    target_dna = dna
+                    break
+            
+            if not target_dna:
+                self.logger.warning(f"DNA {dna_id} not found for agent {agent_type}")
+                return False
+            
+            # Registrar fitness score
+            target_dna.fitness_history.append(fitness_score)
+            
+            # Limitar histórico de fitness (manter últimos 50 registros)
+            if len(target_dna.fitness_history) > 50:
+                target_dna.fitness_history = target_dna.fitness_history[-50:]
+            
+            # Atualizar analytics de evolução
+            self.evolution_analytics["fitness_records"] = self.evolution_analytics.get("fitness_records", 0) + 1
+            self.evolution_analytics["average_fitness"] = statistics.mean([
+                fitness for dna in population for fitness in dna.fitness_history[-10:]
+            ]) if population else 0.0
+            
+            # Registrar evento na log
+            self.logger.debug(f"📊 Recorded performance for {agent_type} DNA {dna_id}: fitness={fitness_score:.3f}")
+            
+            # Salvar dados periodicamente
+            if self.evolution_analytics["fitness_records"] % 10 == 0:
+                self._save_population_data()
+            
+            return True
+            
+        except Exception as e:
+            self.logger.error(f"❌ Error recording agent performance: {e}")
+            return False
+    
     def get_best_dna(self, agent_type: str) -> Optional[AgentDNA]:
         """Retorna o melhor DNA de um tipo de agente"""
         if not self.enabled or agent_type not in self.agent_populations:
